@@ -49,7 +49,19 @@ fn supply(ws: &str, at: Option<String>, timeout: Duration) -> anyhow::Result<Sup
     let mut rpc = connect(ws, timeout)?;
     let at = match at {
         Some(h) => h,
-        None => storage::finalized_head(&mut rpc)?,
+        None => {
+            let finalized = storage::finalized_head(&mut rpc)?;
+            if storage::block_number(&mut rpc, &finalized)? == 0 {
+                // Single-node dev chains may never finalize; genesis would hide all activity.
+                eprintln!("note: finalized head is genesis; using best block instead");
+                rpc.call("chain_getBlockHash", json!([]))?
+                    .as_str()
+                    .map(String::from)
+                    .ok_or_else(|| anyhow!("no best block hash"))?
+            } else {
+                finalized
+            }
+        }
     };
     let block_number = storage::block_number(&mut rpc, &at)?;
 
