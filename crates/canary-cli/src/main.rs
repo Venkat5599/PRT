@@ -1,17 +1,39 @@
+use std::path::PathBuf;
 use std::process::ExitCode;
 use std::time::Duration;
 
-use clap::{Parser, Subcommand};
+use clap::{Args, Parser, Subcommand};
 
 mod compare;
 mod doctor;
 mod invariants;
+mod report;
+mod runner;
+mod test_cmd;
+mod verdict;
+mod workflow;
 
 #[derive(Parser)]
 #[command(name = "canary", version, about = "Differential runtime-upgrade testing for Portaldot")]
 struct Cli {
     #[command(subcommand)]
     command: Command,
+}
+
+#[derive(Args, Clone)]
+struct DriverArgs {
+    /// bun executable used to run the extrinsic driver.
+    #[arg(long, env = "CANARY_BUN", default_value = "bun")]
+    bun: PathBuf,
+    /// Path to the driver script.
+    #[arg(long, env = "CANARY_DRIVER", default_value = "driver/src/run.ts")]
+    driver: PathBuf,
+}
+
+impl DriverArgs {
+    fn into_driver(self) -> runner::Driver {
+        runner::Driver { bun: self.bun, script: self.driver }
+    }
 }
 
 #[derive(Subcommand)]
@@ -58,6 +80,43 @@ enum Command {
         #[arg(long)]
         json: bool,
     },
+    /// Run the workflow corpus against a baseline and a candidate runtime and classify every
+    /// difference. Exits 1 on any REGRESSION, 2 if anything is INCONCLUSIVE.
+    Test {
+        #[arg(long)]
+        baseline: String,
+        #[arg(long)]
+        candidate: String,
+        /// Workflow file or directory of *.yaml workflows.
+        #[arg(long, default_value = "tests/workflows")]
+        suite: PathBuf,
+        /// Directory that receives runs/<run-id>/report.{json,html}.
+        #[arg(long, default_value = "runs")]
+        out: PathBuf,
+        /// Run a single workflow by id.
+        #[arg(long)]
+        only: Option<String>,
+        /// Label the candidate as a deliberately injected regression (shown in every report).
+        #[arg(long)]
+        injected: Option<String>,
+        #[arg(long, default_value_t = 60)]
+        timeout: u64,
+        #[arg(long)]
+        json: bool,
+        #[command(flatten)]
+        driver: DriverArgs,
+    },
+    /// Re-run one workflow from a recorded run and check the finding hash is identical.
+    Reproduce {
+        workflow: String,
+        /// Run directory, e.g. runs/1760540000.
+        #[arg(long)]
+        run: PathBuf,
+        #[arg(long, default_value_t = 60)]
+        timeout: u64,
+        #[command(flatten)]
+        driver: DriverArgs,
+    },
 }
 
 fn main() -> ExitCode {
@@ -70,6 +129,22 @@ fn main() -> ExitCode {
         }
         Command::Invariants { ws, at, timeout, json } => {
             invariants::run(&ws, at, Duration::from_secs(timeout), json)
+        }
+        Command::Test { baseline, candidate, suite, out, only, injected, timeout, json, driver } => {
+            test_cmd::test(test_cmd::TestArgs {
+                baseline,
+                candidate,
+                suite,
+                out,
+                driver: driver.into_driver(),
+                only,
+                injected,
+                timeout: Duration::from_secs(timeout),
+                json,
+            })
+        }
+        Command::Reproduce { workflow, run, timeout, driver } => {
+            test_cmd::reproduce(&workflow, &run, driver.into_driver(), Duration::from_secs(timeout))
         }
     }
 }

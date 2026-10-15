@@ -1,0 +1,282 @@
+//! Executes one workflow against one runtime and records evidence.
+//!
+//! Accounts named in a workflow are namespaced per run and side
+//! (`//canary/<run>/<side>/<workflow>/<name>`), so runs never share state and
+//! both sides start from equivalent, freshly funded accounts.
+
+use std::collections::BTreeMap;
+use std::io::Write;
+use std::path::PathBuf;
+use std::process::{Command, Stdio};
+use std::time::Duration;
+
+use anyhow::{anyhow, bail, Context};
+use canary_chain::{invariant, storage};
+use serde::{Deserialize, Serialize};
+use serde_json::{json, Value};
+
+use crate::invariants::connect;
+use crate::workflow::{Expect, Field, Workflow};
+
+#[derive(Debug, Clone)]
+pub struct Driver {
+    pub bun: PathBuf,
+    pub script: PathBuf,
+}
+
+#[derive(Debug, Clone, Deserialize, Serialize)]
+pub struct EventRec {
+    pub name: String,
+    pub data: Value,
+}
+
+#[derive(Debug, Clone, Deserialize, Serialize)]
+pub struct StepOutcome {
+    pub index: usize,
+    pub call: String,
+    pub status: String,
+    pub block_hash: Option<String>,
+    pub dispatch_error: Option<String>,
+    #[serde(default)]
+    pub events: Vec<EventRec>,
+}
+
+#[derive(Deserialize)]
+struct DriverOut {
+    ok: bool,
+    #[serde(default)]
+    error: Option<String>,
+    #[serde(default)]
+    accounts: BTreeMap<String, String>,
+    #[serde(default)]
+    results: Vec<StepOutcome>,
+}
+
+#[derive(Debug, Clone, Serialize)]
+pub struct ExpectOutcome {
+    pub description: String,
+    pub kind: &'static str,
+    pub pass: bool,
+    pub observed: String,
+}
+
+#[derive(Debug, Clone, Serialize)]
+pub struct SideRun {
+    pub side: String,
+    pub endpoint: String,
+    pub setup_error: Option<String>,
+    pub pre_block: Option<String>,
+    pub post_block: Option<String>,
+    pub steps: Vec<StepOutcome>,
+    /// `account.field` -> signed change, e.g. `receiver.free` -> `+1000`.
+    pub deltas: BTreeMap<String, String>,
+    pub expectations: Vec<ExpectOutcome>,
+}
+
+impl Driver {
+    fn run(&self, job: &Value) -> anyhow::Result<DriverOut> {
+        let mut child = Command::new(&self.bun)
+            .arg(&self.script)
+            .stdin(Stdio::piped())
+            .stdout(Stdio::piped())
+            .stderr(Stdio::null())
+            .spawn()
+            .with_context(|| format!("starting driver {}", self.bun.display()))?;
+        child.stdin.take().context("driver stdin")?.write_all(job.to_string().as_bytes())?;
+        let out = child.wait_with_output()?;
+        let text = String::from_utf8_lossy(&out.stdout);
+        let line = text.lines().last().ok_or_else(|| anyhow!("driver produced no output"))?;
+        let parsed: DriverOut = serde_json::from_str(line).with_context(|| format!("driver output: {line}"))?;
+        if !parsed.ok {
+            bail!("driver error: {}", parsed.error.unwrap_or_default());
+        }
+        Ok(parsed)
+    }
+}
+
+pub struct Namespace<'a> {
+    pub run_id: &'a str,
+    pub side: &'a str,
+}
+
+fn uri(ns: &Namespace, wf: &Workflow, name: &str) -> String {
+    if wf.accounts.iter().any(|a| a == name) {
+        format!("//canary/{}/{}/{}/{}", ns.run_id, ns.side, wf.id, name)
+    } else {
+        name.to_string()
+    }
+}
+
+fn map_names(v: &Value, f: &dyn Fn(&str) -> String) -> Value {
+    match v {
+        Value::String(s) => Value::String(f(s)),
+        Value::Array(a) => Value::Array(a.iter().map(|x| map_names(x, f)).collect()),
+        Value::Object(o) => Value::Object(o.iter().map(|(k, x)| (k.clone(), map_names(x, f))).collect()),
+        other => other.clone(),
+    }
+}
+
+fn best_hash(rpc: &mut canary_chain::rpc::WsRpc) -> anyhow::Result<String> {
+    rpc.call("chain_getBlockHash", json!([]))?
+        .as_str()
+        .map(String::from)
+        .ok_or_else(|| anyhow!("no best block hash"))
+}
+
+type Balances = BTreeMap<String, (u128, u128)>;
+
+fn read_balances(
+    rpc: &mut canary_chain::rpc::WsRpc,
+    ids: &BTreeMap<String, Vec<u8>>,
+    at: &str,
+) -> anyhow::Result<Balances> {
+    ids.iter()
+        .map(|(name, id)| {
+            let info = invariant::account(rpc, id, at)?;
+            Ok((name.clone(), info.map(|i| (i.free, i.reserved)).unwrap_or((0, 0))))
+        })
+        .collect()
+}
+
+fn signed(post: u128, pre: u128) -> i128 {
+    post as i128 - pre as i128
+}
+
+fn fmt_signed(v: i128) -> String {
+    if v >= 0 { format!("+{v}") } else { v.to_string() }
+}
+
+fn parse_i128(s: &str) -> anyhow::Result<i128> {
+    s.trim_start_matches('+').parse().with_context(|| format!("not an integer: {s}"))
+}
+
+fn evaluate(
+    e: &Expect,
+    steps: &[StepOutcome],
+    deltas: &BTreeMap<String, i128>,
+    rpc: &mut canary_chain::rpc::WsRpc,
+    post: &str,
+) -> ExpectOutcome {
+    let (pass, observed) = match e {
+        Expect::Dispatch { step, status, error } => match steps.get(*step) {
+            None => (false, "step did not run".into()),
+            Some(s) => {
+                let err_ok = match error {
+                    None => true,
+                    Some(want) => s.dispatch_error.as_deref().unwrap_or("").to_lowercase().contains(&want.to_lowercase()),
+                };
+                let seen = match &s.dispatch_error {
+                    Some(d) => format!("{} ({d})", s.status),
+                    None => s.status.clone(),
+                };
+                (s.status == *status && err_ok, seen)
+            }
+        },
+        Expect::Delta { account, field, eq, gt, lt } => {
+            let key = format!("{account}.{}", match field { Field::Free => "free", Field::Reserved => "reserved" });
+            match deltas.get(&key) {
+                None => (false, format!("no observation for {key}")),
+                Some(&d) => {
+                    let check = |v: &Option<String>, f: fn(i128, i128) -> bool| -> anyhow::Result<bool> {
+                        Ok(match v { Some(x) => f(d, parse_i128(x)?), None => true })
+                    };
+                    let pass = check(eq, |a, b| a == b).and_then(|a| Ok(a && check(gt, |a, b| a > b)? && check(lt, |a, b| a < b)?));
+                    match pass {
+                        Ok(p) => (p, fmt_signed(d)),
+                        Err(err) => (false, format!("bad expectation: {err}")),
+                    }
+                }
+            }
+        }
+        Expect::Event { step, name, absent } => match steps.get(*step) {
+            None => (false, "step did not run".into()),
+            Some(s) => {
+                let found = s.events.iter().any(|ev| ev.name.eq_ignore_ascii_case(name));
+                let names: Vec<&str> = s.events.iter().map(|ev| ev.name.as_str()).collect();
+                (found != *absent, if names.is_empty() { "no events".into() } else { names.join(", ") })
+            }
+        },
+        Expect::Invariant(n) if n == "supply_conservation" => match invariant::supply_at(rpc, post) {
+            Ok(s) => (
+                s.holds(),
+                format!("accounts {} sum {} vs issuance {}", s.accounts, s.sum_free + s.sum_reserved, s.total_issuance),
+            ),
+            Err(err) => (false, format!("error: {err}")),
+        },
+        Expect::Invariant(n) => (false, format!("unknown invariant {n}")),
+    };
+    ExpectOutcome { description: e.describe(), kind: e.kind(), pass, observed }
+}
+
+pub fn run_side(wf: &Workflow, ns: &Namespace, ws: &str, driver: &Driver, timeout: Duration) -> SideRun {
+    let mut run = SideRun {
+        side: ns.side.into(),
+        endpoint: ws.into(),
+        setup_error: None,
+        pre_block: None,
+        post_block: None,
+        steps: Vec::new(),
+        deltas: BTreeMap::new(),
+        expectations: Vec::new(),
+    };
+    if let Err(e) = execute(wf, ns, ws, driver, timeout, &mut run) {
+        run.setup_error = Some(format!("{e:#}"));
+    }
+    run
+}
+
+fn execute(wf: &Workflow, ns: &Namespace, ws: &str, driver: &Driver, timeout: Duration, run: &mut SideRun) -> anyhow::Result<()> {
+    let name = |n: &str| uri(ns, wf, n);
+    let uris: Vec<String> = wf.accounts.iter().map(|a| name(a)).collect();
+
+    // Setup: fund namespaced accounts from the dev faucet account.
+    let fund_steps: Vec<Value> = wf
+        .fund
+        .iter()
+        .map(|f| json!({ "call": "Balances.transfer", "signer": "alice", "args": { "dest": name(&f.account), "value": f.amount } }))
+        .collect();
+    let setup = driver.run(&json!({ "ws": ws, "steps": fund_steps, "accounts": uris }))?;
+    if let Some(bad) = setup.results.iter().find(|r| r.status != "success") {
+        bail!("setup step {} {}: {}", bad.index, bad.status, bad.dispatch_error.clone().unwrap_or_default());
+    }
+    let ids: BTreeMap<String, Vec<u8>> = wf
+        .accounts
+        .iter()
+        .map(|a| {
+            let hex = setup.accounts.get(&name(a)).ok_or_else(|| anyhow!("driver returned no key for {a}"))?;
+            Ok((a.clone(), storage::from_hex(hex)?))
+        })
+        .collect::<anyhow::Result<_>>()?;
+
+    let mut rpc = connect(ws, timeout)?;
+    let pre = best_hash(&mut rpc)?;
+    let before = read_balances(&mut rpc, &ids, &pre)?;
+    run.pre_block = Some(pre);
+
+    let steps: Vec<Value> = wf
+        .steps
+        .iter()
+        .map(|s| {
+            json!({ "call": s.call, "signer": name(&s.signer), "sudo": s.sudo, "args": map_names(&s.args, &|x| name(x)) })
+        })
+        .collect();
+    let out = driver.run(&json!({ "ws": ws, "steps": steps }))?;
+    run.steps = out.results;
+
+    let post = match run.steps.iter().rev().find_map(|s| s.block_hash.clone()) {
+        Some(h) => h,
+        None => best_hash(&mut rpc)?,
+    };
+    let after = read_balances(&mut rpc, &ids, &post)?;
+    run.post_block = Some(post.clone());
+
+    let mut deltas: BTreeMap<String, i128> = BTreeMap::new();
+    for (acct, (pf, pr)) in &before {
+        let (af, ar) = after[acct];
+        deltas.insert(format!("{acct}.free"), signed(af, *pf));
+        deltas.insert(format!("{acct}.reserved"), signed(ar, *pr));
+    }
+    run.deltas = deltas.iter().map(|(k, v)| (k.clone(), fmt_signed(*v))).collect();
+    run.expectations = wf.expect.iter().map(|e| evaluate(e, &run.steps, &deltas, &mut rpc, &post)).collect();
+    Ok(())
+}

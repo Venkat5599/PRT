@@ -1,0 +1,17 @@
+# 1 POT = 10^14 planck.
+id: balances.transfer.basic
+description: A funded account transfers POT; the receiver gets exactly the amount and supply is conserved.
+importance: core
+accounts: [sender, receiver]
+fund:
+  - { account: sender, amount: "1000000000000000" }   # 10 POT
+steps:
+  - call: Balances.transfer
+    signer: sender
+    args: { dest: receiver, value: "100000000000000" } # 1 POT
+expect:
+  - dispatch: { step: 0, status: success }
+  - delta: { account: receiver, field: free, eq: "100000000000000" }
+  - delta: { account: sender, field: free, lt: "-100000000000000" } # amount plus fees
+  - event: { step: 0, name: balances.Transfer }
+  - invariant: supply_conservation

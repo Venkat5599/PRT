@@ -1,0 +1,18 @@
+id: identity.deposit
+description: Setting an on-chain identity reserves a deposit from free balance; supply is conserved.
+importance: normal
+accounts: [user]
+fund:
+  - { account: user, amount: "100000000000000000" }   # 1000 POT
+steps:
+  - call: Identity.setIdentity
+    signer: user
+    args:
+      info:
+        display: { Raw: "canary" }
+        additional: []
+expect:
+  - dispatch: { step: 0, status: success }
+  - delta: { account: user, field: reserved, gt: "0" }
+  - event: { step: 0, name: identity.IdentitySet }
+  - invariant: supply_conservation

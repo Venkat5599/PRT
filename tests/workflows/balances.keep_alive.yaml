@@ -1,0 +1,14 @@
+id: balances.keep_alive
+description: transfer_keep_alive of the whole balance must be refused so the sender is never reaped.
+importance: core
+accounts: [sender, receiver]
+fund:
+  - { account: sender, amount: "1000000000000000" }   # 10 POT
+steps:
+  - call: Balances.transferKeepAlive
+    signer: sender
+    args: { dest: receiver, value: "1000000000000000" } # entire balance
+expect:
+  - dispatch: { step: 0, status: failed }
+  - delta: { account: receiver, field: free, eq: "0" }
+  - invariant: supply_conservation

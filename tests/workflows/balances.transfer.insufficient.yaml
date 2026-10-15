@@ -1,0 +1,15 @@
+id: balances.transfer.insufficient
+description: A transfer larger than the balance must fail at dispatch and move no funds to the receiver.
+importance: core
+accounts: [sender, receiver]
+fund:
+  - { account: sender, amount: "1000000000000000" }   # 10 POT
+steps:
+  - call: Balances.transfer
+    signer: sender
+    args: { dest: receiver, value: "100000000000000000" } # 1000 POT
+expect:
+  - dispatch: { step: 0, status: failed, error: InsufficientBalance }
+  - delta: { account: receiver, field: free, eq: "0" }
+  - event: { step: 0, name: system.ExtrinsicFailed }
+  - invariant: supply_conservation

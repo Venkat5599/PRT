@@ -12,10 +12,11 @@
 
 import { ApiPromise, WsProvider } from "@polkadot/api";
 import { Keyring } from "@polkadot/keyring";
+import { u8aToHex } from "@polkadot/util";
 import { cryptoWaitReady } from "@polkadot/util-crypto";
 
 type Step = { call: string; signer: string; args?: Record<string, unknown> | unknown[]; sudo?: boolean };
-type Job = { ws: string; steps: Step[]; timeout_ms?: number };
+type Job = { ws: string; steps: Step[]; accounts?: string[]; timeout_ms?: number };
 
 const DEV = ["alice", "bob", "charlie", "dave", "eve", "ferdie"];
 
@@ -31,7 +32,14 @@ function deriveFrom(keyring: Keyring, name: string) {
 async function main() {
   const job: Job = JSON.parse(await Bun.stdin.text());
   await cryptoWaitReady();
-  const api = await ApiPromise.create({ provider: new WsProvider(job.ws), noInitWarn: true, throwOnConnect: true });
+  // Portaldot's 2021 runtime encodes DispatchError::Module as { index: u8, error: u8 };
+  // current polkadot.js assumes the later 4-byte error and fails to decode System.Events.
+  const api = await ApiPromise.create({
+    provider: new WsProvider(job.ws),
+    noInitWarn: true,
+    throwOnConnect: true,
+    types: { DispatchErrorModule: "DispatchErrorModuleU8" },
+  });
   const keyring = new Keyring({ type: "sr25519", ss58Format: 42 });
 
   // Account names in args resolve to addresses; anything else passes through untouched.
@@ -67,6 +75,12 @@ async function main() {
         }
         if (!status.isInBlock) return;
         clearTimeout(timer);
+        if (events.length === 0) {
+          // Every included extrinsic emits at least ExtrinsicSuccess/Failed. An empty list
+          // means the client could not decode this block's events: never report success.
+          inspectEvents(api, status.asInBlock.toHex(), tx.hash.toHex()).then(resolveP);
+          return;
+        }
         let err: string | null = null;
         if (dispatchError) {
           if (dispatchError.isModule) {
@@ -90,8 +104,28 @@ async function main() {
     results.push({ index, call: step.call, signer: step.signer, ...outcome });
   }
 
-  console.log(JSON.stringify({ ok: true, results }));
+  const accounts = Object.fromEntries(
+    (job.accounts ?? []).map((n) => [n, u8aToHex(deriveFrom(keyring, n).publicKey)]),
+  );
+  console.log(JSON.stringify({ ok: true, accounts, results }));
   await api.disconnect();
+}
+
+async function inspectEvents(api: ApiPromise, blockHash: string, txHash: string) {
+  const base = { block_hash: blockHash, events: [] as { name: string; data: unknown }[] };
+  try {
+    const block = await api.rpc.chain.getBlock(blockHash);
+    const index = block.block.extrinsics.findIndex((x) => x.hash.toHex() === txHash);
+    const at = await api.at(blockHash);
+    const records: any = await at.query.system.events();
+    const mine = records.filter((r: any) => r.phase.isApplyExtrinsic && r.phase.asApplyExtrinsic.toNumber() === index);
+    const events = mine.map(({ event }: any) => ({ name: `${event.section}.${event.method}`, data: event.data.toJSON() }));
+    const failed = events.find((e: any) => e.name === "system.ExtrinsicFailed");
+    return { ...base, events, status: failed ? "failed" : events.length ? "success" : "undecodable",
+             dispatch_error: failed ? JSON.stringify(failed.data[0]) : null };
+  } catch (e: any) {
+    return { ...base, status: "undecodable", dispatch_error: `event decode failed: ${e?.message ?? e}` };
+  }
 }
 
 function camelToSnake(s: string): string {
