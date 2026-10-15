@@ -1,0 +1,14 @@
+{
+  "name": "canary-driver",
+  "private": true,
+  "type": "module",
+  "description": "Extrinsic step driver for Portal Canary: signs, submits and reports decoded events as JSON",
+  "scripts": {
+    "run": "bun src/run.ts"
+  },
+  "dependencies": {
+    "@polkadot/api": "14.3.1",
+    "@polkadot/keyring": "13.2.3",
+    "@polkadot/util-crypto": "13.2.3"
+  }
+}

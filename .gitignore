@@ -2,3 +2,4 @@ target/
 runs/
 *.env
 .env*
+driver/node_modules/

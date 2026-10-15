@@ -1,0 +1,7 @@
+{
+  "ws": "ws://127.0.0.1:9944",
+  "steps": [
+    { "call": "Balances.transfer", "signer": "alice", "args": { "dest": "bob", "value": "1000000000000000" } },
+    { "call": "Balances.transfer", "signer": "//Nobody", "args": { "dest": "bob", "value": "1" } }
+  ]
+}
