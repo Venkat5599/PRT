@@ -4,6 +4,7 @@ use std::time::Duration;
 
 use clap::{Args, Parser, Subcommand};
 
+mod attest;
 mod compare;
 mod doctor;
 mod invariants;
@@ -106,6 +107,31 @@ enum Command {
         #[command(flatten)]
         driver: DriverArgs,
     },
+    /// Anchor a run's verdict on-chain with system.remark (report hash, runtime ids, counts).
+    Attest {
+        /// Run directory, e.g. runs/1760540000.
+        #[arg(long)]
+        run: PathBuf,
+        #[arg(long, default_value = "ws://127.0.0.1:9944")]
+        ws: String,
+        /// Dev account (alice, //Name) or `env` to sign with CANARY_SIGNER_URI.
+        #[arg(long, default_value = "alice")]
+        signer: String,
+        #[arg(long, default_value_t = 60)]
+        timeout: u64,
+        #[command(flatten)]
+        driver: DriverArgs,
+    },
+    /// Check an attestation: report file hash, rebuilt payload, chain identity, remark in block.
+    Verify {
+        #[arg(long)]
+        run: PathBuf,
+        /// Override the endpoint recorded in attestation.json.
+        #[arg(long)]
+        ws: Option<String>,
+        #[arg(long, default_value_t = 30)]
+        timeout: u64,
+    },
     /// Re-run one workflow from a recorded run and check the finding hash is identical.
     Reproduce {
         workflow: String,
@@ -143,6 +169,10 @@ fn main() -> ExitCode {
                 json,
             })
         }
+        Command::Attest { run, ws, signer, timeout, driver } => {
+            attest::attest(&run, &ws, &signer, &driver.into_driver(), Duration::from_secs(timeout))
+        }
+        Command::Verify { run, ws, timeout } => attest::verify(&run, ws.as_deref(), Duration::from_secs(timeout)),
         Command::Reproduce { workflow, run, timeout, driver } => {
             test_cmd::reproduce(&workflow, &run, driver.into_driver(), Duration::from_secs(timeout))
         }

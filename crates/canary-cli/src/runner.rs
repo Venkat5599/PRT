@@ -38,6 +38,8 @@ pub struct StepOutcome {
     pub block_hash: Option<String>,
     pub dispatch_error: Option<String>,
     #[serde(default)]
+    pub tx_hash: Option<String>,
+    #[serde(default)]
     pub events: Vec<EventRec>,
 }
 
@@ -74,6 +76,11 @@ pub struct SideRun {
 }
 
 impl Driver {
+    /// Submit raw steps (no workflow namespacing) and return their outcomes.
+    pub fn submit(&self, ws: &str, steps: Value) -> anyhow::Result<Vec<StepOutcome>> {
+        Ok(self.run(&json!({ "ws": ws, "steps": steps }))?.results)
+    }
+
     fn run(&self, job: &Value) -> anyhow::Result<DriverOut> {
         let mut child = Command::new(&self.bun)
             .arg(&self.script)

@@ -25,6 +25,12 @@ function camel(s: string): string {
 }
 
 function deriveFrom(keyring: Keyring, name: string) {
+  // "env" signs with a secret URI supplied out-of-band (never in args, logs or reports).
+  if (name === "env") {
+    const secret = process.env.CANARY_SIGNER_URI;
+    if (!secret) throw new Error("signer 'env' requires CANARY_SIGNER_URI");
+    return keyring.addFromUri(secret);
+  }
   const uri = name.startsWith("//") ? name : `//${name.charAt(0).toUpperCase()}${name.slice(1)}`;
   return keyring.addFromUri(uri);
 }
@@ -101,7 +107,7 @@ async function main() {
         resolveP({ status: "rejected", block_hash: null, dispatch_error: e.message, events: [] });
       });
     });
-    results.push({ index, call: step.call, signer: step.signer, ...outcome });
+    results.push({ index, call: step.call, signer: step.signer, tx_hash: tx.hash.toHex(), ...outcome });
   }
 
   const accounts = Object.fromEntries(
