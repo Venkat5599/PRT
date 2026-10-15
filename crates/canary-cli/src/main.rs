@@ -3,6 +3,7 @@ use std::time::Duration;
 
 use clap::{Parser, Subcommand};
 
+mod compare;
 mod doctor;
 mod invariants;
 
@@ -30,6 +31,18 @@ enum Command {
         #[arg(long)]
         json: bool,
     },
+    /// Structural diff of two live runtimes: version, runtime APIs, and every pallet's
+    /// calls, events, storage, constants and errors.
+    Compare {
+        #[arg(long)]
+        baseline: String,
+        #[arg(long)]
+        candidate: String,
+        #[arg(long, default_value_t = 30)]
+        timeout: u64,
+        #[arg(long)]
+        json: bool,
+    },
     /// Check read-only state invariants (supply conservation) on a live chain, pinned to one block.
     Invariants {
         /// Substrate WebSocket endpoint.
@@ -51,6 +64,9 @@ fn main() -> ExitCode {
     match Cli::parse().command {
         Command::Doctor { ws, eth, timeout, json } => {
             doctor::run(&ws, &eth, Duration::from_secs(timeout), json)
+        }
+        Command::Compare { baseline, candidate, timeout, json } => {
+            compare::run(&baseline, &candidate, Duration::from_secs(timeout), json)
         }
         Command::Invariants { ws, at, timeout, json } => {
             invariants::run(&ws, at, Duration::from_secs(timeout), json)

@@ -6,8 +6,10 @@
 
 pub mod apis;
 pub mod codec;
+pub mod diff;
 pub mod endpoint;
 pub mod eth;
 pub mod metadata;
+pub mod metadata_v13;
 pub mod rpc;
 pub mod storage;

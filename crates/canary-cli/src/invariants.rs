@@ -32,7 +32,7 @@ struct SupplyReport {
     verdict: &'static str,
 }
 
-fn connect(raw: &str, timeout: Duration) -> anyhow::Result<WsRpc> {
+pub fn connect(raw: &str, timeout: Duration) -> anyhow::Result<WsRpc> {
     let url = Url::parse(raw)?;
     let target = endpoint::Target::from_url(&url)?;
     match endpoint::probe(&target, timeout) {

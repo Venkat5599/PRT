@@ -19,3 +19,11 @@ Mainnet genesis: `0x83b5212c69f85f3996f8696bb35bf913af51b176a5f53d0a74fd3a83dc0b
 | Date (UTC) | Check | Block | Result |
 |---|---|---|---|
 | 2026-10-15 | `canary invariants` supply_conservation | #2,727,345 `0x35781c79…0018c` | **PASS**: 4,719 accounts (all `AccountInfo` with sufficients), sum free+reserved = TotalIssuance = 1,016,781,509.44019349511407 POT, delta 0 planck |
+
+## Runtime comparison: mainnet vs local dev node
+
+| Date (UTC) | Baseline | Candidate | Result |
+|---|---|---|---|
+| 2026-10-15 | `wss://mainnet.portaldot.io` (spec 1002, metadata `b87080f9…`) | `portaldot_dev --dev` 2.0.0, binary dated 2025-12-29 (spec 1002, metadata `b7ad30de…`) | **12 constant changes with the same spec_version and transaction_version** (unversioned change). Examples: Babe.EpochDuration 120 → 1200, Babe.ExpectedBlockTime 60000 → 6000 ms, Timestamp.MinimumPeriod, election phases, Treasury.SpendPeriod, Contracts deposits and RentFraction. 31 pallets on both, no call/event/storage changes |
+
+Implication: results from the local dev node do not automatically transfer to mainnet. Canary reports this instead of assuming equivalence.
