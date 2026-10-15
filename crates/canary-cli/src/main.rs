@@ -11,6 +11,7 @@ mod invariants;
 mod report;
 mod runner;
 mod test_cmd;
+mod upgrade;
 mod verdict;
 mod workflow;
 
@@ -122,6 +123,17 @@ enum Command {
         #[command(flatten)]
         driver: DriverArgs,
     },
+    /// Apply a candidate runtime WASM to a development node (sudo setCode) and wait until it is live.
+    Upgrade {
+        #[arg(long, default_value = "ws://127.0.0.1:9944")]
+        ws: String,
+        #[arg(long)]
+        wasm: PathBuf,
+        #[arg(long, default_value_t = 120)]
+        timeout: u64,
+        #[command(flatten)]
+        driver: DriverArgs,
+    },
     /// Check an attestation: report file hash, rebuilt payload, chain identity, remark in block.
     Verify {
         #[arg(long)]
@@ -171,6 +183,9 @@ fn main() -> ExitCode {
         }
         Command::Attest { run, ws, signer, timeout, driver } => {
             attest::attest(&run, &ws, &signer, &driver.into_driver(), Duration::from_secs(timeout))
+        }
+        Command::Upgrade { ws, wasm, timeout, driver } => {
+            upgrade::run(&ws, &wasm, &driver.into_driver(), Duration::from_secs(timeout))
         }
         Command::Verify { run, ws, timeout } => attest::verify(&run, ws.as_deref(), Duration::from_secs(timeout)),
         Command::Reproduce { workflow, run, timeout, driver } => {

@@ -15,7 +15,13 @@ import { Keyring } from "@polkadot/keyring";
 import { u8aToHex } from "@polkadot/util";
 import { cryptoWaitReady } from "@polkadot/util-crypto";
 
-type Step = { call: string; signer: string; args?: Record<string, unknown> | unknown[]; sudo?: boolean };
+type Step = {
+  call: string;
+  signer: string;
+  args?: Record<string, unknown> | unknown[];
+  sudo?: boolean;
+  sudo_unchecked?: boolean;
+};
 type Job = { ws: string; steps: Step[]; accounts?: string[]; timeout_ms?: number };
 
 const DEV = ["alice", "bob", "charlie", "dave", "eve", "ferdie"];
@@ -68,7 +74,9 @@ async function main() {
       ? step.args.map(resolve)
       : names.map((n) => resolve((step.args ?? {})[n] ?? (step.args ?? {})[camelToSnake(n)]));
     let tx = fn(...ordered);
-    if (step.sudo) tx = api.tx.sudo.sudo(tx);
+    // Runtime upgrades exceed normal block weight, so they go through sudoUncheckedWeight.
+    if (step.sudo_unchecked) tx = api.tx.sudo.sudoUncheckedWeight(tx, 0);
+    else if (step.sudo) tx = api.tx.sudo.sudo(tx);
     const signer = deriveFrom(keyring, step.signer);
 
     const outcome = await new Promise<any>((resolveP) => {
