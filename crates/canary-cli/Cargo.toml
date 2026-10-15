@@ -1,0 +1,18 @@
+[package]
+name = "canary-cli"
+description = "Portal Canary: differential runtime-upgrade testing for Portaldot"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[[bin]]
+name = "canary"
+path = "src/main.rs"
+
+[dependencies]
+canary-chain = { path = "../canary-chain" }
+anyhow.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+url.workspace = true
+clap = { version = "4", features = ["derive"] }
