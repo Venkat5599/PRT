@@ -13,3 +13,9 @@ Every check of Portaldot V3 infrastructure, with the date, the endpoint and the 
 Official status (2026-10-15, team on Discord): "proceed your coding first … we are upgrade our node now and will update the latest node(RPC) info in this channel and dev-announcement."
 
 Mainnet genesis: `0x83b5212c69f85f3996f8696bb35bf913af51b176a5f53d0a74fd3a83dc0b8a54`
+
+## Mainnet invariant baseline
+
+| Date (UTC) | Check | Block | Result |
+|---|---|---|---|
+| 2026-10-15 | `canary invariants` supply_conservation | #2,727,345 `0x35781c79…0018c` | **PASS**: 4,719 accounts (all `AccountInfo` with sufficients), sum free+reserved = TotalIssuance = 1,016,781,509.44019349511407 POT, delta 0 planck |

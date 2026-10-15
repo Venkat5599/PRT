@@ -5,7 +5,9 @@
 //! inspects SCALE bytes directly, so it works across metadata versions.
 
 pub mod apis;
+pub mod codec;
 pub mod endpoint;
 pub mod eth;
 pub mod metadata;
 pub mod rpc;
+pub mod storage;

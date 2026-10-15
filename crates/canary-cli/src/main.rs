@@ -4,6 +4,7 @@ use std::time::Duration;
 use clap::{Parser, Subcommand};
 
 mod doctor;
+mod invariants;
 
 #[derive(Parser)]
 #[command(name = "canary", version, about = "Differential runtime-upgrade testing for Portaldot")]
@@ -29,12 +30,30 @@ enum Command {
         #[arg(long)]
         json: bool,
     },
+    /// Check read-only state invariants (supply conservation) on a live chain, pinned to one block.
+    Invariants {
+        /// Substrate WebSocket endpoint.
+        #[arg(long, default_value = "ws://127.0.0.1:9944")]
+        ws: String,
+        /// Block hash to pin to. Defaults to the finalized head.
+        #[arg(long)]
+        at: Option<String>,
+        /// Per-request timeout in seconds.
+        #[arg(long, default_value_t = 30)]
+        timeout: u64,
+        /// Emit machine-readable JSON instead of text.
+        #[arg(long)]
+        json: bool,
+    },
 }
 
 fn main() -> ExitCode {
     match Cli::parse().command {
         Command::Doctor { ws, eth, timeout, json } => {
             doctor::run(&ws, &eth, Duration::from_secs(timeout), json)
+        }
+        Command::Invariants { ws, at, timeout, json } => {
+            invariants::run(&ws, at, Duration::from_secs(timeout), json)
         }
     }
 }

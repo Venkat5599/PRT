@@ -34,6 +34,25 @@ substrate  wss://testnetv3-node.feso-apps.xyz
 
 Flags: `--ws <url>` (repeatable, default `ws://127.0.0.1:9944`), `--eth <url>` (EVM JSON-RPC, repeatable), `--timeout <secs>`, `--json`. Exits `2` if any endpoint is unhealthy, so it works as a CI gate.
 
+## Available now: `canary invariants`
+
+Read-only state invariants on a live chain, pinned to one finalized block. Real result on Portaldot mainnet:
+
+```
+$ canary invariants --ws wss://mainnet.portaldot.io
+invariant  supply_conservation  (wss://mainnet.portaldot.io)
+  block           #2727345 0x35781c79603a33982006bb86bea0a9ffff13d979e8f993bc91fe3a4cf700018c
+  accounts        4719 (layouts: {"with_sufficients": 4719}, decode errors: 0)
+  sum free        1016780936.83019349511407 POT
+  sum reserved    572.61 POT
+  sum total       1016781509.44019349511407 POT
+  total issuance  1016781509.44019349511407 POT
+  delta           +0 planck
+  verdict         PASS
+```
+
+Exit codes: `0` PASS, `1` FAIL (invariant broken), `2` INCONCLUSIVE (undecodable state or unreachable node). The same check runs before and after a runtime upgrade to catch migrations that create or destroy funds.
+
 ## Build
 
 Linux or WSL2 (recommended on Windows):
@@ -55,8 +74,8 @@ chmod 755 portaldot_dev && ./portaldot_dev --dev --tmp
 ## Roadmap
 
 - [x] `doctor`: layered endpoint diagnosis, metadata version, runtime API capabilities
-- [ ] Storage reads with curated V13 codecs (`System.Account`, `Balances.TotalIssuance`)
-- [ ] Mainnet supply invariant (read-only)
+- [x] Storage reads with curated V13 codecs (`System.Account`, `Balances.TotalIssuance`)
+- [x] Mainnet supply invariant (read-only): `canary invariants`
 - [ ] Workflow corpus (YAML) + side-by-side runner (two dev nodes)
 - [ ] Real-upgrade mode (`system.setCode`) with injected candidate runtimes
 - [ ] Verdict classifier (REGRESSION / DIFFERENCE / INCONCLUSIVE / PASS) + JSON/HTML report

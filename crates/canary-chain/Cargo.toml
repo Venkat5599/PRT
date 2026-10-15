@@ -16,3 +16,4 @@ native-tls = "0.2"
 ureq = { version = "2", default-features = false, features = ["json", "native-tls"] }
 blake2 = "0.10"
 sha2 = "0.10"
+twox-hash = { version = "1.6", default-features = false }
