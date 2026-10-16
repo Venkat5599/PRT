@@ -4,7 +4,7 @@ description: A funded account transfers POT; the receiver gets exactly the amoun
 importance: core
 accounts: [sender, receiver]
 fund:
-  - { account: sender, amount: "1000000000000000" }   # 10 POT
+  - { account: sender, amount: "100000000000000000" }   # 1000 POT
 steps:
   - call: Balances.transfer
     signer: sender

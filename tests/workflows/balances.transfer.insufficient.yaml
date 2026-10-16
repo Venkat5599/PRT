@@ -3,11 +3,11 @@ description: A transfer larger than the balance must fail at dispatch and move n
 importance: core
 accounts: [sender, receiver]
 fund:
-  - { account: sender, amount: "1000000000000000" }   # 10 POT
+  - { account: sender, amount: "100000000000000000" }   # 1000 POT
 steps:
   - call: Balances.transfer
     signer: sender
-    args: { dest: receiver, value: "100000000000000000" } # 1000 POT
+    args: { dest: receiver, value: "10000000000000000000" } # 100000 POT
 expect:
   - dispatch: { step: 0, status: failed, error: InsufficientBalance }
   - delta: { account: receiver, field: free, eq: "0" }
