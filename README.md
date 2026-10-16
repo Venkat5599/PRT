@@ -106,6 +106,65 @@ REPRODUCED: identical finding hash
 
 Full report: [`examples/injected-faulty-migration/report.html`](examples/injected-faulty-migration/report.html).
 
+## Available now: real runtime upgrades (`canary upgrade`)
+
+Mode B applies a runtime built from the public Portaldot source to a running dev chain with `sudo.sudoUncheckedWeight(system.setCode)`, then runs the corpus against the upgraded chain. An upgrade only counts once the new runtime has produced three more blocks.
+
+Candidates are built by [`runtimes/build.sh`](runtimes/build.sh) from [portaldotVolunteer/Portaldot](https://github.com/portaldotVolunteer/Portaldot) with a pinned 2021 nightly toolchain. Each WASM is committed with its exact source diff and hash ([`runtimes/out`](runtimes/out)):
+
+| WASM | Source change | spec |
+|---|---|---|
+| `clean.compact.wasm` | none besides dev-chain block time (6 s) | 1003 |
+| `ed100x.compact.wasm` | **INJECTED**: `ExistentialDeposit` 1 → 100 POT | 1004 |
+| `source-60s.compact.wasm` | unmodified public source (60 s blocks) | 1003 |
+
+`scripts/upgrade-demo.sh` runs the whole thing with no manual steps. Real output:
+
+```
+$ canary upgrade --ws ws://127.0.0.1:9945 --wasm runtimes/out/ed100x.compact.wasm
+before     spec_version 1002
+events     system.CodeUpdated, sudo.Sudid, system.ExtrinsicSuccess
+after      spec_version 1004
+liveness   ok (#9 -> #12 under the new runtime)
+
+$ canary compare --baseline ws://127.0.0.1:9944 --candidate ws://127.0.0.1:9945
+~ Balances.constant.ExistentialDeposit
+    baseline:  T::Balance = 100000000000000
+    candidate: T::Balance = 10000000000000000
+
+$ canary test --baseline ws://127.0.0.1:9944 --candidate ws://127.0.0.1:9945 --injected "ed100x: …"
+PASS          Info      balances.keep_alive
+REGRESSION    High      balances.transfer.basic
+    ✗ step 0 dispatch success  baseline: success  candidate: failed (balances.ExistentialDeposit)
+    ✗ delta receiver.free == 100000000000000  baseline: +100000000000000  candidate: +0
+PASS          Info      balances.transfer.insufficient
+PASS          Info      identity.deposit
+```
+
+Control (clean upgrade vs itself): 4/4 PASS. `canary reproduce` returns the identical finding hash. Full report: [`examples/upgrade-ed100x/report.html`](examples/upgrade-ed100x/report.html).
+
+### Finding: the public source halts the dev chain
+
+Applying the **unmodified** public source to the 6 s dev chain is accepted by `setCode` and bumps `spec_version`, then block production stops for good:
+
+```
+$ canary upgrade --ws ws://127.0.0.1:9946 --wasm runtimes/out/source-60s.compact.wasm --timeout 40
+after      spec_version 1003
+liveness   HALTED: best block stuck at #85 for 40s after the upgrade (needed #88)
+verdict    REGRESSION Critical: runtime accepted by setCode but block production stopped
+node log:  panicked at 'Timestamp slot must match `CurrentSlot`'
+```
+
+The source targets 60 s blocks, the dev chain runs 6 s, and BABE slot duration cannot change on a live chain. `canary compare` now reports this class of change before anyone applies it:
+
+```
+HAZARD   Babe.constant.EpochDuration: BABE epoch duration cannot change on a running chain; block production halts
+HAZARD   Babe.constant.ExpectedBlockTime: BABE slot duration cannot change on a running chain; block production halts
+HAZARD   Timestamp.constant.MinimumPeriod: timestamp period is tied to the BABE slot; a change breaks slot/timestamp checks
+```
+
+This is about the local dev chain, not mainnet: mainnet runs 60 s blocks like the source. "Spec version went up" is not proof an upgrade worked.
+
 ### Compatibility note found along the way
 
 Current `@polkadot/api` decodes `DispatchError::Module` as `{ index: u8, error: [u8; 4] }`; Portaldot's 2021 runtime emits `{ index: u8, error: u8 }`, so `System.Events` fails to decode for any failed extrinsic. Canary's driver pins the legacy type and treats an undecodable block as **INCONCLUSIVE**, never as success.
@@ -128,6 +187,13 @@ tar -xzf portaldot-testnet-ubuntu.tar.gz && cd portaldot-testnet-ubuntu
 chmod 755 portaldot_dev && ./portaldot_dev --dev --tmp
 ```
 
+End-to-end demos (need [bun](https://bun.sh); download the dev node if `PORTALDOT_DEV` is unset):
+
+```bash
+bash scripts/demo.sh          # doctor, compare, control, injected migration, reproduce, attest, verify
+bash scripts/upgrade-demo.sh  # real setCode upgrades: clean vs INJECTED ed100x, plus the halting source runtime
+```
+
 ## Roadmap
 
 - [x] `doctor`: layered endpoint diagnosis, metadata version, runtime API capabilities
@@ -138,8 +204,12 @@ chmod 755 portaldot_dev && ./portaldot_dev --dev --tmp
 - [x] Verdict classifier (REGRESSION / DIFFERENCE / INCONCLUSIVE / PASS) + JSON/HTML report
 - [x] `reproduce` with stable finding hash
 - [x] Injected regression: simulated faulty migration (storage injection)
-- [ ] Candidate runtimes built from source + real-upgrade mode (`system.setCode`)
-- [ ] On-chain attestation, GitHub Action, contract workflows
+- [x] Candidate runtimes built from source + real-upgrade mode (`system.setCode`) with liveness check
+- [x] Upgrade hazards in `compare` (BABE slot/epoch changes)
+- [x] On-chain attestation via `system.remark` (`canary attest` / `canary verify`) on the dev chain
+- [x] GitHub Action ([`action.yml`](action.yml)) and CI against a real Portaldot dev node
+- [ ] Attestation on the public V3 testnet (endpoints have no DNS yet, see [`docs/V3_READINESS.md`](docs/V3_READINESS.md))
+- [ ] Contract workflows (ink! / EVM)
 
 ## Third-party code
 
