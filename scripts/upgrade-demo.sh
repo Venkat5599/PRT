@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Mode B: real runtime upgrades on local Portaldot dev nodes. No manual steps.
 #
-#   1. start three dev nodes (:9944, :9945, :9946) from the prebuilt portaldot_dev
+#   1. start four dev nodes (:9944 to :9947) from the prebuilt portaldot_dev
 #   2. sudo system.setCode on each with a runtime built from the public source:
 #        :9944  clean.compact.wasm   spec 1003, no behaviour change   (baseline)
 #        :9945  ed100x.compact.wasm  spec 1004, INJECTED ExistentialDeposit 1 -> 100 POT
@@ -9,6 +9,7 @@
 #   4. control: upgraded baseline vs itself -> expect all PASS
 #   5. upgraded baseline vs INJECTED candidate -> expect REGRESSION
 #   6. :9946 gets the unmodified public source (60 s slots) -> expect HALTED, exit 1
+#   7. :9947 gets INJECTED fee10x (byte fee x10) -> expect DIFFERENCE, exit 0
 #
 # Both WASMs come from the same source tree (runtimes/build.sh); their only
 # difference is the injected constant, recorded in runtimes/out/*.patch.
@@ -37,11 +38,12 @@ cargo build --release -q
 CANARY="${CARGO_TARGET_DIR:-$ROOT/target}/release/canary"
 (cd driver && bun install --silent)
 
-say "starting dev nodes (:9944, :9945, :9946)"
+say "starting dev nodes (:9944 to :9947)"
 "$PORTALDOT_DEV" --dev --tmp --ws-port 9944 --rpc-port 9933 --port 30333 >"$WORK/base.log" 2>&1 &
 "$PORTALDOT_DEV" --dev --tmp --ws-port 9945 --rpc-port 9934 --port 30334 >"$WORK/cand.log" 2>&1 &
 "$PORTALDOT_DEV" --dev --tmp --ws-port 9946 --rpc-port 9935 --port 30335 >"$WORK/brick.log" 2>&1 &
-for p in 9944 9945 9946; do
+"$PORTALDOT_DEV" --dev --tmp --ws-port 9947 --rpc-port 9936 --port 30336 >"$WORK/fee.log" 2>&1 &
+for p in 9944 9945 9946 9947; do
   for _ in $(seq 60); do "$CANARY" doctor --ws "ws://127.0.0.1:$p" >/dev/null 2>&1 && break; sleep 1; done
 done
 sleep 8
@@ -64,6 +66,14 @@ say "upgraded baseline vs INJECTED candidate"
   --injected "ed100x: ExistentialDeposit 1 -> 100 POT, applied by system.setCode (runtimes/out/ed100x.patch)"
 echo "exit $? (expect 1)"
 RUN="$(ls -d runs/upgrade/* | sort | tail -n 1)"
+
+say "upgrade :9947 -> fee10x (spec 1005, INJECTED byte fee x10)"
+"$CANARY" upgrade --ws ws://127.0.0.1:9947 --wasm runtimes/out/fee10x.compact.wasm || exit 2
+sleep 8
+say "upgraded baseline vs INJECTED fee candidate"
+"$CANARY" test --baseline ws://127.0.0.1:9944 --candidate ws://127.0.0.1:9947 --out runs/upgrade-fee \
+  --injected "fee10x: TransactionByteFee 10 -> 100 MILLICENTS (runtimes/out/fee10x.patch)"
+echo "exit $? (expect 0: DIFFERENCE, not REGRESSION)"
 
 say "reproduce"
 "$CANARY" reproduce balances.transfer.basic --run "$RUN"
