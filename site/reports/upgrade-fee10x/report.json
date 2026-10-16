@@ -1,0 +1,763 @@
+{
+  "manifest": {
+    "run_id": "1792137731",
+    "canary_version": "0.1.0",
+    "started_unix": 1792137731,
+    "suite_path": "tests/workflows",
+    "suite": [
+      {
+        "workflow": "balances.keep_alive",
+        "path": "tests/workflows/balances.keep_alive.yaml",
+        "sha256": "90fecea30c3355730d68d000a88cbe3edfa7a77c2d875d1bf19409cddcfb0f8d"
+      },
+      {
+        "workflow": "balances.transfer.basic",
+        "path": "tests/workflows/balances.transfer.basic.yaml",
+        "sha256": "9e36dec6262dbc2eeb0a68c74a57ce5b88ace9dff5db445f1507625e1a211a00"
+      },
+      {
+        "workflow": "balances.transfer.insufficient",
+        "path": "tests/workflows/balances.transfer.insufficient.yaml",
+        "sha256": "c47741e21ab6388b85b06089b2d5f1c80742f27453be1faee731d69e957c1226"
+      },
+      {
+        "workflow": "identity.deposit",
+        "path": "tests/workflows/identity.deposit.yaml",
+        "sha256": "d8a7660450f049e455f1626e681d07aafa8d7a145a810afc40301c99d574473d"
+      }
+    ],
+    "baseline": {
+      "endpoint": "ws://127.0.0.1:9944",
+      "spec_name": "portaldot",
+      "spec_version": 1003,
+      "transaction_version": 2,
+      "genesis_hash": "0xa07fa01c4ab1987110674eee824b17f6699ee1d576b8c948006ef04672b398a5",
+      "metadata_sha256": "4b8b4324902316dcbe57df070440f4aab9b7e3133cb27c8538c353ae5e9754a9",
+      "metadata_version": 13
+    },
+    "candidate": {
+      "endpoint": "ws://127.0.0.1:9947",
+      "spec_name": "portaldot",
+      "spec_version": 1005,
+      "transaction_version": 2,
+      "genesis_hash": "0xa07fa01c4ab1987110674eee824b17f6699ee1d576b8c948006ef04672b398a5",
+      "metadata_sha256": "a82b011c63f23f3eeab63dfa446e90cee5598b532b4b9d662eb2eed1cc102743",
+      "metadata_version": 13
+    },
+    "injected": "fee10x: TransactionByteFee 10 -> 100 MILLICENTS (runtimes/out/fee10x.patch)"
+  },
+  "summary": {
+    "workflows": 4,
+    "pass": 0,
+    "difference": 4,
+    "inconclusive": 0,
+    "regression": 0,
+    "statement": "No regression detected in the configured corpus (4 workflows, 16 expectations)."
+  },
+  "results": [
+    {
+      "finding": {
+        "workflow": "balances.keep_alive",
+        "verdict": "DIFFERENCE",
+        "severity": "low",
+        "rationale": "1 observable difference(s), but every declared expectation still holds",
+        "regressed": [],
+        "baseline_failures": [],
+        "differences": [
+          {
+            "what": "delta sender.free",
+            "baseline": "-1490304843238",
+            "candidate": "-14900304842330"
+          }
+        ],
+        "normalised": [],
+        "finding_hash": "ba2c058e58951207a7ac40e25157d408f179f60a0d075e34c9a5024598cec37b"
+      },
+      "baseline": {
+        "side": "baseline",
+        "endpoint": "ws://127.0.0.1:9944",
+        "setup_error": null,
+        "pre_block": "0x1e7bd98c684db93da282584279e6cd62a48bd2840d5957351ccdaf74599f55cf",
+        "post_block": "0x0a31d6371298844ee2c28a32a3cfed262c0914e299464e4bbb33a1e84c388ebc",
+        "steps": [
+          {
+            "index": 0,
+            "call": "Balances.transferKeepAlive",
+            "status": "failed",
+            "block_hash": "0x0a31d6371298844ee2c28a32a3cfed262c0914e299464e4bbb33a1e84c388ebc",
+            "dispatch_error": "balances.InsufficientBalance",
+            "tx_hash": "0x703755a8eff8aca75e323d046add7a50d22ef91d3064a81386790db3ae647643",
+            "events": [
+              {
+                "name": "treasury.Deposit",
+                "data": [
+                  1192243874590
+                ]
+              },
+              {
+                "name": "system.ExtrinsicFailed",
+                "data": [
+                  {
+                    "module": {
+                      "error": 2,
+                      "index": 6
+                    }
+                  },
+                  {
+                    "class": "Normal",
+                    "paysFee": "Yes",
+                    "weight": 179881000
+                  }
+                ]
+              }
+            ]
+          }
+        ],
+        "deltas": {
+          "receiver.free": "+0",
+          "receiver.reserved": "+0",
+          "sender.free": "-1490304843238",
+          "sender.reserved": "+0"
+        },
+        "expectations": [
+          {
+            "description": "step 0 dispatch failed",
+            "kind": "dispatch",
+            "pass": true,
+            "observed": "failed (balances.InsufficientBalance)"
+          },
+          {
+            "description": "delta receiver.free == 0",
+            "kind": "delta",
+            "pass": true,
+            "observed": "+0"
+          },
+          {
+            "description": "invariant supply_conservation",
+            "kind": "invariant",
+            "pass": true,
+            "observed": "accounts 24 sum 35000100000000000000 vs issuance 35000100000000000000"
+          }
+        ]
+      },
+      "candidate": {
+        "side": "candidate",
+        "endpoint": "ws://127.0.0.1:9947",
+        "setup_error": null,
+        "pre_block": "0x0a7b81ce5f88fa67d16d163bd21bfa499060b267546c9ee8871c7cb4f6733d18",
+        "post_block": "0xa9dfca1b2ce4a161a9fe912518ccf298f9f6ce3abf69d3517b926c496a494862",
+        "steps": [
+          {
+            "index": 0,
+            "call": "Balances.transferKeepAlive",
+            "status": "failed",
+            "block_hash": "0xa9dfca1b2ce4a161a9fe912518ccf298f9f6ce3abf69d3517b926c496a494862",
+            "dispatch_error": "balances.InsufficientBalance",
+            "tx_hash": "0xefcdee560568e20dd6d065536cc74ef0aac62edd6b89062853a31660fad5b6cb",
+            "events": [
+              {
+                "name": "treasury.Deposit",
+                "data": [
+                  11920243873864
+                ]
+              },
+              {
+                "name": "system.ExtrinsicFailed",
+                "data": [
+                  {
+                    "module": {
+                      "error": 2,
+                      "index": 6
+                    }
+                  },
+                  {
+                    "class": "Normal",
+                    "paysFee": "Yes",
+                    "weight": 179881000
+                  }
+                ]
+              }
+            ]
+          }
+        ],
+        "deltas": {
+          "receiver.free": "+0",
+          "receiver.reserved": "+0",
+          "sender.free": "-14900304842330",
+          "sender.reserved": "+0"
+        },
+        "expectations": [
+          {
+            "description": "step 0 dispatch failed",
+            "kind": "dispatch",
+            "pass": true,
+            "observed": "failed (balances.InsufficientBalance)"
+          },
+          {
+            "description": "delta receiver.free == 0",
+            "kind": "delta",
+            "pass": true,
+            "observed": "+0"
+          },
+          {
+            "description": "invariant supply_conservation",
+            "kind": "invariant",
+            "pass": true,
+            "observed": "accounts 9 sum 35000100000000000000 vs issuance 35000100000000000000"
+          }
+        ]
+      },
+      "reproduce": "canary reproduce balances.keep_alive --run runs/upgrade-fee/1792137731"
+    },
+    {
+      "finding": {
+        "workflow": "balances.transfer.basic",
+        "verdict": "DIFFERENCE",
+        "severity": "low",
+        "rationale": "1 observable difference(s), but every declared expectation still holds",
+        "regressed": [],
+        "baseline_failures": [],
+        "differences": [
+          {
+            "what": "delta sender.free",
+            "baseline": "-101470323223406",
+            "candidate": "-114700323221413"
+          }
+        ],
+        "normalised": [],
+        "finding_hash": "fd6221bdab43f696371ba1d2469f0b13cbb8a720fcaf58c9df02bde62756749f"
+      },
+      "baseline": {
+        "side": "baseline",
+        "endpoint": "ws://127.0.0.1:9944",
+        "setup_error": null,
+        "pre_block": "0x205f4d25900798d236ec5fded85fe89eb489efee627055abec26abace7c891a8",
+        "post_block": "0x97930f4b30c95cd8d4b6cef9565553c73a163d07de09a4296536b386dfaf6ab0",
+        "steps": [
+          {
+            "index": 0,
+            "call": "Balances.transfer",
+            "status": "success",
+            "block_hash": "0x97930f4b30c95cd8d4b6cef9565553c73a163d07de09a4296536b386dfaf6ab0",
+            "dispatch_error": null,
+            "tx_hash": "0x2306112d79a6d4e7d8e8374d0674b55b07b0555ad76999df51ad95863a5e13da",
+            "events": [
+              {
+                "name": "system.NewAccount",
+                "data": [
+                  "5GjgKiJ6FRu8c92h5jFGcYxuo9QiJuC3ncGfP7cmSqWwm7s6"
+                ]
+              },
+              {
+                "name": "balances.Endowed",
+                "data": [
+                  "5GjgKiJ6FRu8c92h5jFGcYxuo9QiJuC3ncGfP7cmSqWwm7s6",
+                  100000000000000
+                ]
+              },
+              {
+                "name": "balances.Transfer",
+                "data": [
+                  "5GKyreiGrRkgJ9VeMuHr21jPiekSEZLRMcCwxhPMWByVRuAP",
+                  "5GjgKiJ6FRu8c92h5jFGcYxuo9QiJuC3ncGfP7cmSqWwm7s6",
+                  100000000000000
+                ]
+              },
+              {
+                "name": "treasury.Deposit",
+                "data": [
+                  1176258578724
+                ]
+              },
+              {
+                "name": "system.ExtrinsicSuccess",
+                "data": [
+                  {
+                    "class": "Normal",
+                    "paysFee": "Yes",
+                    "weight": 198268000
+                  }
+                ]
+              }
+            ]
+          }
+        ],
+        "deltas": {
+          "receiver.free": "+100000000000000",
+          "receiver.reserved": "+0",
+          "sender.free": "-101470323223406",
+          "sender.reserved": "+0"
+        },
+        "expectations": [
+          {
+            "description": "step 0 dispatch success",
+            "kind": "dispatch",
+            "pass": true,
+            "observed": "success"
+          },
+          {
+            "description": "delta receiver.free == 100000000000000",
+            "kind": "delta",
+            "pass": true,
+            "observed": "+100000000000000"
+          },
+          {
+            "description": "delta sender.free < -100000000000000",
+            "kind": "delta",
+            "pass": true,
+            "observed": "-101470323223406"
+          },
+          {
+            "description": "step 0 event balances.Transfer present",
+            "kind": "event",
+            "pass": true,
+            "observed": "system.NewAccount, balances.Endowed, balances.Transfer, treasury.Deposit, system.ExtrinsicSuccess"
+          },
+          {
+            "description": "invariant supply_conservation",
+            "kind": "invariant",
+            "pass": true,
+            "observed": "accounts 26 sum 35000100000000000000 vs issuance 35000100000000000000"
+          }
+        ]
+      },
+      "candidate": {
+        "side": "candidate",
+        "endpoint": "ws://127.0.0.1:9947",
+        "setup_error": null,
+        "pre_block": "0xd596a58e64338e22b0a03358464fb021afce3a60a190f005a21d74b4a7a15b9a",
+        "post_block": "0xc71e321979af8e282c7d8ccd96369537b0301723c5cdc2c5ed4ef8ab4fc3863e",
+        "steps": [
+          {
+            "index": 0,
+            "call": "Balances.transfer",
+            "status": "success",
+            "block_hash": "0xc71e321979af8e282c7d8ccd96369537b0301723c5cdc2c5ed4ef8ab4fc3863e",
+            "dispatch_error": null,
+            "tx_hash": "0x9b519e67ec3a86a7488a3bdb6438f091cbc7dde3c5cbe96e5f70ad8533c6d0b3",
+            "events": [
+              {
+                "name": "system.NewAccount",
+                "data": [
+                  "5CtQkzApTtarmJk1wENCPua9omdUWDCGfJHPjdPo5DLX9mFD"
+                ]
+              },
+              {
+                "name": "balances.Endowed",
+                "data": [
+                  "5CtQkzApTtarmJk1wENCPua9omdUWDCGfJHPjdPo5DLX9mFD",
+                  100000000000000
+                ]
+              },
+              {
+                "name": "balances.Transfer",
+                "data": [
+                  "5FNCSLzmpK2b9i9gMnQExvQiEcJgj59aTfjRrBw5T8rrnXzr",
+                  "5CtQkzApTtarmJk1wENCPua9omdUWDCGfJHPjdPo5DLX9mFD",
+                  100000000000000
+                ]
+              },
+              {
+                "name": "treasury.Deposit",
+                "data": [
+                  11760258577130
+                ]
+              },
+              {
+                "name": "system.ExtrinsicSuccess",
+                "data": [
+                  {
+                    "class": "Normal",
+                    "paysFee": "Yes",
+                    "weight": 198268000
+                  }
+                ]
+              }
+            ]
+          }
+        ],
+        "deltas": {
+          "receiver.free": "+100000000000000",
+          "receiver.reserved": "+0",
+          "sender.free": "-114700323221413",
+          "sender.reserved": "+0"
+        },
+        "expectations": [
+          {
+            "description": "step 0 dispatch success",
+            "kind": "dispatch",
+            "pass": true,
+            "observed": "success"
+          },
+          {
+            "description": "delta receiver.free == 100000000000000",
+            "kind": "delta",
+            "pass": true,
+            "observed": "+100000000000000"
+          },
+          {
+            "description": "delta sender.free < -100000000000000",
+            "kind": "delta",
+            "pass": true,
+            "observed": "-114700323221413"
+          },
+          {
+            "description": "step 0 event balances.Transfer present",
+            "kind": "event",
+            "pass": true,
+            "observed": "system.NewAccount, balances.Endowed, balances.Transfer, treasury.Deposit, system.ExtrinsicSuccess"
+          },
+          {
+            "description": "invariant supply_conservation",
+            "kind": "invariant",
+            "pass": true,
+            "observed": "accounts 11 sum 35000100000000000000 vs issuance 35000100000000000000"
+          }
+        ]
+      },
+      "reproduce": "canary reproduce balances.transfer.basic --run runs/upgrade-fee/1792137731"
+    },
+    {
+      "finding": {
+        "workflow": "balances.transfer.insufficient",
+        "verdict": "DIFFERENCE",
+        "severity": "low",
+        "rationale": "1 observable difference(s), but every declared expectation still holds",
+        "regressed": [],
+        "baseline_failures": [],
+        "differences": [
+          {
+            "what": "delta sender.free",
+            "baseline": "-1490323220433",
+            "candidate": "-14900323219432"
+          }
+        ],
+        "normalised": [],
+        "finding_hash": "db48e19045d8f37281341b3747d444ef3718f55d17bfd04855c62d974ab244b5"
+      },
+      "baseline": {
+        "side": "baseline",
+        "endpoint": "ws://127.0.0.1:9944",
+        "setup_error": null,
+        "pre_block": "0xb472c8241723021313de6c4036e44f8980e79aa5c4bd4d6431e4dd4fb7a0a3eb",
+        "post_block": "0xcdf962c22d02cef368289e824aced84dab49b717d6291fe2a7c47bba2d073a86",
+        "steps": [
+          {
+            "index": 0,
+            "call": "Balances.transfer",
+            "status": "failed",
+            "block_hash": "0xcdf962c22d02cef368289e824aced84dab49b717d6291fe2a7c47bba2d073a86",
+            "dispatch_error": "balances.InsufficientBalance",
+            "tx_hash": "0x3a641a682ece0820148a65a9fd6a03a96f90fc61ae0c1816940d5aeaaf1cec9f",
+            "events": [
+              {
+                "name": "treasury.Deposit",
+                "data": [
+                  1192258576346
+                ]
+              },
+              {
+                "name": "system.ExtrinsicFailed",
+                "data": [
+                  {
+                    "module": {
+                      "error": 2,
+                      "index": 6
+                    }
+                  },
+                  {
+                    "class": "Normal",
+                    "paysFee": "Yes",
+                    "weight": 198268000
+                  }
+                ]
+              }
+            ]
+          }
+        ],
+        "deltas": {
+          "receiver.free": "+0",
+          "receiver.reserved": "+0",
+          "sender.free": "-1490323220433",
+          "sender.reserved": "+0"
+        },
+        "expectations": [
+          {
+            "description": "step 0 dispatch failed (InsufficientBalance)",
+            "kind": "dispatch",
+            "pass": true,
+            "observed": "failed (balances.InsufficientBalance)"
+          },
+          {
+            "description": "delta receiver.free == 0",
+            "kind": "delta",
+            "pass": true,
+            "observed": "+0"
+          },
+          {
+            "description": "step 0 event system.ExtrinsicFailed present",
+            "kind": "event",
+            "pass": true,
+            "observed": "treasury.Deposit, system.ExtrinsicFailed"
+          },
+          {
+            "description": "invariant supply_conservation",
+            "kind": "invariant",
+            "pass": true,
+            "observed": "accounts 27 sum 35000100000000000000 vs issuance 35000100000000000000"
+          }
+        ]
+      },
+      "candidate": {
+        "side": "candidate",
+        "endpoint": "ws://127.0.0.1:9947",
+        "setup_error": null,
+        "pre_block": "0x9bbc8128e80d1d571969a1d98d571da3cb2929cbbc0416ce1e365447bda76919",
+        "post_block": "0xc8f40d74452ebfadf91bef8ae13035ef80baf53c8edabc0ee54993d4a4765a28",
+        "steps": [
+          {
+            "index": 0,
+            "call": "Balances.transfer",
+            "status": "failed",
+            "block_hash": "0xc8f40d74452ebfadf91bef8ae13035ef80baf53c8edabc0ee54993d4a4765a28",
+            "dispatch_error": "balances.InsufficientBalance",
+            "tx_hash": "0xd18d1678f86e099bf8a1d2bfa10c9f353bc839060f6d0e64a4e64ef054d8540f",
+            "events": [
+              {
+                "name": "treasury.Deposit",
+                "data": [
+                  11920258575545
+                ]
+              },
+              {
+                "name": "system.ExtrinsicFailed",
+                "data": [
+                  {
+                    "module": {
+                      "error": 2,
+                      "index": 6
+                    }
+                  },
+                  {
+                    "class": "Normal",
+                    "paysFee": "Yes",
+                    "weight": 198268000
+                  }
+                ]
+              }
+            ]
+          }
+        ],
+        "deltas": {
+          "receiver.free": "+0",
+          "receiver.reserved": "+0",
+          "sender.free": "-14900323219432",
+          "sender.reserved": "+0"
+        },
+        "expectations": [
+          {
+            "description": "step 0 dispatch failed (InsufficientBalance)",
+            "kind": "dispatch",
+            "pass": true,
+            "observed": "failed (balances.InsufficientBalance)"
+          },
+          {
+            "description": "delta receiver.free == 0",
+            "kind": "delta",
+            "pass": true,
+            "observed": "+0"
+          },
+          {
+            "description": "step 0 event system.ExtrinsicFailed present",
+            "kind": "event",
+            "pass": true,
+            "observed": "treasury.Deposit, system.ExtrinsicFailed"
+          },
+          {
+            "description": "invariant supply_conservation",
+            "kind": "invariant",
+            "pass": true,
+            "observed": "accounts 12 sum 35000100000000000000 vs issuance 35000100000000000000"
+          }
+        ]
+      },
+      "reproduce": "canary reproduce balances.transfer.insufficient --run runs/upgrade-fee/1792137731"
+    },
+    {
+      "finding": {
+        "workflow": "identity.deposit",
+        "verdict": "DIFFERENCE",
+        "severity": "low",
+        "rationale": "1 observable difference(s), but every declared expectation still holds",
+        "regressed": [],
+        "baseline_failures": [],
+        "differences": [
+          {
+            "what": "delta user.free",
+            "baseline": "-1001220303308983",
+            "candidate": "-1012200303308082"
+          }
+        ],
+        "normalised": [],
+        "finding_hash": "0551b522a424116e486a9578e0339708e2fc2270e2048e4e569bfa6b09387a86"
+      },
+      "baseline": {
+        "side": "baseline",
+        "endpoint": "ws://127.0.0.1:9944",
+        "setup_error": null,
+        "pre_block": "0x4aab9b01dc14fb56e041dff4b0b270cd54ba03bac6efef72d8c85cfd059864fd",
+        "post_block": "0x31fd29f625f7b490cd7d07a47bedf57320c30a84e4a98e13cc7329b98bf17d1b",
+        "steps": [
+          {
+            "index": 0,
+            "call": "Identity.setIdentity",
+            "status": "success",
+            "block_hash": "0x31fd29f625f7b490cd7d07a47bedf57320c30a84e4a98e13cc7329b98bf17d1b",
+            "dispatch_error": null,
+            "tx_hash": "0x756748e0dfd59bf3062977206102b656d3f92b70e2f56f1fb7d5193c7d3b7577",
+            "events": [
+              {
+                "name": "balances.Reserved",
+                "data": [
+                  "5GQs9uoiiyvnHz12sDzTEmt9PnjzFhHRfCXtjXJdjWQLVv2i",
+                  1000000000000000
+                ]
+              },
+              {
+                "name": "identity.IdentitySet",
+                "data": [
+                  "5GQs9uoiiyvnHz12sDzTEmt9PnjzFhHRfCXtjXJdjWQLVv2i"
+                ]
+              },
+              {
+                "name": "treasury.Deposit",
+                "data": [
+                  976242647186
+                ]
+              },
+              {
+                "name": "system.ExtrinsicSuccess",
+                "data": [
+                  {
+                    "class": "Normal",
+                    "paysFee": "Yes",
+                    "weight": 178354000
+                  }
+                ]
+              }
+            ]
+          }
+        ],
+        "deltas": {
+          "user.free": "-1001220303308983",
+          "user.reserved": "+1000000000000000"
+        },
+        "expectations": [
+          {
+            "description": "step 0 dispatch success",
+            "kind": "dispatch",
+            "pass": true,
+            "observed": "success"
+          },
+          {
+            "description": "delta user.reserved > 0",
+            "kind": "delta",
+            "pass": true,
+            "observed": "+1000000000000000"
+          },
+          {
+            "description": "step 0 event identity.IdentitySet present",
+            "kind": "event",
+            "pass": true,
+            "observed": "balances.Reserved, identity.IdentitySet, treasury.Deposit, system.ExtrinsicSuccess"
+          },
+          {
+            "description": "invariant supply_conservation",
+            "kind": "invariant",
+            "pass": true,
+            "observed": "accounts 28 sum 35000100000000000000 vs issuance 35000100000000000000"
+          }
+        ]
+      },
+      "candidate": {
+        "side": "candidate",
+        "endpoint": "ws://127.0.0.1:9947",
+        "setup_error": null,
+        "pre_block": "0x656671f8c0084bf2df158baff7cf5243335af00dcd69ac743bf26507454965b7",
+        "post_block": "0x1573817b45480cee4f5fb3d1928556e664f8ff9b3bc2d3773b2d6735129797ca",
+        "steps": [
+          {
+            "index": 0,
+            "call": "Identity.setIdentity",
+            "status": "success",
+            "block_hash": "0x1573817b45480cee4f5fb3d1928556e664f8ff9b3bc2d3773b2d6735129797ca",
+            "dispatch_error": null,
+            "tx_hash": "0xca57ff107c7fa40b40c0f8aedea97ad4618748fc29ddb7a544ac6df2b719b607",
+            "events": [
+              {
+                "name": "balances.Reserved",
+                "data": [
+                  "5EoDFCeYp2Ueb1QVb1doLG7ppbZLdGnKW9eXQwGT7bLwbURf",
+                  1000000000000000
+                ]
+              },
+              {
+                "name": "identity.IdentitySet",
+                "data": [
+                  "5EoDFCeYp2Ueb1QVb1doLG7ppbZLdGnKW9eXQwGT7bLwbURf"
+                ]
+              },
+              {
+                "name": "treasury.Deposit",
+                "data": [
+                  9760242646465
+                ]
+              },
+              {
+                "name": "system.ExtrinsicSuccess",
+                "data": [
+                  {
+                    "class": "Normal",
+                    "paysFee": "Yes",
+                    "weight": 178354000
+                  }
+                ]
+              }
+            ]
+          }
+        ],
+        "deltas": {
+          "user.free": "-1012200303308082",
+          "user.reserved": "+1000000000000000"
+        },
+        "expectations": [
+          {
+            "description": "step 0 dispatch success",
+            "kind": "dispatch",
+            "pass": true,
+            "observed": "success"
+          },
+          {
+            "description": "delta user.reserved > 0",
+            "kind": "delta",
+            "pass": true,
+            "observed": "+1000000000000000"
+          },
+          {
+            "description": "step 0 event identity.IdentitySet present",
+            "kind": "event",
+            "pass": true,
+            "observed": "balances.Reserved, identity.IdentitySet, treasury.Deposit, system.ExtrinsicSuccess"
+          },
+          {
+            "description": "invariant supply_conservation",
+            "kind": "invariant",
+            "pass": true,
+            "observed": "accounts 13 sum 35000100000000000000 vs issuance 35000100000000000000"
+          }
+        ]
+      },
+      "reproduce": "canary reproduce identity.deposit --run runs/upgrade-fee/1792137731"
+    }
+  ]
+}

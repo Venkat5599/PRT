@@ -1,0 +1,197 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Portal Canary</title>
+<meta name="description" content="Differential runtime-upgrade testing for Portaldot. Runs the same workflows before and after an upgrade and shows what broke, down to the storage key.">
+<meta name="theme-color" content="#0f110c">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="preload" href="fonts/gambarino-400.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<svg class="sr" aria-hidden="true">
+  <filter id="grain"><feTurbulence type="fractalNoise" baseFrequency=".9" numOctaves="2" stitchTiles="stitch"/><feColorMatrix values="0 0 0 0 .9  0 0 0 0 .9  0 0 0 0 .8  0 0 0 .55 0"/></filter>
+</svg>
+<div class="grain" aria-hidden="true"></div>
+
+<header class="nav">
+  <a class="brand" href="#top" aria-label="Portal Canary home">
+    <svg class="mark" viewBox="0 0 28 18" aria-hidden="true"><rect x="1" y="2" width="26" height="5" rx="2.5"/><rect x="1" y="11" width="15" height="5" rx="2.5"/><circle cx="21.5" cy="13.5" r="2.5" class="mark-stop"/></svg>
+    <span>Portal Canary</span>
+  </a>
+  <nav aria-label="Sections">
+    <a href="#runs">Runs</a>
+    <a href="#findings">Findings</a>
+    <a href="#use">Use it</a>
+    <a class="gh" href="https://github.com/Venkat5599/PRT" aria-label="Source on GitHub">
+      <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
+    </a>
+  </nav>
+</header>
+
+<main id="top">
+  <section class="hero" aria-labelledby="hero-title">
+    <h1 id="hero-title">The spec version went up.<br><em>Did your app survive?</em></h1>
+
+    <div class="stage" data-scenario="halt">
+      <div class="tabs" role="tablist" aria-label="Scenario">
+        <span class="tab-ink" aria-hidden="true"></span>
+        <button role="tab" aria-selected="false" data-s="control">Clean upgrade</button>
+        <button role="tab" aria-selected="false" data-s="fee">Byte fee ×10 <small>injected</small></button>
+        <button role="tab" aria-selected="false" data-s="ed">ED ×100 <small>injected</small></button>
+        <button role="tab" aria-selected="true" data-s="halt">Public source, 60 s slots</button>
+      </div>
+
+      <div class="lanes">
+        <div class="lane" data-lane="base">
+          <span class="lane-label">baseline <b data-k="base-spec">spec 1002</b></span>
+          <div class="track" data-track="base"></div>
+        </div>
+        <div class="lane" data-lane="cand">
+          <span class="lane-label">candidate <b data-k="cand-spec">spec 1003</b></span>
+          <div class="track" data-track="cand"></div>
+        </div>
+      </div>
+
+      <div class="readout">
+        <div aria-live="polite">
+          <p class="verdict" data-k="verdict"><span class="v v-crit">REGRESSION Critical</span> runtime accepted by setCode, block production stopped</p>
+          <pre data-k="log">after      spec_version 1003
+liveness   HALTED: best block stuck at #85 for 40s (needed #88)
+node log   panicked at 'Timestamp slot must match `CurrentSlot`'</pre>
+        </div>
+        <p class="lede">Differential runtime-upgrade testing for Portaldot. The same workflows run before and after the upgrade, every difference is classified, and each finding comes with one command to reproduce it.</p>
+      </div>
+    </div>
+  </section>
+
+  <section id="runs" class="runs" aria-label="Recorded runs">
+    <p class="say">Four recorded runs on real dev nodes. Reports unedited.</p>
+
+    <div class="ledger">
+      <article class="run">
+        <header>
+          <h2>Control</h2>
+          <p>same node as baseline and candidate</p>
+          <dl><dt>spec</dt><dd>1002 → 1002</dd><dt>run</dt><dd>1792086577</dd></dl>
+        </header>
+        <ol>
+          <li><span class="v v-pass">PASS</span><code>balances.keep_alive</code></li>
+          <li><span class="v v-pass">PASS</span><code>balances.transfer.basic</code></li>
+          <li><span class="v v-pass">PASS</span><code>balances.transfer.insufficient</code></li>
+          <li><span class="v v-pass">PASS</span><code>identity.deposit</code></li>
+        </ol>
+        <p class="ev">16 expectations hold on both sides. Nothing observable differs.</p>
+        <a class="open" href="reports/self-compare/report.html">Open report <svg viewBox="0 0 12 12" aria-hidden="true"><path d="M3.5 8.5l5-5M4.5 3.5h4v4"/></svg></a>
+      </article>
+
+      <article class="run">
+        <header>
+          <h2>Byte fee ×10</h2>
+          <p class="inj">injected · applied by system.setCode</p>
+          <dl><dt>spec</dt><dd>1003 → 1005</dd><dt>run</dt><dd>1792137731</dd></dl>
+        </header>
+        <ol>
+          <li><span class="v v-diff">DIFF</span><code>balances.keep_alive</code></li>
+          <li><span class="v v-diff">DIFF</span><code>balances.transfer.basic</code></li>
+          <li><span class="v v-diff">DIFF</span><code>balances.transfer.insufficient</code></li>
+          <li><span class="v v-diff">DIFF</span><code>identity.deposit</code></li>
+        </ol>
+        <p class="ev">Fees rise from 0.0147 to 0.147 POT per transfer. Every expectation still holds, so it is a difference, not a regression. Exit 0.</p>
+        <a class="open" href="reports/upgrade-fee10x/report.html">Open report <svg viewBox="0 0 12 12" aria-hidden="true"><path d="M3.5 8.5l5-5M4.5 3.5h4v4"/></svg></a>
+      </article>
+
+      <article class="run">
+        <header>
+          <h2>ED ×100</h2>
+          <p class="inj">injected · applied by system.setCode</p>
+          <dl><dt>spec</dt><dd>1003 → 1004</dd><dt>run</dt><dd>1792136615</dd></dl>
+        </header>
+        <ol>
+          <li><span class="v v-pass">PASS</span><code>balances.keep_alive</code></li>
+          <li><span class="v v-high">HIGH</span><code>balances.transfer.basic</code></li>
+          <li><span class="v v-pass">PASS</span><code>balances.transfer.insufficient</code></li>
+          <li><span class="v v-pass">PASS</span><code>identity.deposit</code></li>
+        </ol>
+        <p class="ev">A 1 POT transfer to a new account: <code>success</code> on the baseline, <code>failed (balances.ExistentialDeposit)</code> on the candidate. Receiver +1 POT vs +0.</p>
+        <a class="open" href="reports/upgrade-ed100x/report.html">Open report <svg viewBox="0 0 12 12" aria-hidden="true"><path d="M3.5 8.5l5-5M4.5 3.5h4v4"/></svg></a>
+      </article>
+
+      <article class="run">
+        <header>
+          <h2>Faulty migration</h2>
+          <p class="inj">injected · sudo setStorage, 1000 POT</p>
+          <dl><dt>spec</dt><dd>1002 → 1002</dd><dt>run</dt><dd>1792086881</dd></dl>
+        </header>
+        <ol>
+          <li><span class="v v-crit">CRIT</span><code>balances.keep_alive</code></li>
+          <li><span class="v v-crit">CRIT</span><code>balances.transfer.basic</code></li>
+          <li><span class="v v-crit">CRIT</span><code>balances.transfer.insufficient</code></li>
+          <li><span class="v v-crit">CRIT</span><code>identity.deposit</code></li>
+        </ol>
+        <p class="ev">Supply invariant broken: accounts sum to <code>35100100…</code>, TotalIssuance says <code>35000100…</code>. Funds created from nothing.</p>
+        <a class="open" href="reports/injected-faulty-migration/report.html">Open report <svg viewBox="0 0 12 12" aria-hidden="true"><path d="M3.5 8.5l5-5M4.5 3.5h4v4"/></svg></a>
+      </article>
+    </div>
+
+    <p class="repro"><code>canary reproduce balances.transfer.basic --run runs/1792136615</code><span>→ identical finding hash <b>4f3a42a3745cb696</b></span></p>
+  </section>
+
+  <section id="findings" class="findings" aria-label="Findings">
+    <div class="big">
+      <p class="num" data-count="0">0<span>planck</span></p>
+      <p>difference between the sum of all 4,719 mainnet accounts and <code>TotalIssuance</code> at block #2,727,345. 1,016,781,509.44 POT, checked read-only against <code>wss://mainnet.portaldot.io</code>.</p>
+    </div>
+
+    <div class="notes">
+      <article>
+        <h3>The public source halts a 6 s chain.</h3>
+        <p><code>setCode</code> accepts it and the spec version rises, then BABE panics on the next slot. Slot duration cannot change on a live chain. <code>canary compare</code> now flags it before anyone applies it.</p>
+      </article>
+      <article>
+        <h3>Modern polkadot.js misreads Portaldot errors.</h3>
+        <p>The 2021 runtime encodes <code>DispatchError::Module</code> with a one-byte error; current libraries expect four, so failed extrinsics break event decoding. Canary pins the legacy type and calls undecodable blocks inconclusive, never success.</p>
+      </article>
+      <article>
+        <h3>The dev node is not mainnet.</h3>
+        <p>Same <code>spec_version</code> 1002, twelve different constants: block time 60 s vs 6 s, epoch length, election phases, treasury, contract deposits. Results on one do not carry over to the other.</p>
+      </article>
+    </div>
+  </section>
+
+  <section id="use" class="use" aria-label="Commands">
+    <p class="say">Metadata V13 means no subxt. Canary speaks raw JSON-RPC and SCALE.</p>
+    <div class="cmds">
+      <dl>
+        <dt><code>canary doctor</code></dt><dd>DNS to runtime, layer by layer, with metadata version and API capabilities</dd>
+        <dt><code>canary invariants</code></dt><dd>supply conservation, pinned to one finalized block</dd>
+        <dt><code>canary compare</code></dt><dd>every pallet's calls, events, storage and constants; flags chain-halting changes</dd>
+        <dt><code>canary upgrade</code></dt><dd>sudo setCode on a dev chain, then proves blocks still land</dd>
+        <dt><code>canary test</code></dt><dd>workflow corpus on both runtimes, verdict per workflow</dd>
+        <dt><code>canary reproduce</code></dt><dd>reruns one finding, same hash or it says so</dd>
+        <dt><code>canary attest</code></dt><dd>anchors the verdict on-chain with <code>system.remark</code>; <code>verify</code> checks it</dd>
+      </dl>
+      <pre class="yaml"><span class="c"># .github/workflows/upgrade.yml</span>
+- uses: Venkat5599/PRT@main
+  with:
+    baseline:  ws://127.0.0.1:9944
+    candidate: ws://127.0.0.1:9945
+<span class="c"># fails the job on any REGRESSION</span></pre>
+    </div>
+    <p class="exit">Exit <b>0</b> pass or difference · <b>1</b> regression · <b>2</b> inconclusive. A CI gate as is.</p>
+  </section>
+</main>
+
+<footer class="foot">
+  <div class="foot-row">
+    <p>Built for the Portaldot Hacker House 2026, Node Operations &amp; Tooling. Apache-2.0.</p>
+    <p>Injected regressions are labelled as such. Nothing here claims an upgrade is safe.</p>
+    <p><a href="https://github.com/Venkat5599/PRT">github.com/Venkat5599/PRT</a></p>
+  </div>
+  <p class="wordmark" aria-hidden="true">canary</p>
+</footer>
+<script src="app.js" defer></script>
+</body>
+</html>
