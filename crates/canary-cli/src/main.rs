@@ -56,7 +56,8 @@ enum Command {
         json: bool,
     },
     /// Structural diff of two live runtimes: version, runtime APIs, and every pallet's
-    /// calls, events, storage, constants and errors.
+    /// calls, events, storage, constants and errors. Exits 1 if a change is a known
+    /// upgrade hazard (e.g. BABE slot or epoch duration), which would halt a running chain.
     Compare {
         #[arg(long)]
         baseline: String,
@@ -123,7 +124,8 @@ enum Command {
         #[command(flatten)]
         driver: DriverArgs,
     },
-    /// Apply a candidate runtime WASM to a development node (sudo setCode) and wait until it is live.
+    /// Apply a candidate runtime WASM to a development node (sudo setCode) and wait until it is
+    /// live and producing blocks. Exits 1 if the chain halts after the upgrade, 2 if not applied.
     Upgrade {
         #[arg(long, default_value = "ws://127.0.0.1:9944")]
         ws: String,
