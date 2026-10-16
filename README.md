@@ -116,6 +116,7 @@ Candidates are built by [`runtimes/build.sh`](runtimes/build.sh) from [portaldot
 |---|---|---|
 | `clean.compact.wasm` | none besides dev-chain block time (6 s) | 1003 |
 | `ed100x.compact.wasm` | **INJECTED**: `ExistentialDeposit` 1 → 100 POT | 1004 |
+| `fee10x.compact.wasm` | **INJECTED**: `TransactionByteFee` 10 → 100 MILLICENTS | 1005 |
 | `source-60s.compact.wasm` | unmodified public source (60 s blocks) | 1003 |
 
 `scripts/upgrade-demo.sh` runs the whole thing with no manual steps. Real output:
@@ -140,6 +141,8 @@ REGRESSION    High      balances.transfer.basic
 PASS          Info      balances.transfer.insufficient
 PASS          Info      identity.deposit
 ```
+
+The fee candidate shows Canary does not cry wolf: fees per transfer rise from 0.0147 to 0.147 POT, every expectation still holds, so all four workflows come back **DIFFERENCE / Low** and the run exits 0 ([`examples/upgrade-fee10x`](examples/upgrade-fee10x/report.html)).
 
 Control (clean upgrade vs itself): 4/4 PASS. `canary reproduce` returns the identical finding hash. Full report: [`examples/upgrade-ed100x/report.html`](examples/upgrade-ed100x/report.html).
 
