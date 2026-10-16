@@ -160,7 +160,7 @@ pub fn html(r: &Report) -> String {
             let f = &w.finding;
             format!(
                 "<section class=\"wf {cls}\"><header><span class=\"verdict\">{v:?}</span><span class=\"sev\">{sev:?}</span><h3>{id}</h3></header>\
-                 <p class=\"why\">{why}</p>{reg}{base}{diff}\
+                 <p class=\"why\">{why}</p>{reg}{base}{diff}{norm}\
                  <p class=\"meta\">blocks · baseline {bp} → {bq} · candidate {cp} → {cq}</p>\
                  <p class=\"meta\">reproduce <code>{repro}</code> · finding <code>{hash}</code></p></section>",
                 cls = verdict_class(f.verdict),
@@ -170,8 +170,8 @@ pub fn html(r: &Report) -> String {
                 why = esc(&f.rationale),
                 reg = contrast_rows("Regressed expectations", &f.regressed),
                 base = contrast_rows("Failing on baseline", &f.baseline_failures),
-                diff = format!("{}{}", contrast_rows("Observable differences", &f.differences),
-                               contrast_rows("Normalised (within tolerance, not counted)", &f.normalised)),
+                diff = contrast_rows("Observable differences", &f.differences),
+                norm = contrast_rows("Normalised (within tolerance, not counted)", &f.normalised),
                 bp = short(&w.baseline.pre_block),
                 bq = short(&w.baseline.post_block),
                 cp = short(&w.candidate.pre_block),

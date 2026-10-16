@@ -1,7 +1,7 @@
 // INJECTED REGRESSION: simulate a faulty balance migration on a local dev node.
 //
 // Credits an account with extra free balance via sudo `system.setStorage`
-// WITHOUT touching Balances.TotalIssuance — the exact effect of a migration that
+// WITHOUT touching Balances.TotalIssuance: the exact effect of a migration that
 // mis-converts legacy balances. Dev nodes only; refuses anything that is not a
 // `Development` chain. Usage: bun src/inject.ts ws://127.0.0.1:9945 [planck] [account]
 
