@@ -1,0 +1,13 @@
+diff --git a/bin/node/runtime/src/lib.rs b/bin/node/runtime/src/lib.rs
+index fd9a79d..edb1b5a 100644
+--- a/bin/node/runtime/src/lib.rs
++++ b/bin/node/runtime/src/lib.rs
+@@ -114,7 +114,7 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
+ 	// and set impl_version to 0. If only runtime
+ 	// implementation changes and behavior does not, then leave spec_version as
+ 	// is and increment impl_version.
+-	spec_version: 1001,
++	spec_version: 1003,
+ 	impl_version: 0,
+ 	apis: RUNTIME_API_VERSIONS,
+ 	transaction_version: 2,

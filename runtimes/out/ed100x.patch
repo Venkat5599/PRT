@@ -1,0 +1,35 @@
+diff --git a/bin/node/runtime/src/constants.rs b/bin/node/runtime/src/constants.rs
+index 45ea77a..705f6f3 100644
+--- a/bin/node/runtime/src/constants.rs
++++ b/bin/node/runtime/src/constants.rs
+@@ -51,7 +51,7 @@ pub mod time {
+ 	/// `SLOT_DURATION` should have the same value.
+ 	///
+ 	/// <https://research.web3.foundation/en/latest/polkadot/block-production/Babe.html#-6.-practical-results>
+-	pub const MILLISECS_PER_BLOCK: Moment = 60_000;
++	pub const MILLISECS_PER_BLOCK: Moment = 6_000;
+ 	pub const SECS_PER_BLOCK: Moment = MILLISECS_PER_BLOCK / 1000;
+ 
+ 	// NOTE: Currently it is not possible to change the slot duration after the chain has started.
+diff --git a/bin/node/runtime/src/lib.rs b/bin/node/runtime/src/lib.rs
+index fd9a79d..3ee1afd 100644
+--- a/bin/node/runtime/src/lib.rs
++++ b/bin/node/runtime/src/lib.rs
+@@ -114,7 +114,7 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
+ 	// and set impl_version to 0. If only runtime
+ 	// implementation changes and behavior does not, then leave spec_version as
+ 	// is and increment impl_version.
+-	spec_version: 1001,
++	spec_version: 1004,
+ 	impl_version: 0,
+ 	apis: RUNTIME_API_VERSIONS,
+ 	transaction_version: 2,
+@@ -351,7 +351,7 @@ impl pallet_indices::Config for Runtime {
+ }
+ 
+ parameter_types! {
+-	pub const ExistentialDeposit: Balance = 1 * DOLLARS;
++	pub const ExistentialDeposit: Balance = 100 * DOLLARS;
+ 	// For weight estimation, we assume that the most locks on an individual account will be 50.
+ 	// This number may need to be adjusted in the future if this assumption no longer holds true.
+ 	pub const MaxLocks: u32 = 50;
