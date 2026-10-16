@@ -4,6 +4,8 @@
 
 `try-runtime` tells you the migration ran. Portal Canary tells you whether your app still works, shows the exact state that diverged, and gives you one command to reproduce it.
 
+**Live:** https://portal-canary.vercel.app (recorded runs and their full reports)
+
 > Status: early development for the Portaldot Hacker House 2026 (Node Operations & Tooling track). See [`docs/PLAN.md`](docs/PLAN.md) for the full design and [`docs/V3_READINESS.md`](docs/V3_READINESS.md) for live V3 endpoint checks.
 
 ## Why it exists
