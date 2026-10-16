@@ -1,161 +1,165 @@
-// Two chains side by side. Block numbers, specs and outcomes come from the
-// recorded runs in /reports; the animation is faster than the real 6 s blocks.
-(() => {
-  const SCENARIOS = {
-    control: {
-      base: "clean · spec 1003",
-      cand: "clean · spec 1003",
-      upgrade: 4,
-      transfer: { every: 5, base: ["ok", "sent ✓"], cand: ["ok", "sent ✓"] },
-      verdict: '<span class="v v-pass">PASS</span> 4 of 4 workflows, 16 expectations, nothing observable differs',
-      log: "canary test --baseline ws://127.0.0.1:9944 --candidate ws://127.0.0.1:9944\nPASS  balances.keep_alive · balances.transfer.basic · balances.transfer.insufficient · identity.deposit\nexit 0",
-    },
-    fee: {
-      base: "clean · spec 1003",
-      cand: "fee10x · spec 1005 · injected",
-      upgrade: 9,
-      transfer: { every: 5, base: ["ok", "fee .015"], cand: ["diff", "fee .147"] },
-      verdict: '<span class="v v-diff">DIFFERENCE Low</span> 4 of 4 workflows, every expectation still holds',
-      log: "~ delta sender.free  baseline: -1.0147 POT  candidate: -1.1470 POT\nfees x10, transfers still land, invariants hold\nexit 0",
-    },
-    ed: {
-      base: "clean · spec 1003",
-      cand: "ed100x · spec 1004 · injected",
-      upgrade: 9,
-      transfer: { every: 5, base: ["ok", "sent ✓"], cand: ["bad", "ED ✗"] },
-      verdict: '<span class="v v-high">REGRESSION High</span> balances.transfer.basic, 1 of 4 workflows',
-      log: "✗ step 0 dispatch success  baseline: success  candidate: failed (balances.ExistentialDeposit)\n✗ delta receiver.free == 100000000000000  baseline: +100000000000000  candidate: +0\nreproduced  4f3a42a3745cb696  identical finding hash",
-    },
-    halt: {
-      base: "clean · spec 1003",
-      cand: "public source, 60 s slots · spec 1003",
-      upgrade: 82, haltAt: 85,
-      transfer: null,
-      verdict: '<span class="v v-crit">REGRESSION Critical</span> runtime accepted by setCode, block production stopped',
-      log: "after      spec_version 1003\nliveness   HALTED: best block stuck at #85 for 40s (needed #88)\nnode log   panicked at 'Timestamp slot must match `CurrentSlot`'",
-    },
+// Renders a recorded Canary run (reports/<id>/report.json) as one split board:
+// baseline on the left, candidate on the right, one seam between them.
+const RUNS = [
+  { id: "self-compare", name: "Control", hint: "same node on both sides" },
+  { id: "upgrade-fee10x", name: "Byte fee ×10", hint: "injected, via setCode" },
+  { id: "upgrade-ed100x", name: "ED ×100", hint: "injected, via setCode" },
+  { id: "injected-faulty-migration", name: "Faulty migration", hint: "injected, sudo setStorage" },
+];
+const PLANCK = 10n ** 14n;
+const $ = (s, el = document) => el.querySelector(s);
+const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
+const cache = new Map();
+let current = null;
+let filter = "all";
+
+// Large planck integers read better as POT; the raw value stays in the title.
+function pretty(v) {
+  const m = /^([+-]?)(\d{12,})$/.exec(v ?? "");
+  if (!m) return esc(v ?? "–");
+  const n = BigInt(m[2]);
+  const whole = n / PLANCK;
+  const frac = ((n % PLANCK) * 10000n) / PLANCK;
+  return `<span title="${esc(v)} planck">${m[1]}${whole.toLocaleString("en")}.${String(frac).padStart(4, "0")} POT</span>`;
+}
+
+// One seam segment per row. Same: straight. Changed: a jog. Regressed: broken.
+function seam(state) {
+  const paths = {
+    same: '<path d="M12 0V100"/>',
+    diff: '<path d="M12 0V34L18 50L12 66V100"/>',
+    reg: '<path d="M12 0V30"/><path d="M12 70V100"/>',
+    base: '<path d="M12 0V40"/><path class="dash" d="M12 46V54"/><path d="M12 60V100"/>',
   };
+  const cut = state === "reg" ? '<svg class="cut" viewBox="0 0 12 12"><path d="M2 2L10 10M10 2L2 10"/></svg>' : "";
+  return `<span class="seam s-${state}" aria-hidden="true"><svg viewBox="0 0 24 100" preserveAspectRatio="none">${paths[state]}</svg>${cut}</span>`;
+}
 
-  const stage = document.querySelector(".stage");
-  if (!stage) return;
-  const tracks = { base: stage.querySelector('[data-track="base"]'), cand: stage.querySelector('[data-track="cand"]') };
-  const tabs = [...stage.querySelectorAll('[role="tab"]')];
-  const ink = stage.querySelector(".tab-ink");
-  const reduce = matchMedia("(prefers-reduced-motion: reduce)");
-  const STEP_MS = 1100;
+const LABEL = { REGRESSION: "regression", DIFFERENCE: "difference", PASS: "pass", INCONCLUSIVE: "inconclusive" };
 
-  let sc, next, offset, last, raf, halted;
-
-  function block(side, n) {
-    const el = document.createElement("div");
-    el.className = "blk";
-    let x = "";
-    if (n === sc.upgrade) { el.classList.add("code"); x = "setCode"; }
-    else if (sc.transfer && n > sc.upgrade && (n - sc.upgrade) % sc.transfer.every === 2) {
-      const [cls, label] = sc.transfer[side];
-      el.classList.add(cls); x = label;
-    }
-    el.innerHTML = `<span class="n">#${n}</span><span class="x">${x}</span>`;
-    return el;
-  }
-
-  function voidBlock() {
-    const el = document.createElement("div");
-    el.className = "blk void";
-    el.textContent = `no block since #${sc.haltAt} · Timestamp slot must match CurrentSlot`;
-    return el;
-  }
-
-  function fill(side, from, count) {
-    const t = tracks[side];
-    t.textContent = "";
-    for (let i = 0; i < count; i++) {
-      const n = from + i;
-      if (side === "cand" && sc.haltAt && n > sc.haltAt) { t.appendChild(voidBlock()); break; }
-      t.appendChild(block(side, n));
-    }
-  }
-
-  function width() { return (tracks.base.firstElementChild?.getBoundingClientRect().width || 72) + 8; }
-  function visibleCount() { return Math.ceil(stage.clientWidth / 64) + 3; }
-
-  function set(name) {
-    sc = SCENARIOS[name];
-    stage.dataset.scenario = name;
-    stage.querySelector('[data-k="base-spec"]').textContent = sc.base;
-    stage.querySelector('[data-k="cand-spec"]').textContent = sc.cand;
-    stage.querySelector('[data-k="verdict"]').innerHTML = sc.verdict;
-    stage.querySelector('[data-k="log"]').textContent = sc.log;
-    tabs.forEach((b) => b.setAttribute("aria-selected", String(b.dataset.s === name)));
-    moveInk();
-
-    const n = visibleCount();
-    // Centre the moment that matters (setCode, or the stall); with reduced motion this frame is final.
-    const anchor = sc.haltAt ?? sc.upgrade;
-    const from = Math.max(1, anchor - Math.floor(n / 2) + 1);
-    fill("base", from, n);
-    fill("cand", from, n);
-    next = from + n;
-    offset = 0;
-    halted = false;
-    tracks.base.style.transform = tracks.cand.style.transform = "";
-    last = performance.now();
-    cancelAnimationFrame(raf);
-    if (!reduce.matches) raf = requestAnimationFrame(tick);
-  }
-
-  function tick(now) {
-    const dt = Math.min(now - last, 100);
-    last = now;
-    const w = width();
-    offset += (dt / STEP_MS) * w;
-    if (offset >= w) {
-      offset -= w;
-      tracks.base.firstElementChild.remove();
-      tracks.base.appendChild(block("base", next));
-      if (!halted) {
-        const n = next;
-        if (sc.haltAt && n > sc.haltAt) {
-          // the candidate stops for good; its lane freezes where it stalled
-          halted = true;
-          tracks.cand.style.transform = `translateX(${-offset}px)`;
-        } else {
-          tracks.cand.firstElementChild.remove();
-          tracks.cand.appendChild(block("cand", n));
-        }
-      }
-      next++;
-    }
-    tracks.base.style.transform = `translateX(${-offset}px)`;
-    if (!halted) tracks.cand.style.transform = `translateX(${-offset}px)`;
-    raf = requestAnimationFrame(tick);
-  }
-
-  function moveInk() {
-    const on = tabs.find((b) => b.getAttribute("aria-selected") === "true");
-    if (!on || !ink) return;
-    ink.style.width = `${on.offsetWidth}px`;
-    ink.style.height = `${on.offsetHeight}px`;
-    ink.style.transform = `translate(${on.offsetLeft}px, ${on.offsetTop}px)`;
-  }
-
-  tabs.forEach((b, i) => {
-    b.addEventListener("click", () => set(b.dataset.s));
-    b.addEventListener("keydown", (e) => {
-      if (e.key !== "ArrowRight" && e.key !== "ArrowLeft") return;
-      const j = (i + (e.key === "ArrowRight" ? 1 : tabs.length - 1)) % tabs.length;
-      tabs[j].focus();
-      set(tabs[j].dataset.s);
-    });
+function rows(w) {
+  const b = w.baseline.expectations ?? [];
+  const c = w.candidate.expectations ?? [];
+  // A row only counts as changed when Canary's verdict engine says so; raw strings
+  // such as account counts legitimately differ between two nodes.
+  const changed = new Set((w.finding.differences ?? []).map((d) => d.what));
+  const out = b.map((eb, i) => {
+    const ec = c[i] ?? {};
+    const state = !eb.pass ? "base" : !ec.pass ? "reg" : changed.has(eb.description) ? "diff" : "same";
+    return { label: eb.description, b: eb.observed, c: ec.observed, state };
   });
+  // Observable differences that no expectation covers (fees, deltas) are rows too,
+  // unless the workflow already regressed and the failed checks tell the story.
+  for (const d of w.finding.verdict === "REGRESSION" ? [] : w.finding.differences ?? []) {
+    if (!out.some((r) => r.label === d.what)) out.push({ label: d.what, b: d.baseline, c: d.candidate, state: "diff" });
+  }
+  if (w.baseline.setup_error || w.candidate.setup_error) {
+    out.push({ label: "setup", b: w.baseline.setup_error ?? "ok", c: w.candidate.setup_error ?? "ok", state: "base" });
+  }
+  return out;
+}
 
-  let resizeTimer;
-  addEventListener("resize", () => {
-    clearTimeout(resizeTimer);
-    resizeTimer = setTimeout(() => set(stage.dataset.scenario), 150);
-  });
-  reduce.addEventListener?.("change", () => set(stage.dataset.scenario));
-  document.fonts?.ready.then(moveInk);
+function workflow(w, open) {
+  const f = w.finding;
+  const v = LABEL[f.verdict] ?? f.verdict.toLowerCase();
+  const body = rows(w)
+    .map((r) => `<li class="row r-${r.state}">
+        <span class="check">${esc(r.label)}</span>
+        <span class="val vb">${pretty(r.b)}</span>${seam(r.state)}<span class="val vc">${pretty(r.c)}</span>
+      </li>`)
+    .join("");
+  const blocks = (s) => `${(s.pre_block ?? "–").slice(0, 10)} → ${(s.post_block ?? "–").slice(0, 10)}`;
+  return `<details class="wf v-${v}" ${open ? "open" : ""} data-verdict="${v}">
+    <summary>
+      <span class="verdict">${v}</span>
+      <span class="name">${esc(f.workflow)}</span>
+      <span class="sev">${f.severity === "info" ? "" : esc(f.severity)}</span>
+    </summary>
+    <p class="why">${esc(f.rationale)}</p>
+    <ul class="rows">${body}</ul>
+    <div class="repro">
+      <span class="blk">blocks ${blocks(w.baseline)}</span>
+      <span class="blk">blocks ${blocks(w.candidate)}</span>
+      <button type="button" class="copy" data-copy="${esc(w.reproduce)}"><code>${esc(w.reproduce)}</code><span>copy</span></button>
+      <span class="hash">finding ${esc(f.finding_hash.slice(0, 16))}</span>
+    </div>
+  </details>`;
+}
 
-  set(stage.dataset.scenario || "halt");
-})();
+function side(m) {
+  return `${esc(m.endpoint)} · spec ${m.spec_version} · metadata V${m.metadata_version} ${esc(m.metadata_sha256.slice(0, 12))}`;
+}
+
+function render() {
+  const r = current;
+  const board = $("[data-board]");
+  const s = r.summary;
+  const n = (k, one, many) => `${s[k]} ${s[k] === 1 ? one : many}`;
+  $('[data-k="statement"]').textContent = s.regression
+    ? `${n("regression", "regression", "regressions")} across ${s.workflows} workflows.`
+    : s.difference
+      ? `No regression. ${n("difference", "workflow behaves", "workflows behave")} differently.`
+      : s.inconclusive
+        ? `No regression, ${n("inconclusive", "workflow", "workflows")} inconclusive.`
+        : `No regression. All ${s.workflows} workflows behave the same.`;
+  $('[data-k="note"]').textContent = r.manifest.injected
+    ? `Injected candidate: ${r.manifest.injected}. A deliberately modified test runtime, not a Portaldot finding.`
+    : "No injection: the candidate is the baseline node itself, so nothing should differ.";
+  $('[data-k="base"]').textContent = side(r.manifest.baseline);
+  $('[data-k="cand"]').textContent = side(r.manifest.candidate);
+
+  const counts = { all: r.results.length };
+  for (const w of r.results) {
+    const v = LABEL[w.finding.verdict];
+    counts[v] = (counts[v] ?? 0) + 1;
+  }
+  if (!counts[filter]) filter = "all";
+  $("[data-filters]").innerHTML = ["all", "regression", "difference", "pass", "inconclusive"]
+    .filter((k) => counts[k])
+    .map((k) => `<button type="button" aria-pressed="${k === filter}" data-f="${k}">${k} <span>${counts[k]}</span></button>`)
+    .join("");
+
+  const list = r.results.filter((w) => filter === "all" || LABEL[w.finding.verdict] === filter);
+  $("[data-workflows]").innerHTML = list.map((w) => workflow(w, w.finding.verdict !== "PASS" || list.length === 1 || r.summary.regression + r.summary.difference === 0)).join("");
+  board.dataset.state = r.summary.regression ? "reg" : r.summary.difference ? "diff" : "same";
+}
+
+async function load(id) {
+  document.querySelectorAll("[data-run]").forEach((b) => b.setAttribute("aria-current", String(b.dataset.run === id)));
+  try {
+    if (!cache.has(id)) {
+      const res = await fetch(`reports/${id}/report.json`);
+      if (!res.ok) throw new Error(`${res.status}`);
+      cache.set(id, await res.json());
+    }
+    current = cache.get(id);
+    render();
+    history.replaceState(null, "", `#${id}`);
+  } catch (e) {
+    $('[data-k="statement"]').textContent = `Could not load this run (${e.message}).`;
+  }
+}
+
+$("[data-runs]").innerHTML = RUNS.map(
+  (r) => `<button type="button" data-run="${r.id}" aria-current="false"><b>${r.name}</b><small>${r.hint}</small></button>`,
+).join("");
+
+document.addEventListener("click", async (e) => {
+  const run = e.target.closest("[data-run]");
+  if (run) return load(run.dataset.run);
+  const f = e.target.closest("[data-f]");
+  if (f) { filter = f.dataset.f; return render(); }
+  const c = e.target.closest("[data-copy]");
+  if (c) {
+    try {
+      await navigator.clipboard.writeText(c.dataset.copy);
+      c.lastElementChild.textContent = "copied";
+    } catch {
+      c.lastElementChild.textContent = "select + copy";
+    }
+    setTimeout(() => (c.lastElementChild.textContent = "copy"), 1600);
+  }
+});
+
+const start = RUNS.find((r) => `#${r.id}` === location.hash)?.id ?? "upgrade-ed100x";
+load(start);
