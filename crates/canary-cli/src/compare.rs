@@ -80,6 +80,7 @@ pub fn run(baseline: &str, candidate: &str, timeout: Duration, as_json: bool) ->
     };
     let mut changes = version_changes(&a.side, &b.side);
     changes.extend(diff::diff(&a.md, &b.md));
+    let hazards = diff::hazards(&changes);
     let identical = a.side.metadata.sha256 == b.side.metadata.sha256;
     let silent = !identical
         && a.side.spec_version == b.side.spec_version
@@ -87,7 +88,8 @@ pub fn run(baseline: &str, candidate: &str, timeout: Duration, as_json: bool) ->
 
     if as_json {
         let out = json!({ "baseline": a.side, "candidate": b.side, "changes": changes,
-                          "metadata_identical": identical, "unversioned_change": silent });
+                          "metadata_identical": identical, "unversioned_change": silent,
+                          "upgrade_hazards": hazards });
         println!("{}", serde_json::to_string_pretty(&out).expect("serialises"));
     } else {
         println!("baseline   {}  spec {}#{}  metadata {}…", a.side.endpoint, a.side.spec_name.as_deref().unwrap_or("-"),
@@ -109,8 +111,15 @@ pub fn run(baseline: &str, candidate: &str, timeout: Duration, as_json: bool) ->
             println!();
             println!("WARNING  runtime changed without a spec_version/transaction_version bump");
         }
+        if !hazards.is_empty() {
+            println!();
+            for h in &hazards {
+                println!("HAZARD   {}: {}", h.path, h.reason);
+            }
+            println!("         applying this candidate with setCode would halt the chain");
+        }
         println!();
         println!("{} change(s)", changes.len());
     }
-    ExitCode::SUCCESS
+    if hazards.is_empty() { ExitCode::SUCCESS } else { ExitCode::from(1) }
 }

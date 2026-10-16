@@ -149,3 +149,48 @@ pub fn diff(a: &MetadataV13, b: &MetadataV13) -> Vec<Change> {
     }
     out
 }
+
+/// A change that is known to break a running chain when applied with `setCode`,
+/// regardless of what the workflows observe.
+#[derive(Debug, Clone, Serialize)]
+pub struct Hazard {
+    pub path: String,
+    pub reason: &'static str,
+}
+
+/// Constants that cannot change on a live BABE chain. The Substrate source itself warns
+/// that changing slot or epoch duration "will brick block production".
+const BRICKING: &[(&str, &str)] = &[
+    ("Babe.constant.EpochDuration", "BABE epoch duration cannot change on a running chain; block production halts"),
+    ("Babe.constant.ExpectedBlockTime", "BABE slot duration cannot change on a running chain; block production halts"),
+    ("Timestamp.constant.MinimumPeriod", "timestamp period is tied to the BABE slot; a change breaks slot/timestamp checks"),
+];
+
+pub fn hazards(changes: &[Change]) -> Vec<Hazard> {
+    changes
+        .iter()
+        .filter(|c| c.kind == ChangeKind::Modified)
+        .filter_map(|c| BRICKING.iter().find(|(p, _)| *p == c.path).map(|(p, r)| Hazard { path: (*p).into(), reason: r }))
+        .collect()
+}
+
+#[cfg(test)]
+mod hazard_tests {
+    use super::*;
+
+    fn modified(path: &str) -> Change {
+        Change { kind: ChangeKind::Modified, path: path.into(), baseline: Some("a".into()), candidate: Some("b".into()) }
+    }
+
+    #[test]
+    fn slot_duration_change_is_a_hazard() {
+        let h = hazards(&[modified("Babe.constant.ExpectedBlockTime"), modified("Balances.constant.ExistentialDeposit")]);
+        assert_eq!(h.len(), 1);
+        assert_eq!(h[0].path, "Babe.constant.ExpectedBlockTime");
+    }
+
+    #[test]
+    fn ordinary_constant_change_is_not_a_hazard() {
+        assert!(hazards(&[modified("Balances.constant.ExistentialDeposit")]).is_empty());
+    }
+}
