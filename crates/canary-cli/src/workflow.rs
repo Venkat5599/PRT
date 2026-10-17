@@ -54,8 +54,16 @@ pub enum Expect {
         #[serde(default)]
         lt: Option<String>,
     },
-    /// Event emitted by step N (or required to be absent).
-    Event { step: usize, name: String, #[serde(default)] absent: bool },
+    /// Event emitted by step N (or required to be absent). `contains` additionally requires
+    /// the event's JSON data to contain that text, e.g. a contract's emitted value.
+    Event {
+        step: usize,
+        name: String,
+        #[serde(default)]
+        absent: bool,
+        #[serde(default)]
+        contains: Option<String>,
+    },
     /// Named state invariant evaluated on the post-state.
     Invariant(String),
 }
@@ -75,9 +83,10 @@ impl Expect {
                     .unwrap_or_else(|| "observed".into());
                 format!("delta {account}.{field} {op}")
             }
-            Expect::Event { step, name, absent } => {
-                format!("step {step} event {name} {}", if *absent { "absent" } else { "present" })
-            }
+            Expect::Event { step, name, absent, contains } => match contains {
+                Some(c) => format!("step {step} event {name} {} with {c}", if *absent { "absent" } else { "present" }),
+                None => format!("step {step} event {name} {}", if *absent { "absent" } else { "present" }),
+            },
             Expect::Invariant(n) => format!("invariant {n}"),
         }
     }
@@ -110,6 +119,10 @@ pub struct Workflow {
     /// equal. Absorbs per-block fee-multiplier drift; real fee changes are far larger.
     #[serde(default = "default_tolerance_ppm")]
     pub delta_tolerance_ppm: u64,
+    /// Events whose presence depends on chain history, not on the runtime; differences
+    /// in them alone are normalised (shown in the report, not counted).
+    #[serde(default)]
+    pub history_events: Vec<String>,
 }
 
 fn default_tolerance_ppm() -> u64 {
@@ -176,5 +189,17 @@ expect:
         assert_eq!(w.expect.len(), 4);
         assert_eq!(w.expect[1].describe(), "delta b.free == 1");
         assert_eq!(w.expect[3].kind(), "invariant");
+    }
+
+    #[test]
+    fn parses_event_contains() {
+        let y = r#"
+id: t
+steps: [{ call: Contracts.call, signer: a }]
+expect:
+  - event: { step: 0, name: contracts.ContractEmitted, contains: "0x01" }
+"#;
+        let w = parse(y.as_bytes()).unwrap();
+        assert_eq!(w.expect[0].describe(), "step 0 event contracts.ContractEmitted present with 0x01");
     }
 }

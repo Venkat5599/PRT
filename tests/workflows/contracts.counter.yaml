@@ -1,0 +1,37 @@
+# Deploy a WASM contract, call it twice, and check the value it emits.
+# Contract source: tests/contracts/counter.wat. 1 POT = 10^14 planck.
+# The endowment (50 POT) is far above the dev chain's 1 POT existential deposit; a
+# runtime that raises the deposit past it cannot fund new contracts.
+id: contracts.counter
+description: A WASM contract deploys with an endowment, keeps state across calls and emits the counter value.
+importance: core
+# CodeStored only fires the first time a code blob reaches a chain, so it depends on
+# history (e.g. both sides on one node), not on the runtime.
+history_events: [contracts.CodeStored]
+accounts: [user]
+fund:
+  - { account: user, amount: "100000000000000000" }   # 1000 POT
+steps:
+  - call: Contracts.instantiateWithCode
+    signer: user
+    args:
+      endowment: "5000000000000000"     # 50 POT
+      gas_limit: "200000000000"
+      code: "file:tests/contracts/counter.wasm"
+      data: "0x"
+      salt: "0x00"
+  - call: Contracts.call
+    signer: user
+    args: { dest: "step:0:contracts.Instantiated:1", value: "0", gas_limit: "200000000000", data: "0x" }
+  - call: Contracts.call
+    signer: user
+    args: { dest: "step:0:contracts.Instantiated:1", value: "0", gas_limit: "200000000000", data: "0x" }
+expect:
+  - dispatch: { step: 0, status: success }
+  - event: { step: 0, name: contracts.Instantiated }
+  - dispatch: { step: 1, status: success }
+  - event: { step: 1, name: contracts.ContractEmitted, contains: "0x0100000000000000" }
+  - dispatch: { step: 2, status: success }
+  - event: { step: 2, name: contracts.ContractEmitted, contains: "0x0200000000000000" }
+  - delta: { account: user, field: free, lt: "-5000000000000000" }  # endowment plus fees
+  - invariant: supply_conservation

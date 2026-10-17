@@ -10,6 +10,7 @@
 //           "dispatch_error", "events": [ { "name", "data" } ] } ] }
 // Keys are the public Substrate development accounts only. No real secrets.
 
+import { readFileSync } from "node:fs";
 import { ApiPromise, WsProvider } from "@polkadot/api";
 import { Keyring } from "@polkadot/keyring";
 import { u8aToHex } from "@polkadot/util";
@@ -54,14 +55,19 @@ async function main() {
   });
   const keyring = new Keyring({ type: "sr25519", ss58Format: 42 });
 
+  const results: any[] = [];
+
   // Account names in args resolve to addresses; anything else passes through untouched.
+  //   "file:<path>"               -> file contents as hex (e.g. contract WASM)
+  //   "step:<n>:<event>:<field>"  -> a field of an event emitted by earlier step n
   const resolve = (v: unknown): unknown => {
     if (typeof v === "string" && (DEV.includes(v) || v.startsWith("//"))) return deriveFrom(keyring, v).address;
+    if (typeof v === "string" && v.startsWith("file:")) return u8aToHex(readFileSync(v.slice(5)));
+    if (typeof v === "string" && v.startsWith("step:")) return fromEvent(results, v);
     if (Array.isArray(v)) return v.map(resolve);
     return v;
   };
 
-  const results = [];
   for (const [index, step] of job.steps.entries()) {
     const [pallet, method] = step.call.split(".");
     const fn = api.tx[camel(pallet)]?.[method];
@@ -70,9 +76,15 @@ async function main() {
       continue;
     }
     const names = fn.meta.args.map((a) => a.name.toString());
-    const ordered = Array.isArray(step.args)
-      ? step.args.map(resolve)
-      : names.map((n) => resolve((step.args ?? {})[n] ?? (step.args ?? {})[camelToSnake(n)]));
+    let ordered: unknown[];
+    try {
+      ordered = Array.isArray(step.args)
+        ? step.args.map(resolve)
+        : names.map((n) => resolve((step.args ?? {})[n] ?? (step.args ?? {})[camelToSnake(n)]));
+    } catch (e: any) {
+      results.push({ index, call: step.call, status: "unresolved", block_hash: null, dispatch_error: e.message, events: [] });
+      continue;
+    }
     let tx = fn(...ordered);
     // Runtime upgrades exceed normal block weight, so they go through sudoUncheckedWeight.
     if (step.sudo_unchecked) tx = api.tx.sudo.sudoUncheckedWeight(tx, 0);
@@ -140,6 +152,14 @@ async function inspectEvents(api: ApiPromise, blockHash: string, txHash: string)
   } catch (e: any) {
     return { ...base, status: "undecodable", dispatch_error: `event decode failed: ${e?.message ?? e}` };
   }
+}
+
+function fromEvent(results: any[], ref: string): unknown {
+  const [, n, name, field] = ref.split(":");
+  const ev = results[Number(n)]?.events?.find((e: any) => e.name.toLowerCase() === name.toLowerCase());
+  // Unresolved references fail the step (bad address) rather than silently succeeding.
+  if (!ev) throw new Error(`${ref}: step ${n} emitted no ${name}`);
+  return ev.data[Number(field)];
 }
 
 function camelToSnake(s: string): string {

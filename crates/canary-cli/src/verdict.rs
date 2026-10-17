@@ -73,18 +73,30 @@ fn within_ppm(a: &str, b: &str, ppm: u64) -> bool {
 }
 
 /// Returns (differences, normalised): deltas inside the tolerance are kept for transparency.
-fn differences(b: &SideRun, c: &SideRun, ppm: u64) -> (Vec<Contrast>, Vec<Contrast>) {
+/// Events listed in `history_events` depend on chain history rather than the runtime
+/// (e.g. `contracts.CodeStored` only fires the first time a code blob is uploaded), so a
+/// difference in them alone is normalised, not reported.
+fn differences(b: &SideRun, c: &SideRun, wf: &Workflow) -> (Vec<Contrast>, Vec<Contrast>) {
     let mut out = Vec::new();
     let mut normalised = Vec::new();
     for (i, (sb, sc)) in b.steps.iter().zip(&c.steps).enumerate() {
         if sb.status != sc.status {
             out.push(Contrast { what: format!("step {i} status"), baseline: sb.status.clone(), candidate: sc.status.clone() });
         }
-        let names = |s: &crate::runner::StepOutcome| s.events.iter().map(|e| e.name.clone()).collect::<Vec<_>>().join(", ");
-        if names(sb) != names(sc) {
-            out.push(Contrast { what: format!("step {i} events"), baseline: names(sb), candidate: names(sc) });
+        let names = |s: &crate::runner::StepOutcome, skip_history: bool| {
+            s.events
+                .iter()
+                .filter(|e| !skip_history || !wf.history_events.iter().any(|h| h.eq_ignore_ascii_case(&e.name)))
+                .map(|e| e.name.clone())
+                .collect::<Vec<_>>()
+                .join(", ")
+        };
+        if names(sb, false) != names(sc, false) {
+            let item = Contrast { what: format!("step {i} events"), baseline: names(sb, false), candidate: names(sc, false) };
+            if names(sb, true) == names(sc, true) { normalised.push(item) } else { out.push(item) }
         }
     }
+    let ppm = wf.delta_tolerance_ppm;
     for (k, vb) in &b.deltas {
         let vc = c.deltas.get(k).cloned().unwrap_or_else(|| "-".into());
         if *vb != vc {
@@ -109,7 +121,7 @@ pub fn classify(wf: &Workflow, b: &SideRun, c: &SideRun) -> Finding {
             regressed.push(contrast);
         }
     }
-    let (diffs, normalised) = differences(b, c, wf.delta_tolerance_ppm);
+    let (diffs, normalised) = differences(b, c, wf);
 
     let (verdict, severity, rationale) = if let Some(e) = b.setup_error.as_ref().or(c.setup_error.as_ref()) {
         (Verdict::Inconclusive, Severity::Info, format!("setup failed, runs not comparable: {e}"))
@@ -149,7 +161,46 @@ pub fn classify(wf: &Workflow, b: &SideRun, c: &SideRun) -> Finding {
 
 #[cfg(test)]
 mod tests {
-    use super::within_ppm;
+    use super::{differences, within_ppm};
+    use crate::runner::{EventRec, SideRun, StepOutcome};
+
+    fn side(events: &[&str]) -> SideRun {
+        let step = StepOutcome {
+            index: 0,
+            call: "Contracts.instantiateWithCode".into(),
+            status: "success".into(),
+            block_hash: None,
+            dispatch_error: None,
+            tx_hash: None,
+            events: events.iter().map(|n| EventRec { name: n.to_string(), data: serde_json::Value::Null }).collect(),
+        };
+        SideRun {
+            side: "x".into(),
+            endpoint: "ws://x".into(),
+            setup_error: None,
+            pre_block: None,
+            post_block: None,
+            steps: vec![step],
+            deltas: Default::default(),
+            expectations: vec![],
+        }
+    }
+
+    #[test]
+    fn history_events_are_normalised_not_reported() {
+        let wf = crate::workflow::parse(
+            b"id: t\nhistory_events: [contracts.CodeStored]\nsteps: [{ call: A.b, signer: a }]\nexpect: []\n",
+        )
+        .unwrap();
+        let b = side(&["contracts.CodeStored", "contracts.Instantiated"]);
+        let c = side(&["contracts.Instantiated"]);
+        let (diffs, normalised) = differences(&b, &c, &wf);
+        assert!(diffs.is_empty());
+        assert_eq!(normalised.len(), 1);
+
+        let other = side(&["contracts.Terminated"]);
+        assert_eq!(differences(&b, &other, &wf).0.len(), 1);
+    }
 
     #[test]
     fn fee_drift_is_within_one_ppm() {
