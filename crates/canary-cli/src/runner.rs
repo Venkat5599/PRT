@@ -195,12 +195,22 @@ fn evaluate(
                 }
             }
         }
-        Expect::Event { step, name, absent } => match steps.get(*step) {
+        Expect::Event { step, name, absent, contains } => match steps.get(*step) {
             None => (false, "step did not run".into()),
             Some(s) => {
-                let found = s.events.iter().any(|ev| ev.name.eq_ignore_ascii_case(name));
-                let names: Vec<&str> = s.events.iter().map(|ev| ev.name.as_str()).collect();
-                (found != *absent, if names.is_empty() { "no events".into() } else { names.join(", ") })
+                let matching: Vec<&EventRec> = s.events.iter().filter(|ev| ev.name.eq_ignore_ascii_case(name)).collect();
+                let found = match contains {
+                    None => !matching.is_empty(),
+                    Some(c) => matching.iter().any(|ev| ev.data.to_string().to_lowercase().contains(&c.to_lowercase())),
+                };
+                let observed = match (contains, matching.first()) {
+                    (Some(_), Some(ev)) => format!("{} {}", ev.name, ev.data),
+                    _ => {
+                        let names: Vec<&str> = s.events.iter().map(|ev| ev.name.as_str()).collect();
+                        if names.is_empty() { "no events".into() } else { names.join(", ") }
+                    }
+                };
+                (found != *absent, observed)
             }
         },
         Expect::Invariant(n) if n == "supply_conservation" => match invariant::supply_at(rpc, post) {
@@ -236,11 +246,13 @@ fn execute(wf: &Workflow, ns: &Namespace, ws: &str, driver: &Driver, timeout: Du
     let name = |n: &str| uri(ns, wf, n);
     let uris: Vec<String> = wf.accounts.iter().map(|a| name(a)).collect();
 
-    // Setup: fund namespaced accounts from the dev faucet account.
+    // Setup: fund namespaced accounts from a dev account. Not Alice: on the dev chain
+    // all but ~1,000 POT of her balance is frozen by her validator stake, which a few
+    // back-to-back runs exhaust (balances.LiquidityRestrictions). Charlie is unbonded.
     let fund_steps: Vec<Value> = wf
         .fund
         .iter()
-        .map(|f| json!({ "call": "Balances.transfer", "signer": "alice", "args": { "dest": name(&f.account), "value": f.amount } }))
+        .map(|f| json!({ "call": "Balances.transfer", "signer": "charlie", "args": { "dest": name(&f.account), "value": f.amount } }))
         .collect();
     let setup = driver.run(&json!({ "ws": ws, "steps": fund_steps, "accounts": uris }))?;
     if let Some(bad) = setup.results.iter().find(|r| r.status != "success") {
