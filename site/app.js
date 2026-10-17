@@ -304,6 +304,8 @@ function showPane(name) {
   $('[data-k="code"]').innerHTML = p.code;
   $('[data-k="foot"]').textContent = p.foot;
   $("[data-copy-pane]").dataset.copy = p.copy;
+  const gh = "https://github.com/Venkat5599/PRT/blob/main/examples/mainnet-vs-v3/";
+  $('[data-k="json"]').href = name === "test" ? `reports/${currentId}/report.json` : `${gh}${name}.json`;
 }
 const tabBtns = $$("[data-tab]");
 tabBtns.forEach((b, i) => {
@@ -372,156 +374,53 @@ drawWires();
 addEventListener("resize", drawWires);
 document.fonts?.ready.then(drawWires);
 
-/* ---------- dithered scenes ---------- */
-// Value noise + fbm. Scenes are computed at low resolution and quantised with
-// a 4x4 Bayer matrix, then upscaled with pixelated rendering.
+/* ---------- dithered photographs ---------- */
+// Each photo is drawn at 1/3 resolution, quantised per channel with a 4x4 Bayer
+// matrix, then upscaled with pixelated rendering: the printed-screen look.
 const BAYER = [0, 8, 2, 10, 12, 4, 14, 6, 3, 11, 1, 9, 15, 7, 13, 5].map((v) => (v + 0.5) / 16);
-function hash(x, y) {
-  let h = (x * 374761393 + y * 668265263) | 0;
-  h = Math.imul(h ^ (h >>> 13), 1274126177);
-  return ((h ^ (h >>> 16)) >>> 0) / 4294967295;
-}
-function noise(x, y) {
-  const xi = Math.floor(x), yi = Math.floor(y);
-  const xf = x - xi, yf = y - yi;
-  const u = xf * xf * (3 - 2 * xf), v = yf * yf * (3 - 2 * yf);
-  const a = hash(xi, yi), b = hash(xi + 1, yi), c = hash(xi, yi + 1), d = hash(xi + 1, yi + 1);
-  return a + (b - a) * u + (c - a) * v + (a - b - c + d) * u * v;
-}
-function fbm(x, y, o = 4) {
-  let s = 0, amp = 0.5, f = 1, n = 0;
-  for (let i = 0; i < o; i++) { s += amp * noise(x * f, y * f); n += amp; amp *= 0.5; f *= 2.03; }
-  return s / n;
-}
-const mix = (a, b, t) => [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t, a[2] + (b[2] - a[2]) * t];
-const clamp = (v) => (v < 0 ? 0 : v > 1 ? 1 : v);
-const smooth = (e0, e1, x) => { const t = clamp((x - e0) / (e1 - e0)); return t * t * (3 - 2 * t); };
-
-const SCENES = {
-  // A green valley under drifting cloud, two ridges closing in from the sides.
-  valley: {
-    levels: 7,
-    animated: true,
-    base(x, y, asp) {
-      const dx = Math.abs(x - 0.5) * 2;
-      const far = 0.5 - 0.42 * Math.pow(dx, 1.25) + 0.07 * (fbm(x * 5 * asp, 1.7) - 0.5);
-      const near = 0.78 - 0.66 * Math.pow(dx, 1.05) + 0.1 * (fbm(x * 8 * asp + 9, 3.1) - 0.5);
-      if (y > near) {
-        const t = fbm(x * 14 * asp, y * 13, 4);
-        let c = mix([0.1, 0.22, 0.15], [0.22, 0.4, 0.23], smooth(0.35, 0.75, t));
-        c = mix(c, [0.4, 0.56, 0.3], smooth(0.66, 0.84, t) * smooth(0.5, 1, dx) * 0.8);
-        if (y > 0.9 && dx < 0.5) c = mix(c, [0.56, 0.68, 0.38], smooth(0.9, 1, y) * (1 - dx * 2));
-        return { c, sky: false, mist: smooth(0.12, 0, y - near) * 0.5 };
-      }
-      if (y > far) {
-        const t = fbm(x * 9 * asp, y * 8, 4);
-        const c = mix([0.3, 0.42, 0.4], [0.46, 0.57, 0.55], t);
-        return { c, sky: false, mist: 0.55 * smooth(0.18, 0, y - far) };
-      }
-      return { c: mix([0.84, 0.87, 0.87], [0.62, 0.73, 0.8], y * 1.6), sky: true, mist: 0.2 };
-    },
-    live(x, y, asp, t, p) {
-      let c = p.c;
-      if (p.sky) {
-        const n = fbm(x * 2.6 * asp + t * 0.018, y * 4.5 - t * 0.004, 5);
-        c = mix(c, [0.4, 0.58, 0.74], smooth(0.42, 0.28, n) * 0.85);
-        c = mix(c, [0.96, 0.96, 0.95], smooth(0.5, 0.72, n));
-      }
-      if (p.mist > 0.01) {
-        const m = fbm(x * 3 * asp - t * 0.03, y * 9 + 4, 3);
-        c = mix(c, [0.88, 0.9, 0.9], p.mist * smooth(0.38, 0.75, m));
-      }
-      return c;
-    },
-  },
-  // Weathered concrete steps behind the harness window.
-  stone: {
-    levels: 5,
-    animated: false,
-    base(x, y, asp) {
-      const band = (y * 9 + x * 1.4) % 1;
-      const lit = smooth(0.15, 0.05, band) * 0.12;
-      const g = 0.13 + 0.12 * fbm(x * 10 * asp, y * 14, 4) + lit - 0.07 * smooth(0.4, 1, x);
-      return { c: [g, g * 1.02, g * 0.98], sky: false, mist: 0 };
-    },
-    live: (x, y, a, t, p) => p.c,
-  },
-  // Dusk over a ridge line, for the closing section.
-  dusk: {
-    levels: 6,
-    animated: true,
-    base(x, y, asp) {
-      const r1 = 0.62 + 0.1 * (fbm(x * 4 * asp, 2.2) - 0.5) - 0.06 * Math.sin(x * 3.1);
-      const r2 = 0.76 + 0.12 * (fbm(x * 6 * asp + 4, 5.3) - 0.5);
-      if (y > r2) return { c: mix([0.07, 0.07, 0.09], [0.05, 0.05, 0.06], (y - r2) * 3), sky: false, mist: 0 };
-      if (y > r1) return { c: mix([0.17, 0.16, 0.22], [0.12, 0.11, 0.15], fbm(x * 20, y * 20, 2)), sky: false, mist: 0.35 * smooth(0.08, 0, y - r1) };
-      const hor = smooth(0.15, r1, y);
-      return { c: mix(mix([0.09, 0.11, 0.2], [0.27, 0.29, 0.46], smooth(0, 0.45, y)), [0.86, 0.56, 0.36], hor * hor), sky: true, mist: 0 };
-    },
-    live(x, y, asp, t, p) {
-      let c = p.c;
-      if (p.sky) {
-        const n = fbm(x * 2.2 * asp + t * 0.012, y * 6, 4);
-        c = mix(c, mix([0.36, 0.33, 0.5], [0.95, 0.7, 0.5], smooth(0.2, 0.6, y)), smooth(0.55, 0.78, n) * 0.75);
-      }
-      if (p.mist > 0.01) c = mix(c, [0.5, 0.42, 0.48], p.mist * fbm(x * 4 - t * 0.02, y * 10, 2));
-      return c;
-    },
-  },
+const PHOTOS = {
+  valley: { src: "images/valley.jpg", levels: 7, focus: 0.55, tone: 1 },
+  stairs: { src: "images/stairs.jpg", levels: 6, focus: 0.35, tone: 1.35 },
+  summit: { src: "images/summit.jpg", levels: 6, focus: 0.5, tone: 0.85 },
 };
-
-const scenes = [];
-function setupScene(canvas) {
-  const scene = SCENES[canvas.dataset.dither];
-  const ctx = canvas.getContext("2d");
-  const s = { canvas, scene, ctx, w: 0, h: 0, base: [], img: null, visible: false, t: Math.random() * 100 };
-  s.resize = () => {
-    const r = canvas.getBoundingClientRect();
-    const px = 3;
-    s.w = Math.max(40, Math.round(r.width / px));
-    s.h = Math.max(30, Math.round(r.height / px));
-    canvas.width = s.w;
-    canvas.height = s.h;
-    s.img = ctx.createImageData(s.w, s.h);
-    const asp = s.w / s.h;
-    s.base = new Array(s.w * s.h);
-    for (let y = 0; y < s.h; y++) for (let x = 0; x < s.w; x++) s.base[y * s.w + x] = scene.base(x / s.w, y / s.h, asp);
-    s.draw();
-  };
-  s.draw = () => {
-    const { w, h, img } = s;
-    const asp = w / h, L = scene.levels - 1, d = img.data;
-    for (let y = 0; y < h; y++) {
-      for (let x = 0; x < w; x++) {
-        const i = y * w + x;
-        const c = scene.live(x / w, y / h, asp, s.t, s.base[i]);
-        const th = BAYER[(y & 3) * 4 + (x & 3)];
-        for (let k = 0; k < 3; k++) {
-          const v = clamp(c[k]) * L;
-          const f = Math.floor(v);
-          d[i * 4 + k] = (((v - f) > th ? f + 1 : f) / L) * 255;
-        }
-        d[i * 4 + 3] = 255;
+const images = new Map();
+function photo(src) {
+  if (!images.has(src)) {
+    images.set(src, new Promise((res, rej) => { const i = new Image(); i.onload = () => res(i); i.onerror = rej; i.src = src; }));
+  }
+  return images.get(src);
+}
+async function dither(canvas) {
+  const cfg = PHOTOS[canvas.dataset.dither];
+  const img = await photo(cfg.src);
+  const r = canvas.getBoundingClientRect();
+  if (!r.width || !r.height) return;
+  const w = Math.round(r.width / 3), h = Math.round(r.height / 3);
+  canvas.width = w;
+  canvas.height = h;
+  const ctx = canvas.getContext("2d", { willReadFrequently: true });
+  // object-fit: cover, anchored on the photo's focus row.
+  const s = Math.max(w / img.width, h / img.height);
+  const dw = img.width * s, dh = img.height * s;
+  ctx.drawImage(img, (w - dw) / 2, (h - dh) * cfg.focus, dw, dh);
+  const data = ctx.getImageData(0, 0, w, h);
+  const d = data.data, L = cfg.levels - 1;
+  for (let y = 0; y < h; y++) {
+    for (let x = 0; x < w; x++) {
+      const i = (y * w + x) * 4, th = BAYER[(y & 3) * 4 + (x & 3)];
+      for (let k = 0; k < 3; k++) {
+        const v = (d[i + k] / 255) * cfg.tone * L;
+        const f = Math.floor(v);
+        d[i + k] = ((v - f > th ? f + 1 : f) / L) * 255;
       }
     }
-    s.ctx.putImageData(img, 0, 0);
-  };
-  scenes.push(s);
-  new IntersectionObserver(([e]) => { s.visible = e.isIntersecting; }).observe(canvas);
-  s.resize();
-}
-$$("[data-dither]").forEach(setupScene);
-let lastFrame = 0;
-function loop(now) {
-  if (!still && now - lastFrame > 90) {
-    lastFrame = now;
-    for (const s of scenes) if (s.visible && s.scene.animated) { s.t += 0.9; s.draw(); }
   }
-  requestAnimationFrame(loop);
+  ctx.putImageData(data, 0, 0);
 }
-requestAnimationFrame(loop);
+const dithered = $$("[data-dither]");
+dithered.forEach((c) => dither(c).catch(() => {}));
 let resizeTimer;
-addEventListener("resize", () => { clearTimeout(resizeTimer); resizeTimer = setTimeout(() => scenes.forEach((s) => s.resize()), 150); });
+addEventListener("resize", () => { clearTimeout(resizeTimer); resizeTimer = setTimeout(() => dithered.forEach((c) => dither(c).catch(() => {})), 150); });
 
 /* ---------- setCode block strips ---------- */
 function blocks(el) {
