@@ -10,14 +10,14 @@
 
 ## Why it exists
 
-Portaldot mainnet runs a 2021-era Substrate runtime with **metadata V13**. Modern tooling such as `subxt` requires V14+ and cannot decode it. Canary speaks raw JSON-RPC and SCALE, so it works on Portaldot today and on V3 when it ships.
+Portaldot mainnet runs a 2021-era Substrate runtime with **metadata V13**. Modern tooling such as `subxt` requires V14+ and cannot decode it. Canary speaks raw JSON-RPC and SCALE, so it works on Portaldot mainnet today. It decodes both V13 (mainnet) and V14 (the live V3 testnet), so it can diff mainnet against V3 directly: see [`examples/mainnet-vs-v3`](examples/mainnet-vs-v3) and [`docs/V3_READINESS.md`](docs/V3_READINESS.md).
 
 ## Available now: `canary doctor`
 
 Diagnose any Portaldot endpoint layer by layer (DNS → TCP → WebSocket → RPC → runtime) and fingerprint the runtime behind it.
 
 ```
-$ canary doctor --ws wss://mainnet.portaldot.io --ws wss://testnetv3-node.feso-apps.xyz
+$ canary doctor --ws wss://mainnet.portaldot.io --ws wss://test-node-v3.portaldot.dev --eth https://test-evm-rpc-v3.portaldot.dev
 substrate  wss://mainnet.portaldot.io
   network     ok (47.242.204.5:443)
   chain       Portaldot Mainnet  (node Portaldot Node 2.0.0-unknown-x86_64-linux-gnu)
@@ -29,10 +29,23 @@ substrate  wss://mainnet.portaldot.io
     upgrade-testing  absent
   verdict     HEALTHY
 
-substrate  wss://testnetv3-node.feso-apps.xyz
-  network     FAIL dns: no record (failed to lookup address information: Name or service not known)
-  verdict     UNHEALTHY
+substrate  wss://test-node-v3.portaldot.dev
+  chain       PortaldotV3 Test  (node PortaldotV3 Node 3.0.0-dev-fddd43141f2)
+  runtime     portaldot-v3 spec_version=3002 impl=0 tx_version=2
+  metadata    V14 (561916 bytes, sha256 ba1613ee42e06ac1…)
+  apis        26 total, 11 unrecognised; capabilities: consensus, core, evm, fees, finality, signing, wasm-contracts
+    wasm-contracts   present
+    evm              present
+    upgrade-testing  absent
+  verdict     HEALTHY
+
+evm        https://test-evm-rpc-v3.portaldot.dev
+  chain id    420420777
+  client      eth-rpc/main-fddd431/x86_64-unknown-linux-gnu/rustc1.98.0
+  verdict     HEALTHY
 ```
+
+(Output trimmed: network and genesis lines omitted.)
 
 Flags: `--ws <url>` (repeatable, default `ws://127.0.0.1:9944`), `--eth <url>` (EVM JSON-RPC, repeatable), `--timeout <secs>`, `--json`. Exits `2` if any endpoint is unhealthy, so it works as a CI gate.
 

@@ -20,6 +20,12 @@ pub const KNOWN: &[(&str, &str)] = &[
     ("ContractsApi", "wasm-contracts"),
     ("EthereumRuntimeRPCApi", "evm"),
     ("ConvertTransactionRuntimeApi", "evm"),
+    // PortaldotV3 exposes its EVM through pallet-revive, not Frontier.
+    ("ReviveApi", "evm"),
+    ("TransactionPaymentCallApi", "fees"),
+    ("OffchainWorkerApi", "core"),
+    ("GenesisBuilder", "core"),
+    ("AuthorityDiscoveryApi", "consensus"),
     ("TryRuntime", "upgrade-testing"),
     ("BabeApi", "consensus"),
     ("AuraApi", "consensus"),

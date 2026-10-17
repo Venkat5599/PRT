@@ -7,13 +7,13 @@
 use anyhow::{bail, Context};
 use serde::Serialize;
 
-struct Reader<'a> {
-    b: &'a [u8],
-    pos: usize,
+pub(crate) struct Reader<'a> {
+    pub(crate) b: &'a [u8],
+    pub(crate) pos: usize,
 }
 
 impl<'a> Reader<'a> {
-    fn take(&mut self, n: usize) -> anyhow::Result<&'a [u8]> {
+    pub(crate) fn take(&mut self, n: usize) -> anyhow::Result<&'a [u8]> {
         if self.pos + n > self.b.len() {
             bail!("unexpected end of metadata at byte {}", self.pos);
         }
@@ -22,11 +22,11 @@ impl<'a> Reader<'a> {
         Ok(s)
     }
 
-    fn u8(&mut self) -> anyhow::Result<u8> {
+    pub(crate) fn u8(&mut self) -> anyhow::Result<u8> {
         Ok(self.take(1)?[0])
     }
 
-    fn compact(&mut self) -> anyhow::Result<u64> {
+    pub(crate) fn compact(&mut self) -> anyhow::Result<u64> {
         let first = self.u8()?;
         Ok(match first & 0b11 {
             0 => (first >> 2) as u64,
@@ -47,21 +47,21 @@ impl<'a> Reader<'a> {
         })
     }
 
-    fn bytes(&mut self) -> anyhow::Result<Vec<u8>> {
+    pub(crate) fn bytes(&mut self) -> anyhow::Result<Vec<u8>> {
         let n = self.compact()? as usize;
         Ok(self.take(n)?.to_vec())
     }
 
-    fn string(&mut self) -> anyhow::Result<String> {
+    pub(crate) fn string(&mut self) -> anyhow::Result<String> {
         String::from_utf8(self.bytes()?).context("metadata string is not utf-8")
     }
 
-    fn vec<T>(&mut self, mut f: impl FnMut(&mut Self) -> anyhow::Result<T>) -> anyhow::Result<Vec<T>> {
+    pub(crate) fn vec<T>(&mut self, mut f: impl FnMut(&mut Self) -> anyhow::Result<T>) -> anyhow::Result<Vec<T>> {
         let n = self.compact()? as usize;
         (0..n).map(|_| f(self)).collect()
     }
 
-    fn option<T>(&mut self, f: impl FnOnce(&mut Self) -> anyhow::Result<T>) -> anyhow::Result<Option<T>> {
+    pub(crate) fn option<T>(&mut self, f: impl FnOnce(&mut Self) -> anyhow::Result<T>) -> anyhow::Result<Option<T>> {
         match self.u8()? {
             0 => Ok(None),
             1 => f(self).map(Some),
@@ -69,7 +69,7 @@ impl<'a> Reader<'a> {
         }
     }
 
-    fn docs(&mut self) -> anyhow::Result<()> {
+    pub(crate) fn docs(&mut self) -> anyhow::Result<()> {
         self.vec(|r| r.string()).map(|_| ())
     }
 }
@@ -244,7 +244,7 @@ mod tests {
     }
 
     #[test]
-    fn compact_modes() {
+    pub(crate) fn compact_modes() {
         let mut r = Reader { b: &[0x04, 0x15, 0x01, 0x02, 0x00, 0x01, 0x00], pos: 0 };
         assert_eq!(r.compact().unwrap(), 1);
         assert_eq!(r.compact().unwrap(), 69);

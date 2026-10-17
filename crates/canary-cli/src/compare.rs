@@ -4,7 +4,7 @@ use std::process::ExitCode;
 use std::time::Duration;
 
 use canary_chain::diff::{self, Change, ChangeKind};
-use canary_chain::{apis, metadata, metadata_v13, storage};
+use canary_chain::{apis, metadata, metadata_v13, metadata_v14, storage};
 use serde::Serialize;
 use serde_json::{json, Value};
 
@@ -32,7 +32,7 @@ fn load(ws: &str, timeout: Duration) -> anyhow::Result<Loaded> {
     let raw = rpc.call("state_getMetadata", json!([]))?;
     let bytes = storage::from_hex(raw.as_str().unwrap_or_default())?;
     let fp = metadata::fingerprint(&bytes)?;
-    let md = metadata_v13::decode(&bytes)?;
+    let md = metadata_v14::decode_any(&bytes)?;
     let api_list = apis::detect(&rv["apis"])
         .into_iter()
         .map(|a| format!("{}@{}", a.name.unwrap_or(a.id), a.version))
@@ -78,13 +78,17 @@ pub fn run(baseline: &str, candidate: &str, timeout: Duration, as_json: bool) ->
             return ExitCode::from(2);
         }
     };
-    let mut changes = version_changes(&a.side, &b.side);
-    changes.extend(diff::diff(&a.md, &b.md));
-    let hazards = diff::hazards(&changes);
-    let identical = a.side.metadata.sha256 == b.side.metadata.sha256;
-    let silent = !identical
+    let structural = diff::diff(&a.md, &b.md);
+    // Judge "unversioned change" on structure, not raw bytes: PortaldotV3 metadata
+    // embeds a storage default (Revive.EthBlockBuilderIR) that drifts with chain
+    // state, so the sha256 changes between fetches of the same runtime.
+    let silent = (!structural.is_empty() || a.side.apis != b.side.apis)
         && a.side.spec_version == b.side.spec_version
         && a.side.transaction_version == b.side.transaction_version;
+    let mut changes = version_changes(&a.side, &b.side);
+    changes.extend(structural);
+    let hazards = diff::hazards(&changes);
+    let identical = a.side.metadata.sha256 == b.side.metadata.sha256;
 
     if as_json {
         let out = json!({ "baseline": a.side, "candidate": b.side, "changes": changes,

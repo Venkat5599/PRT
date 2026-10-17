@@ -12,5 +12,6 @@ pub mod invariant;
 pub mod eth;
 pub mod metadata;
 pub mod metadata_v13;
+pub mod metadata_v14;
 pub mod rpc;
 pub mod storage;
