@@ -4,73 +4,122 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Portal Canary</title>
-<meta name="description" content="Differential runtime-upgrade testing for Portaldot. The same workflows run on a runtime before and after an upgrade; every check is shown side by side.">
-<meta name="theme-color" content="#141311">
+<meta name="description" content="Differential runtime-upgrade testing for Portaldot. The same workflows run on a runtime before and after an upgrade; both runs are drawn side by side.">
+<meta name="theme-color" content="#13110d">
 <link rel="icon" href="favicon.svg" type="image/svg+xml">
-<link rel="preload" href="fonts/erode-500.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="fonts/tanker-400.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-<header class="bar">
-  <a class="brand" href="/" aria-label="Portal Canary">
-    <svg class="mark" viewBox="0 0 20 24" aria-hidden="true"><path d="M10 2v8l-4 3 4 3v6"/></svg>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <pattern id="grid-fine" width="12" height="12" patternUnits="userSpaceOnUse"><path d="M12 0H0V12" fill="none" stroke="rgba(150,120,40,.16)" stroke-width="1"/></pattern>
+    <pattern id="grid" width="60" height="60" patternUnits="userSpaceOnUse"><rect width="60" height="60" fill="url(#grid-fine)"/><path d="M60 0H0V60" fill="none" stroke="rgba(150,120,40,.3)" stroke-width="1"/></pattern>
+  </defs>
+</svg>
+
+<nav class="nav" aria-label="Sections" data-nav>
+  <a class="brand" href="#top" aria-label="Portal Canary, top">
+    <svg class="mark" viewBox="0 0 22 22" aria-hidden="true"><path d="M2 8h5l2-5 3 10 2-5h6"/><path d="M2 16h5l2-3 2 3h9"/></svg>
     <span>Portal Canary</span>
   </a>
-  <nav class="runs" aria-label="Recorded runs" data-runs></nav>
-  <a class="gh" href="https://github.com/Venkat5599/PRT">Source</a>
+  <a href="#ledger">Ledger</a>
+  <a href="#upgrades">Upgrades</a>
+  <a href="#mainnet">Mainnet</a>
+  <a href="#run">Run it</a>
+  <a class="gh" href="https://github.com/Venkat5599/PRT" aria-label="Source on GitHub">
+    <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
+  </a>
+</nav>
+
+<header class="hero" id="top">
+  <div class="lede">
+    <h1><span>Upgrade the runtime.</span><span>Watch what breaks.</span></h1>
+    <p>Canary runs the same workflows on a Portaldot runtime before and after an upgrade and inks both runs onto one strip. Where they agree, the pens beat together. These are recorded runs on local dev nodes.</p>
+  </div>
+
+  <figure class="recorder" aria-labelledby="readout">
+    <div class="tape" data-tape>
+      <div class="pens" aria-hidden="true">
+        <span class="pen pa"><b>A</b>baseline<em data-k="pa"></em></span>
+        <span class="pen pb"><b>B</b>candidate<em data-k="pb"></em></span>
+      </div>
+      <div class="roll" data-roll></div>
+    </div>
+    <figcaption class="console">
+      <div class="channels" role="group" aria-label="Recorded runs" data-runs></div>
+      <p class="readout" id="readout" aria-live="polite"><strong data-k="big"></strong><span data-k="small"></span></p>
+    </figcaption>
+  </figure>
 </header>
 
 <main>
-  <p class="intro">Canary runs the same workflows on a Portaldot runtime before and after an upgrade, checks every expectation on both, and shows where they part. These are four recorded runs on local dev nodes.</p>
-
-  <section class="board" aria-labelledby="statement" data-board>
-    <div class="head">
-      <h1 id="statement" data-k="statement">Loading run…</h1>
-      <p class="note" data-k="note"></p>
-    </div>
-
-    <div class="sides" aria-hidden="true">
-      <div class="side side-b"><b>baseline</b><span data-k="base"></span></div>
-      <div class="side side-c"><b>candidate</b><span data-k="cand"></span></div>
-    </div>
-
+  <section class="ledger" id="ledger" aria-labelledby="statement">
+    <h2 id="statement" data-k="statement">Loading run…</h2>
+    <p class="note" data-k="note"></p>
     <div class="filters" role="group" aria-label="Filter workflows" data-filters></div>
     <div class="workflows" data-workflows></div>
   </section>
 
-  <section class="upgrades" aria-labelledby="up-title">
-    <h2 id="up-title">Every candidate was applied with <code>system.setCode</code> first.</h2>
-    <p class="sub">An upgrade only counts once the new runtime has produced three more blocks.</p>
-    <table>
-      <thead><tr><th scope="col">runtime</th><th scope="col">spec</th><th scope="col">blocks after setCode</th><th scope="col">result</th></tr></thead>
-      <tbody>
-        <tr><td>clean</td><td>1002 → 1003</td><td>#4 → #7</td><td class="ok">live</td></tr>
-        <tr><td>fee10x <i>injected</i></td><td>1002 → 1005</td><td>#78 → #81</td><td class="ok">live</td></tr>
-        <tr><td>ed100x <i>injected</i></td><td>1002 → 1004</td><td>#9 → #12</td><td class="ok">live</td></tr>
-        <tr class="halt"><td>public source, 60 s slots</td><td>1002 → 1003</td><td>stuck at #110</td><td>halted · <code>Timestamp slot must match CurrentSlot</code></td></tr>
-      </tbody>
-    </table>
-    <p class="sub">The unmodified public source targets 60 s blocks; the dev chain runs 6 s, and BABE cannot change slot length on a live chain. <code>canary compare</code> flags that change before anyone applies it.</p>
+  <section class="upgrades" id="upgrades" aria-labelledby="up-title">
+    <h2 id="up-title">Every candidate went in through <code>system.setCode</code>.</h2>
+    <p class="note">An upgrade counts only once the new runtime produces three more blocks. Spec going up is not proof.</p>
+    <div class="chains">
+      <article class="chain">
+        <h3>clean <small>1002 → 1003</small></h3>
+        <svg viewBox="0 0 400 54" preserveAspectRatio="none" data-blocks="live" aria-label="blocks #4 to #7 after setCode"></svg>
+        <p>#4 → #7, live</p>
+      </article>
+      <article class="chain">
+        <h3>fee10x <small>injected · 1002 → 1005</small></h3>
+        <svg viewBox="0 0 400 54" preserveAspectRatio="none" data-blocks="live" aria-label="blocks #78 to #81 after setCode"></svg>
+        <p>#78 → #81, live</p>
+      </article>
+      <article class="chain">
+        <h3>ed100x <small>injected · 1002 → 1004</small></h3>
+        <svg viewBox="0 0 400 54" preserveAspectRatio="none" data-blocks="live" aria-label="blocks #9 to #12 after setCode"></svg>
+        <p>#9 → #12, live</p>
+      </article>
+      <article class="chain halted">
+        <h3>public source, 60 s slots <small>1002 → 1003</small></h3>
+        <svg viewBox="0 0 400 54" preserveAspectRatio="none" data-blocks="halt" aria-label="stuck at block #110"></svg>
+        <p>stuck at #110 · <code>Timestamp slot must match CurrentSlot</code></p>
+      </article>
+    </div>
+    <p class="note">The public source targets 60 s blocks; the dev chain runs 6 s, and BABE cannot change slot length on a live chain. <code>canary compare</code> flags that change before anyone applies it.</p>
   </section>
 
-  <section class="mainnet" aria-labelledby="mn-title">
-    <h2 id="mn-title">On mainnet, read-only</h2>
-    <p>At block #2,727,345 the 4,719 accounts on <code>wss://mainnet.portaldot.io</code> hold 1,016,781,509.44 POT, exactly <code>Balances.TotalIssuance</code>. Delta: 0 planck.</p>
+  <section class="mainnet" id="mainnet" aria-labelledby="mn-title">
+    <h2 id="mn-title" class="sr">Mainnet supply invariant</h2>
+    <div class="equation">
+      <div><span class="num">1,016,781,509.44</span><span class="lbl">free + reserved across 4,719 accounts</span></div>
+      <span class="eq" aria-label="equals">=</span>
+      <div><span class="num">1,016,781,509.44</span><span class="lbl"><code>Balances.TotalIssuance</code></span></div>
+    </div>
+    <p class="note">Portaldot mainnet, block #2,727,345, read-only. Delta: 0 planck. The same check runs before and after every upgrade.</p>
   </section>
 
-  <section class="use" aria-labelledby="use-title">
-    <h2 id="use-title">Run it</h2>
-    <pre><code>cargo build --release
-canary doctor   --ws wss://mainnet.portaldot.io
-canary upgrade  --ws ws://127.0.0.1:9945 --wasm runtimes/out/ed100x.compact.wasm
-canary test     --baseline ws://127.0.0.1:9944 --candidate ws://127.0.0.1:9945
-canary reproduce balances.transfer.basic --run runs/&lt;id&gt;</code></pre>
-    <p class="sub">Exit 0 on pass or difference, 1 on regression, 2 when inconclusive. Also a GitHub Action: <code>uses: Venkat5599/PRT@main</code>.</p>
+  <section class="run" id="run" aria-labelledby="run-title">
+    <h2 id="run-title">Five commands.</h2>
+    <div class="term">
+      <pre><code><span>cargo build --release</span>
+<span>canary doctor    --ws wss://mainnet.portaldot.io</span>
+<span>canary upgrade   --ws ws://127.0.0.1:9945 --wasm runtimes/out/ed100x.compact.wasm</span>
+<span>canary test      --baseline ws://127.0.0.1:9944 --candidate ws://127.0.0.1:9945</span>
+<span>canary reproduce balances.transfer.basic --run runs/&lt;id&gt;</span></code></pre>
+    </div>
+    <dl class="exits">
+      <div><dt>0</dt><dd>pass, or a difference where every expectation still holds</dd></div>
+      <div><dt>1</dt><dd>regression: holds on the baseline, fails on the candidate</dd></div>
+      <div><dt>2</dt><dd>inconclusive: not comparable, never reported as success</dd></div>
+    </dl>
+    <p class="note">Also a GitHub Action: <code>uses: Venkat5599/PRT@main</code></p>
   </section>
 </main>
 
 <footer class="foot">
-  <p>Portaldot Hacker House 2026 · Node Operations &amp; Tooling · Apache-2.0 · Injected candidates are labelled; nothing here says an upgrade is safe.</p>
+  <p>Portaldot Hacker House 2026 · Node Operations &amp; Tooling · Apache-2.0 · Injected candidates are labelled; nothing here says an upgrade is safe. · <a href="https://github.com/Venkat5599/PRT">github.com/Venkat5599/PRT</a></p>
+  <div class="word" aria-hidden="true">Canary</div>
 </footer>
 <script src="app.js" defer></script>
 </body>
