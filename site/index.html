@@ -4,123 +4,299 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Portal Canary</title>
-<meta name="description" content="Differential runtime-upgrade testing for Portaldot. The same workflows run on a runtime before and after an upgrade; both runs are drawn side by side.">
-<meta name="theme-color" content="#13110d">
+<meta name="description" content="Differential runtime-upgrade testing for Portaldot. Run the same workflows before and after an upgrade, see exactly what diverged, and reproduce it with one command. Live on the PortaldotV3 testnet.">
+<meta name="theme-color" content="#111110">
 <link rel="icon" href="favicon.svg" type="image/svg+xml">
-<link rel="preload" href="fonts/tanker-400.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="fonts/sentient-300.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="fonts/sentient-300i.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-<svg width="0" height="0" style="position:absolute" aria-hidden="true">
-  <defs>
-    <pattern id="grid-fine" width="12" height="12" patternUnits="userSpaceOnUse"><path d="M12 0H0V12" fill="none" stroke="rgba(150,120,40,.16)" stroke-width="1"/></pattern>
-    <pattern id="grid" width="60" height="60" patternUnits="userSpaceOnUse"><rect width="60" height="60" fill="url(#grid-fine)"/><path d="M60 0H0V60" fill="none" stroke="rgba(150,120,40,.3)" stroke-width="1"/></pattern>
-  </defs>
-</svg>
 
-<nav class="nav" aria-label="Sections" data-nav>
-  <a class="brand" href="#top" aria-label="Portal Canary, top">
-    <svg class="mark" viewBox="0 0 22 22" aria-hidden="true"><path d="M2 8h5l2-5 3 10 2-5h6"/><path d="M2 16h5l2-3 2 3h9"/></svg>
-    <span>Portal Canary</span>
-  </a>
-  <a href="#ledger">Ledger</a>
-  <a href="#upgrades">Upgrades</a>
-  <a href="#mainnet">Mainnet</a>
-  <a href="#run">Run it</a>
-  <a class="gh" href="https://github.com/Venkat5599/PRT" aria-label="Source on GitHub">
-    <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
-  </a>
+<nav class="nav" aria-label="Main" data-nav>
+  <div class="nav-in">
+    <a class="brand" href="#top" aria-label="Portal Canary, top">
+      <svg class="mark" viewBox="0 0 24 24" aria-hidden="true"><path class="m-a" d="M3 8.5h5.5l1.8-4.5 3 9 1.7-4.5H21"/><path class="m-b" d="M3 16h5.5l1.8-2.5 1.8 2.5H21"/></svg>
+      <span>PORTAL CANARY</span>
+    </a>
+    <div class="links">
+      <a href="#harness">Platform</a>
+      <a href="#flow">Upgrade flow</a>
+      <a href="#runs">Runs</a>
+      <a href="#v3">V3 testnet</a>
+    </div>
+    <a class="btn btn-blue nav-cta" href="https://github.com/Venkat5599/PRT">GitHub <svg class="arr" viewBox="0 0 12 12" aria-hidden="true"><path d="M3.5 8.5l5-5M4.5 3.5h4v4"/></svg></a>
+  </div>
 </nav>
 
 <header class="hero" id="top">
-  <div class="lede">
-    <h1><span>Upgrade the runtime.</span><span>Watch what breaks.</span></h1>
-    <p>Canary runs the same workflows on a Portaldot runtime before and after an upgrade and inks both runs onto one strip. Where they agree, the pens beat together. These are recorded runs on local dev nodes.</p>
+  <a class="announce" href="#v3"><b>NEW</b><span>Live on the PortaldotV3 testnet. Mainnet vs V3: 948 changes, 3 hazards.</span></a>
+  <h1>Upgrade the runtime.<br>Know what <em>breaks.</em></h1>
+  <p class="sub">Canary runs the same workflows before and after a Portaldot runtime upgrade, <br class="br">shows the exact state that diverged, and hands you one command to reproduce it.</p>
+  <div class="cta">
+    <a class="btn btn-ghost" href="#runs">See a run</a>
+    <a class="btn btn-blue" href="#start">Start testing</a>
   </div>
 
-  <figure class="recorder" aria-labelledby="readout">
-    <div class="tape" data-tape>
-      <div class="pens" aria-hidden="true">
-        <span class="pen pa"><b>A</b>baseline<em data-k="pa"></em></span>
-        <span class="pen pb"><b>B</b>candidate<em data-k="pb"></em></span>
+  <figure class="stage" aria-label="Recorded run console over a dithered mountain landscape">
+    <canvas class="dither" data-dither="valley" aria-hidden="true"></canvas>
+    <div class="console" data-console>
+      <p class="cmd"><span class="prompt">$</span> <span data-k="cmd">canary test --baseline ws://127.0.0.1:9944 --candidate ws://127.0.0.1:9945</span></p>
+      <div class="console-out" aria-live="polite">
+        <strong data-k="big" class="same">Loading run…</strong>
+        <span data-k="small"></span>
       </div>
-      <div class="roll" data-roll></div>
+      <div class="console-bar">
+        <div class="picker" data-picker>
+          <button type="button" class="picker-btn" aria-haspopup="listbox" aria-expanded="false" data-picker-btn>
+            <svg viewBox="0 0 14 14" aria-hidden="true"><path d="M2 3.5l3 3-3 3M7 10.5h5"/></svg>
+            <span data-k="runname">Deposit ×100</span>
+            <svg class="chev" viewBox="0 0 12 12" aria-hidden="true"><path d="M3 4.5l3 3 3-3"/></svg>
+          </button>
+          <ul class="picker-menu" role="listbox" aria-label="Recorded runs" data-runs hidden></ul>
+        </div>
+        <a class="go" href="#runs" aria-label="Open the full ledger for this run"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 13V3M3.5 7.5L8 3l4.5 4.5"/></svg></a>
+      </div>
+      <p class="console-foot">Recorded runs on local dev nodes. Pick one to see its verdict.</p>
     </div>
-    <figcaption class="console">
-      <div class="channels" role="group" aria-label="Recorded runs" data-runs></div>
-      <p class="readout" id="readout" aria-live="polite"><strong data-k="big"></strong><span data-k="small"></span></p>
-    </figcaption>
+    <figcaption class="stage-cap">ONE RUNTIME. TWO RUNS. EVERY DIFFERENCE ACCOUNTED FOR.</figcaption>
   </figure>
 </header>
 
 <main>
-  <section class="ledger" id="ledger" aria-labelledby="statement">
-    <h2 id="statement" data-k="statement">Loading run…</h2>
-    <p class="note" data-k="note"></p>
-    <div class="filters" role="group" aria-label="Filter workflows" data-filters></div>
-    <div class="workflows" data-workflows></div>
+  <section class="frame trio" aria-label="Commands">
+    <article>
+      <svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/></svg>
+      <h3>canary doctor</h3>
+      <p>Diagnose any endpoint layer by layer, DNS to runtime, and fingerprint what is running behind it.</p>
+      <a class="explore" href="#harness" data-tab-link="doctor">EXPLORE <svg class="arr" viewBox="0 0 12 12" aria-hidden="true"><path d="M3.5 8.5l5-5M4.5 3.5h4v4"/></svg></a>
+    </article>
+    <article>
+      <svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 5h6v14H5zM13 5h6v14h-6z"/><path d="M7.5 9h1M15.5 9h1M7.5 13h1M15.5 15h1"/></svg>
+      <h3>canary compare</h3>
+      <p>Diff two live runtimes, V13 or V14 metadata, and flag changes that would halt a chain.</p>
+      <a class="explore" href="#harness" data-tab-link="compare">EXPLORE <svg class="arr" viewBox="0 0 12 12" aria-hidden="true"><path d="M3.5 8.5l5-5M4.5 3.5h4v4"/></svg></a>
+    </article>
+    <article>
+      <svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 8h5l2-4 3 9 2-5h4"/><path d="M4 17h5l2-2 2 2h7"/></svg>
+      <h3>canary test</h3>
+      <p>Run real workflows on baseline and candidate, then return a verdict with the state that diverged.</p>
+      <a class="explore" href="#harness" data-tab-link="test">EXPLORE <svg class="arr" viewBox="0 0 12 12" aria-hidden="true"><path d="M3.5 8.5l5-5M4.5 3.5h4v4"/></svg></a>
+    </article>
   </section>
 
-  <section class="upgrades" id="upgrades" aria-labelledby="up-title">
-    <h2 id="up-title">Every candidate went in through <code>system.setCode</code>.</h2>
-    <p class="note">An upgrade counts only once the new runtime produces three more blocks. Spec going up is not proof.</p>
-    <div class="chains">
-      <article class="chain">
-        <h3>clean <small>1002 → 1003</small></h3>
-        <svg viewBox="0 0 400 54" preserveAspectRatio="none" data-blocks="live" aria-label="blocks #4 to #7 after setCode"></svg>
-        <p>#4 → #7, live</p>
-      </article>
-      <article class="chain">
-        <h3>fee10x <small>injected · 1002 → 1005</small></h3>
-        <svg viewBox="0 0 400 54" preserveAspectRatio="none" data-blocks="live" aria-label="blocks #78 to #81 after setCode"></svg>
-        <p>#78 → #81, live</p>
-      </article>
-      <article class="chain">
-        <h3>ed100x <small>injected · 1002 → 1004</small></h3>
-        <svg viewBox="0 0 400 54" preserveAspectRatio="none" data-blocks="live" aria-label="blocks #9 to #12 after setCode"></svg>
-        <p>#9 → #12, live</p>
-      </article>
-      <article class="chain halted">
-        <h3>public source, 60 s slots <small>1002 → 1003</small></h3>
-        <svg viewBox="0 0 400 54" preserveAspectRatio="none" data-blocks="halt" aria-label="stuck at block #110"></svg>
-        <p>stuck at #110 · <code>Timestamp slot must match CurrentSlot</code></p>
-      </article>
+  <section class="frame stats" aria-label="Facts">
+    <div><b>V13 + V14</b><span>Mainnet and V3 metadata, decoded</span></div>
+    <div><b>948</b><span>Changes, mainnet to V3</span></div>
+    <div><b>0 planck</b><span>Mainnet supply delta</span></div>
+    <div><b>3 exits</b><span>Pass, regression, inconclusive</span></div>
+    <p class="stats-cap">TESTED AGAINST LIVE PORTALDOT ENDPOINTS</p>
+    <ul class="endpoints">
+      <li><span>Mainnet</span>mainnet.portaldot.io</li>
+      <li><span>V3 Substrate</span>test-node-v3.portaldot.dev</li>
+      <li><span>V3 EVM</span>test-evm-rpc-v3.portaldot.dev</li>
+      <li><span>Local dev</span>127.0.0.1:9944</li>
+    </ul>
+  </section>
+
+  <section class="frame harness" id="harness" aria-labelledby="h-title">
+    <header class="sec-head">
+      <p class="num">#01 / THE HARNESS</p>
+      <h2 id="h-title">From a runtime upgrade<br>to a verdict you can trust.</h2>
+    </header>
+    <div class="harness-body">
+      <div class="tabs" role="tablist" aria-label="Commands" data-tabs>
+        <button type="button" role="tab" id="tab-doctor" aria-controls="pane" aria-selected="true" data-tab="doctor">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/></svg>
+          <b>DOCTOR</b><span>Is the endpoint healthy, and what runtime does it run? One command, every layer.</span>
+        </button>
+        <button type="button" role="tab" id="tab-compare" aria-controls="pane" aria-selected="false" data-tab="compare">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 5h6v14H5zM13 5h6v14h-6z"/></svg>
+          <b>COMPARE</b><span>Every pallet, call, event, storage item and constant that moved, with hazards called out.</span>
+        </button>
+        <button type="button" role="tab" id="tab-test" aria-controls="pane" aria-selected="false" data-tab="test">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 8h5l2-4 3 9 2-5h4"/><path d="M4 17h5l2-2 2 2h7"/></svg>
+          <b>TEST</b><span>The same workflows on both runtimes. Exit 1 means it worked before and breaks after.</span>
+        </button>
+      </div>
+      <div class="pane-wrap">
+        <canvas class="dither dim" data-dither="stone" aria-hidden="true"></canvas>
+        <div class="window" id="pane" role="tabpanel" aria-labelledby="tab-doctor" data-pane>
+          <div class="win-bar"><span data-k="file">doctor.txt</span><button type="button" class="copy-ico" data-copy-pane aria-label="Copy command"><svg viewBox="0 0 16 16" aria-hidden="true"><rect x="5" y="5" width="8.5" height="8.5" rx="1.5"/><path d="M10.5 5V3.5A1.5 1.5 0 0 0 9 2H3.5A1.5 1.5 0 0 0 2 3.5V9a1.5 1.5 0 0 0 1.5 1.5H5"/></svg></button></div>
+          <pre class="win-code" data-k="code"></pre>
+          <p class="win-foot" data-k="foot"></p>
+        </div>
+      </div>
     </div>
-    <p class="note">The public source targets 60 s blocks; the dev chain runs 6 s, and BABE cannot change slot length on a live chain. <code>canary compare</code> flags that change before anyone applies it.</p>
+    <a class="frame-link" href="https://github.com/Venkat5599/PRT/blob/main/docs/ARCHITECTURE.md">READ THE ARCHITECTURE <svg class="arr" viewBox="0 0 12 12" aria-hidden="true"><path d="M3.5 8.5l5-5M4.5 3.5h4v4"/></svg></a>
   </section>
 
-  <section class="mainnet" id="mainnet" aria-labelledby="mn-title">
-    <h2 id="mn-title" class="sr">Mainnet supply invariant</h2>
+  <section class="flow" id="flow" aria-labelledby="f-title">
+    <header class="split-head">
+      <div>
+        <p class="num">ONE UPGRADE. NOTHING ASSUMED.</p>
+        <h2 id="f-title">One setCode.<br>A complete before and after.</h2>
+      </div>
+      <p class="aside">The baseline becomes a reference.<br>The candidate has to match it.</p>
+    </header>
+    <div class="diagram" data-diagram>
+      <div class="card-node in">
+        <p class="file"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M4 1.5h5l3 3v10H4z"/><path d="M9 1.5v3h3"/></svg>baseline · spec 1002</p>
+        <p class="q">Balances, fees and storage<br>as they are <b>today.</b></p>
+        <p class="meta">SNAPSHOT AT BLOCK #4</p>
+      </div>
+      <svg class="wires" aria-hidden="true" data-wires></svg>
+      <div class="hub">
+        <span class="sat s1"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 5h10M3 8h10M3 11h6"/></svg>Workflows</span>
+        <span class="sat s2"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 8h10M8 3v10"/></svg>Invariants</span>
+        <div class="core"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v6M12 15v6M5 12H3M21 12h-2M7.5 7.5l3 3M13.5 13.5l3 3M16.5 7.5l-3 3M10.5 13.5l-3 3"/></svg><i></i></div>
+        <span class="sat s3"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 4h4v8H3zM9 4h4v8H9z"/></svg>Diff <em>✓</em></span>
+        <p class="hub-cap">SYSTEM.SETCODE + 3 BLOCKS</p>
+      </div>
+      <div class="card-node out">
+        <p class="file"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M4 1.5h5l3 3v10H4z"/><path d="M9 1.5v3h3"/></svg>report.html<svg class="ok" viewBox="0 0 16 16" aria-hidden="true"><path d="M2 8.5l3 3 5-6M7 11.5l1 0 6-7"/></svg></p>
+        <p class="t">The verdict.</p>
+        <ol>
+          <li><i>01</i>What broke, and how badly</li>
+          <li><i>02</i>Baseline vs candidate state</li>
+          <li><i>03</i>One command to reproduce</li>
+        </ol>
+        <p class="meta ok-line"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 8.5l3 3 7-7"/></svg>HASHED AND ATTESTED</p>
+      </div>
+    </div>
+    <div class="steps" role="tablist" aria-label="Upgrade steps" data-steps>
+      <button type="button" role="tab" aria-selected="true" data-step="0"><i>01</i><b>Snapshot the baseline</b><span class="bar"><span></span></span></button>
+      <button type="button" role="tab" aria-selected="false" data-step="1"><i>02</i><b>Apply the candidate</b><span class="bar"><span></span></span></button>
+      <button type="button" role="tab" aria-selected="false" data-step="2"><i>03</i><b>Return a verdict</b><span class="bar"><span></span></span></button>
+    </div>
+    <div class="step-text">
+      <p data-k="steptext">Run every workflow against the live baseline and record balances, fees, events and storage, block by block.</p>
+      <p class="step-io" data-k="stepio">INPUT / ws://127.0.0.1:9944</p>
+    </div>
+  </section>
+
+  <section class="runs" id="runs" aria-labelledby="r-title">
+    <header class="center-head">
+      <p class="num">#02 / RECORDED RUNS</p>
+      <h2 id="r-title">Four upgrades. Every expectation, side by side.</h2>
+    </header>
+    <div class="frame run-tabs" role="tablist" aria-label="Recorded runs" data-runtabs></div>
+    <div class="run-panel">
+      <div class="tape" data-tape aria-hidden="true">
+        <div class="pens"><span class="pen pa"><b>A</b>baseline <em data-k="pa"></em></span><span class="pen pb"><b>B</b>candidate <em data-k="pb"></em></span></div>
+        <div class="roll" data-roll></div>
+      </div>
+      <div class="ledger">
+        <h3 data-k="statement">Loading run…</h3>
+        <p class="note" data-k="note"></p>
+        <div class="filters" role="group" aria-label="Filter workflows" data-filters></div>
+        <div class="workflows" data-workflows></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="frame v3" id="v3" aria-labelledby="v-title">
+    <header class="sec-head">
+      <p class="num">#03 / PORTALDOT V3</p>
+      <h2 id="v-title">Mainnet against V3, <em>read live.</em></h2>
+      <p class="lead">The first diff of Portaldot mainnet (spec 1002, metadata V13) against the PortaldotV3 testnet (spec 3002, metadata V14), taken on 17 October 2026.</p>
+    </header>
+    <div class="v3-grid">
+      <div><b>+40</b><span>Pallets added</span><small>Revive, Nfts, Uniques, NominationPools, AssetConversion, Beefy…</small></div>
+      <div><b>21</b><span>Pallet indices moved</span><small>Every client that encodes calls by index must re-read metadata.</small></div>
+      <div class="hz"><b>3</b><span>Upgrade hazards</span><small>BABE slot 60 s → 6 s, epoch 120 → 600, timestamp period. setCode would halt the chain.</small></div>
+      <div><b>1 byte</b><span>Drifting metadata</span><small><code>Revive.EthBlockBuilderIR</code>'s default changes the V3 metadata hash every few minutes.</small></div>
+    </div>
+    <div class="setcode">
+      <p class="setcode-title">Every local candidate went in through <code>system.setCode</code>, and counts only after three more blocks.</p>
+      <div class="chains">
+        <article class="chain"><h4>clean <small>1002 → 1003</small></h4><svg viewBox="0 0 400 54" preserveAspectRatio="none" data-blocks="live" aria-label="blocks #4 to #7 after setCode"></svg><p>#4 → #7, live</p></article>
+        <article class="chain"><h4>fee10x <small>injected · 1002 → 1005</small></h4><svg viewBox="0 0 400 54" preserveAspectRatio="none" data-blocks="live" aria-label="blocks #78 to #81 after setCode"></svg><p>#78 → #81, live</p></article>
+        <article class="chain"><h4>ed100x <small>injected · 1002 → 1004</small></h4><svg viewBox="0 0 400 54" preserveAspectRatio="none" data-blocks="live" aria-label="blocks #9 to #12 after setCode"></svg><p>#9 → #12, live</p></article>
+        <article class="chain halted"><h4>public source, 60 s slots <small>1002 → 1003</small></h4><svg viewBox="0 0 400 54" preserveAspectRatio="none" data-blocks="halt" aria-label="stuck at block #110"></svg><p>stuck at #110 · <code>Timestamp slot must match CurrentSlot</code></p></article>
+      </div>
+    </div>
+    <a class="frame-link" href="https://github.com/Venkat5599/PRT/blob/main/docs/V3_READINESS.md">READ THE V3 READINESS LOG <svg class="arr" viewBox="0 0 12 12" aria-hidden="true"><path d="M3.5 8.5l5-5M4.5 3.5h4v4"/></svg></a>
+  </section>
+
+  <section class="uses" aria-labelledby="u-title">
+    <header class="split-head">
+      <h2 id="u-title">Put every upgrade<br>through a dress rehearsal.</h2>
+      <p class="aside">Different teams. The same evidence,<br>before the runtime goes live.</p>
+    </header>
+    <div class="use">
+      <p class="n">01</p>
+      <h3>Runtime engineers</h3>
+      <div class="use-body"><p class="lead">Catch the migration that runs but breaks the app.</p><p>Inject a candidate with setCode on a local fork.</p><p>See the first workflow that stops holding.</p></div>
+      <div class="use-out"><p class="eo">EXAMPLE OUTPUT</p><code>report.html</code><a href="#runs" data-run-link="injected-faulty-migration">See the faulty migration <svg class="arr" viewBox="0 0 12 12" aria-hidden="true"><path d="M3.5 8.5l5-5M4.5 3.5h4v4"/></svg></a></div>
+    </div>
+    <div class="use">
+      <p class="n">02</p>
+      <h3>Node operators</h3>
+      <div class="use-body"><p class="lead">Know what an endpoint runs before you trust it.</p><p>Gate CI on <code>canary doctor</code>: exit 2 when unhealthy.</p><p>Spot unversioned runtime changes on any node.</p></div>
+      <div class="use-out"><p class="eo">EXAMPLE OUTPUT</p><code>doctor.json</code><a href="#harness" data-tab-link="doctor">See doctor on V3 <svg class="arr" viewBox="0 0 12 12" aria-hidden="true"><path d="M3.5 8.5l5-5M4.5 3.5h4v4"/></svg></a></div>
+    </div>
+    <div class="use">
+      <p class="n">03</p>
+      <h3>Wallet &amp; dApp teams</h3>
+      <div class="use-body"><p class="lead">Find the call indices and fees that will move under you.</p><p>Compare mainnet against V3 before migrating.</p><p>Read changed calls, events and signed extensions.</p></div>
+      <div class="use-out"><p class="eo">EXAMPLE OUTPUT</p><code>compare.json</code><a href="#v3">See mainnet vs V3 <svg class="arr" viewBox="0 0 12 12" aria-hidden="true"><path d="M3.5 8.5l5-5M4.5 3.5h4v4"/></svg></a></div>
+    </div>
+  </section>
+
+  <section class="invariant" aria-labelledby="i-title">
+    <h2 id="i-title" class="sr">Mainnet supply invariant</h2>
     <div class="equation">
-      <div><span class="num">1,016,781,509.44</span><span class="lbl">free + reserved across 4,719 accounts</span></div>
-      <span class="eq" aria-label="equals">=</span>
-      <div><span class="num">1,016,781,509.44</span><span class="lbl"><code>Balances.TotalIssuance</code></span></div>
+      <div><span class="eq-num">1,016,781,509.44</span><span class="eq-lbl">free + reserved across 4,719 accounts</span></div>
+      <span class="eq-sign" aria-label="equals">=</span>
+      <div><span class="eq-num">1,016,781,509.44</span><span class="eq-lbl"><code>Balances.TotalIssuance</code></span></div>
     </div>
     <p class="note">Portaldot mainnet, block #2,727,345, read-only. Delta: 0 planck. The same check runs before and after every upgrade.</p>
   </section>
 
-  <section class="run" id="run" aria-labelledby="run-title">
-    <h2 id="run-title">Five commands.</h2>
-    <div class="term">
-      <pre><code><span>cargo build --release</span>
-<span>canary doctor    --ws wss://mainnet.portaldot.io</span>
-<span>canary upgrade   --ws ws://127.0.0.1:9945 --wasm runtimes/out/ed100x.compact.wasm</span>
-<span>canary test      --baseline ws://127.0.0.1:9944 --candidate ws://127.0.0.1:9945</span>
+  <section class="start" id="start" aria-labelledby="s-title">
+    <canvas class="dither" data-dither="dusk" aria-hidden="true"></canvas>
+    <div class="start-in">
+      <h2 id="s-title">Give your next upgrade<br>a <em>dress rehearsal.</em></h2>
+      <div class="term">
+        <pre><code><span>cargo build --release</span>
+<span>canary doctor   --ws wss://test-node-v3.portaldot.dev</span>
+<span>canary compare  --baseline wss://mainnet.portaldot.io --candidate wss://test-node-v3.portaldot.dev</span>
+<span>canary test     --baseline ws://127.0.0.1:9944 --candidate ws://127.0.0.1:9945</span>
 <span>canary reproduce balances.transfer.basic --run runs/&lt;id&gt;</span></code></pre>
+        <button type="button" class="copy-ico" data-copy="cargo build --release" aria-label="Copy first command"><svg viewBox="0 0 16 16" aria-hidden="true"><rect x="5" y="5" width="8.5" height="8.5" rx="1.5"/><path d="M10.5 5V3.5A1.5 1.5 0 0 0 9 2H3.5A1.5 1.5 0 0 0 2 3.5V9a1.5 1.5 0 0 0 1.5 1.5H5"/></svg></button>
+      </div>
+      <dl class="exits">
+        <div><dt>0</dt><dd>Pass, or a difference where every expectation still holds</dd></div>
+        <div><dt>1</dt><dd>Regression: holds on the baseline, fails on the candidate</dd></div>
+        <div><dt>2</dt><dd>Inconclusive: not comparable, never reported as success</dd></div>
+      </dl>
+      <div class="cta">
+        <a class="btn btn-blue" href="https://github.com/Venkat5599/PRT">Get the source <svg class="arr" viewBox="0 0 12 12" aria-hidden="true"><path d="M3.5 8.5l5-5M4.5 3.5h4v4"/></svg></a>
+        <span class="action-note">Also a GitHub Action: <code>uses: Venkat5599/PRT@main</code></span>
+      </div>
     </div>
-    <dl class="exits">
-      <div><dt>0</dt><dd>pass, or a difference where every expectation still holds</dd></div>
-      <div><dt>1</dt><dd>regression: holds on the baseline, fails on the candidate</dd></div>
-      <div><dt>2</dt><dd>inconclusive: not comparable, never reported as success</dd></div>
-    </dl>
-    <p class="note">Also a GitHub Action: <code>uses: Venkat5599/PRT@main</code></p>
   </section>
 </main>
 
 <footer class="foot">
-  <p>Portaldot Hacker House 2026 · Node Operations &amp; Tooling · Apache-2.0 · Injected candidates are labelled; nothing here says an upgrade is safe. · <a href="https://github.com/Venkat5599/PRT">github.com/Venkat5599/PRT</a></p>
-  <div class="word" aria-hidden="true">Canary</div>
+  <div class="foot-in">
+    <div class="foot-brand">
+      <a class="brand" href="#top"><svg class="mark" viewBox="0 0 24 24" aria-hidden="true"><path class="m-a" d="M3 8.5h5.5l1.8-4.5 3 9 1.7-4.5H21"/><path class="m-b" d="M3 16h5.5l1.8-2.5 1.8 2.5H21"/></svg><span>PORTAL CANARY</span></a>
+      <p>Differential runtime-upgrade testing for Portaldot. Portaldot Hacker House 2026, Node Operations &amp; Tooling.</p>
+    </div>
+    <nav class="foot-cols" aria-label="Footer">
+      <div><p>Product</p><a href="#harness">Commands</a><a href="#flow">Upgrade flow</a><a href="#runs">Recorded runs</a></div>
+      <div><p>Network</p><a href="#v3">V3 testnet</a><a href="https://node-console.portaldot.dev">Node explorer</a><a href="https://github.com/Venkat5599/PRT/blob/main/docs/V3_READINESS.md">Readiness log</a></div>
+      <div><p>Source</p><a href="https://github.com/Venkat5599/PRT">GitHub</a><a href="https://github.com/Venkat5599/PRT/blob/main/README.md">README</a><a href="https://github.com/Venkat5599/PRT/blob/main/docs/ARCHITECTURE.md">Architecture</a></div>
+    </nav>
+  </div>
+  <p class="legal">Apache-2.0 · Injected candidates are labelled; nothing here says an upgrade is safe.</p>
+  <div class="word" aria-hidden="true">CANARY</div>
 </footer>
+
+<button type="button" class="motion" aria-pressed="false" aria-label="Pause motion" data-motion><svg viewBox="0 0 16 16" aria-hidden="true"><path class="ps" d="M5.5 3.5v9M10.5 3.5v9"/><path class="pl" d="M5 3.5l7 4.5-7 4.5z"/></svg></button>
+
 <script src="app.js" defer></script>
 </body>
 </html>
