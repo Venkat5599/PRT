@@ -88,7 +88,7 @@ Run a YAML workflow corpus ([`tests/workflows`](tests/workflows)) against a base
 
 Severity is rule-based (invariant → Critical; core dispatch/delta → High; …) and every finding carries its rationale. Fee-multiplier drift is normalised within 1 ppm and still shown in the report. Exit codes: `1` on any regression, `2` if anything is inconclusive.
 
-**Determinism control** (same dev node as baseline and candidate): 4/4 PASS. [`examples/self-compare`](examples/self-compare)
+**Determinism control** (same dev node as baseline and candidate): all PASS. [`examples/self-compare`](examples/self-compare)
 
 **Injected regression** (clearly labelled; a deliberately tampered dev node, not a Portaldot finding): a sudo `system.setStorage` credits 1,000 POT without updating TotalIssuance, the effect of a faulty balance migration ([`driver/src/inject.ts`](driver/src/inject.ts)):
 
@@ -146,7 +146,19 @@ PASS          Info      identity.deposit
 
 The fee candidate shows Canary does not cry wolf: fees per transfer rise from 0.0147 to 0.147 POT, every expectation still holds, so all four workflows come back **DIFFERENCE / Low** and the run exits 0 ([`examples/upgrade-fee10x`](examples/upgrade-fee10x/report.html)).
 
-Control (clean upgrade vs itself): 4/4 PASS. `canary reproduce` returns the identical finding hash. Full report: [`examples/upgrade-ed100x/report.html`](examples/upgrade-ed100x/report.html).
+Control (clean upgrade vs itself): all PASS. `canary reproduce` returns the identical finding hash. Full report: [`examples/upgrade-ed100x/report.html`](examples/upgrade-ed100x/report.html).
+
+### Contract workflow
+
+`contracts.counter` deploys a WASM contract with `Contracts.instantiateWithCode`, calls it twice and checks the value it emits each time (`ContractEmitted` with `0x01…`, then `0x02…`). The contract is 264 bytes of hand-written WAT against the `seal0` API ([`tests/contracts/counter.wat`](tests/contracts/counter.wat)), so the corpus needs no ink!/cargo-contract toolchain matching Portaldot's 2021 pallet-contracts. Workflow args can reference files (`file:tests/contracts/counter.wasm`) and earlier events (`step:0:contracts.Instantiated:1`, the new contract's address).
+
+| Run | `contracts.counter` |
+|---|---|
+| control (clean upgrade vs itself) | PASS |
+| INJECTED ed100x (ExistentialDeposit 100 POT) | **REGRESSION High**: the 50 POT endowment no longer funds a new contract |
+| INJECTED fee10x | DIFFERENCE Low: higher fees, contract still works |
+
+`contracts.CodeStored` only fires the first time a code blob reaches a chain, so the workflow lists it under `history_events`: a difference in it alone is shown in the report but not counted.
 
 ### Finding: the public source halts the dev chain
 
@@ -214,7 +226,8 @@ bash scripts/upgrade-demo.sh  # real setCode upgrades: clean vs INJECTED ed100x,
 - [x] On-chain attestation via `system.remark` (`canary attest` / `canary verify`) on the dev chain
 - [x] GitHub Action ([`action.yml`](action.yml)) and CI against a real Portaldot dev node
 - [ ] Attestation on the public V3 testnet (endpoints have no DNS yet, see [`docs/V3_READINESS.md`](docs/V3_READINESS.md))
-- [ ] Contract workflows (ink! / EVM)
+- [x] WASM contract workflow (`contracts.counter`, hand-written against pallet-contracts v3)
+- [ ] EVM contract workflows (no EVM API on Portaldot today; revisit on V3)
 
 ## Third-party code
 
