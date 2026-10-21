@@ -194,3 +194,23 @@ html { overflow-x: clip; }
 .lost-links { display: flex; gap: 22px; justify-content: center; font: 600 12px/1 var(--mono); letter-spacing: .07em; text-transform: uppercase; }
 .lost-links a { color: var(--peri); transition: color .2s; }
 .lost-links a:hover { color: var(--ink); }
+
+/* ---------- landing: story, not tools ---------- */
+/* On the landing page the live compare is proof, not a workbench: the verdict and
+   four headline numbers, with the controls, lanes and hazard detail on /dashboard. */
+.live:not(.is-standalone) .live-form,
+.live:not(.is-standalone) .lanes,
+.live:not(.is-standalone) .hazards,
+.live:not(.is-standalone) .tally .minor { display: none; }
+.live:not(.is-standalone) .live-head { padding-bottom: 32px; }
+.live:not(.is-standalone) .live-verdict { padding-top: 40px; padding-bottom: 36px; }
+.live:not(.is-standalone) .tally { border-bottom: 0; }
+.live:not(.is-standalone) .tally > div { padding-top: 30px; padding-bottom: 32px; }
+/* More air between the beats of the story. */
+.flow, .v3, .uses { margin-top: 180px; }
+.invariant { margin-top: 170px; }
+.start { margin-top: 180px; }
+main > .trio { margin-bottom: 0; }
+@media (max-width: 720px) {
+  .flow, .v3, .uses, .invariant, .start { margin-top: 110px; }
+}

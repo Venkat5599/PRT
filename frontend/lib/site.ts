@@ -152,6 +152,8 @@ export function initSite() {
     $('[data-k="small"]').textContent = `across ${plural(s.workflows, "workflow", "workflows")}${worst ? ` · worst ${worst}` : ""} · exit ${exitCode(s)}`;
     $('[data-k="cmd"]').textContent = `canary test --baseline ${m.baseline.endpoint} --candidate ${m.candidate.endpoint}`;
     $('[data-k="runname"]').textContent = RUNS.find((x) => x.id === currentId)!.name;
+    // The run ledger is on /dashboard now; the hero console above is all the landing page shows.
+    if (!$("[data-workflows]")) return;
     $('[data-k="pa"]').textContent = `spec ${m.baseline.spec_version}`;
     $('[data-k="pb"]').textContent = `spec ${m.candidate.spec_version}`;
 
@@ -174,7 +176,6 @@ export function initSite() {
     const list = r.results.filter((w) => filter === "all" || LABEL[w.finding.verdict] === filter);
     const quiet = s.regression + s.difference === 0;
     $("[data-workflows]").innerHTML = list.map((w) => workflow(w, w.finding.verdict !== "PASS" || list.length === 1 || quiet)).join("");
-    if (tab === "test") showPane("test");
   }
 
   async function fetchRun(id) {
@@ -191,10 +192,11 @@ export function initSite() {
     $$("[data-run]").forEach((b) => b.setAttribute("aria-selected", String(b.dataset.run === id)));
     try {
       current = await fetchRun(id);
-      drawTape(current);
+      if ($("[data-roll]")) drawTape(current);
       render();
     } catch (e: any) {
-      $('[data-k="statement"]').textContent = `Could not load this run (${e.message}).`;
+      const st = $('[data-k="statement"]');
+      if (st) st.textContent = `Could not load this run (${e.message}).`;
       $('[data-k="big"]').textContent = "Run unavailable";
     }
   }
@@ -219,111 +221,19 @@ export function initSite() {
   });
   document.addEventListener("click", (e) => { if (!(e.target as HTMLElement).closest<HTMLElement>("[data-picker]")) setMenu(false); });
 
-  $("[data-runtabs]").innerHTML = RUNS.map((r, i) => `<button type="button" role="tab" aria-selected="false" data-run="${r.id}"><i>0${i + 1}</i><b>${r.name}</b><small>${r.hint}</small><span class="verd" data-verd="${r.id}"></span></button>`).join("");
-  // Prefetch every run so each tab can show its verdict before it is opened.
-  for (const r of RUNS) {
+  if ($("[data-runtabs]")) {
+    $("[data-runtabs]").innerHTML = RUNS.map((r, i) => `<button type="button" role="tab" aria-selected="false" data-run="${r.id}"><i>0${i + 1}</i><b>${r.name}</b><small>${r.hint}</small><span class="verd" data-verd="${r.id}"></span></button>`).join("");
+    // Prefetch every run so each tab can show its verdict before it is opened.
+    for (const r of RUNS) {
     fetchRun(r.id).then((d) => {
       const h = headline(d.summary);
       const el = $(`[data-verd="${r.id}"]`);
       el.textContent = `${h.text} · exit ${exitCode(d.summary)}`;
       el.style.color = `var(--${h.cls === "reg" ? "reg" : h.cls === "diff" ? "diff" : h.cls === "same" ? "pass" : "dim"})`;
     }).catch(() => {});
-  }
-
-  /* ---------- harness panes ---------- */
-  // Doctor and compare show the recorded CLI output verbatim (examples/mainnet-vs-v3),
-  // fetched from the files themselves; only colour is added. Nothing is typed by hand.
-  const SRC = "/examples/mainnet-vs-v3/";
-  const PANES: Record<string, { file: string; copy: string; foot: string; code: string }> = {
-    doctor: {
-      file: "doctor.txt",
-      copy: "canary doctor --ws wss://mainnet.portaldot.io --ws wss://test-node-v3.portaldot.dev --eth https://test-evm-rpc-v3.portaldot.dev",
-      foot: "Recorded output · examples/mainnet-vs-v3/doctor.txt · 17 Oct 2026",
-      code: '<span class="c-dim">Loading recorded output…</span>',
-    },
-    compare: {
-      file: "compare.txt",
-      copy: "canary compare --baseline wss://mainnet.portaldot.io --candidate wss://test-node-v3.portaldot.dev",
-      foot: "Recorded output · examples/mainnet-vs-v3/compare.txt · 17 Oct 2026",
-      code: '<span class="c-dim">Loading recorded output…</span>',
-    },
-  };
-  const paint = (text: string) => esc(text).split("\n").map((l) => {
-    if (/^HAZARD|^\s+applying this candidate/.test(l)) return `<span class="c-bad">${l}</span>`;
-    if (/^WARNING/.test(l)) return `<span class="c-warn">${l}</span>`;
-    if (/^\+ /.test(l)) return `<span class="c-ok">+</span>${l.slice(1)}`;
-    if (/^- /.test(l)) return `<span class="c-bad">-</span>${l.slice(1)}`;
-    if (/^~ /.test(l)) return `<span class="c-warn">~</span>${l.slice(1)}`;
-    if (/^(substrate|evm) /.test(l)) return `<span class="c-k">${l.split(" ")[0]}</span>${l.slice(l.indexOf(" "))}`;
-    return l.replace(/\b(HEALTHY|present|ok)\b/g, '<span class="c-ok">$1</span>').replace(/\b(absent)\b/g, '<span class="c-dim">$1</span>');
-  }).join("\n");
-  async function loadPane(name: "doctor" | "compare") {
-    try {
-      const res = await fetch(`${SRC}${name}.txt`);
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const text = (await res.text()).trimEnd();
-      let body = text;
-      if (name === "compare") {
-        // 2,316 lines: show the real head and tail, and say exactly what is left out.
-        const lines = text.split("\n");
-        const head = 16, tail = lines.length - lines.findIndex((l) => l.startsWith("HAZARD")) + 1;
-        body = `${lines.slice(0, head).join("\n")}\n\n… lines ${head + 1}–${lines.length - tail} omitted (full file in the repo) …\n\n${lines.slice(-tail).join("\n")}`;
-      }
-      PANES[name].code = `<span class="c-dim">$</span> ${esc(PANES[name].copy)}\n${paint(body)}`;
-    } catch (e: any) {
-      PANES[name].code = `<span class="c-bad">Could not load ${name}.txt (${esc(e.message)})</span>`;
     }
-    if (tab === name) showPane(name);
   }
 
-  function testPane() {
-    const r = current;
-    if (!r) return { file: "report.json", copy: "", foot: "Loading run…", code: "" };
-    const m = r.manifest;
-    const tag = { REGRESSION: "c-bad", DIFFERENCE: "c-warn", PASS: "c-ok", INCONCLUSIVE: "c-dim" };
-    const lines = r.results.map((w) => `<span class="${tag[w.finding.verdict] ?? ""}">${w.finding.verdict.padEnd(12)}</span>${(w.finding.severity ?? "").padEnd(8)}${esc(w.finding.workflow)}`);
-    return {
-      file: `/reports/${currentId}/report.json`,
-      copy: `canary test --baseline ${m.baseline.endpoint} --candidate ${m.candidate.endpoint}`,
-      foot: `Recorded run · ${RUNS.find((x) => x.id === currentId)!.name} · spec ${m.baseline.spec_version} → ${m.candidate.spec_version}`,
-      code: `<span class="c-dim">$</span> canary test --baseline ${esc(m.baseline.endpoint)} \\
-              --candidate ${esc(m.candidate.endpoint)}
-${m.injected ? `<span class="c-dim">injected: ${esc(short(m.injected, 58))}</span>\n` : ""}
-${lines.join("\n")}
-
-${esc(r.summary.statement)}
-exit ${exitCode(r.summary)}`,
-    };
-  }
-
-  let tab = "doctor";
-  function showPane(name) {
-    tab = name;
-    const p = name === "test" ? testPane() : PANES[name];
-    $$("[data-tab]").forEach((b) => b.setAttribute("aria-selected", String(b.dataset.tab === name)));
-    $("[data-pane]").setAttribute("aria-labelledby", `tab-${name}`);
-    $('[data-k="file"]').textContent = p.file;
-    $('[data-k="code"]').innerHTML = p.code;
-    $('[data-k="foot"]').textContent = p.foot;
-    $("[data-copy-pane]").dataset.copy = p.copy;
-    // JSON form of the same recorded run.
-    $('[data-k="json"]').href = name === "test" ? `/reports/${currentId}/report.json` : `${SRC}${name}.json`;
-  }
-  const tabBtns = $$("[data-tab]");
-  tabBtns.forEach((b, i) => {
-    b.addEventListener("click", () => showPane(b.dataset.tab));
-    b.addEventListener("keydown", (e) => {
-      const d = e.key === "ArrowDown" || e.key === "ArrowRight" ? 1 : e.key === "ArrowUp" || e.key === "ArrowLeft" ? -1 : 0;
-      if (!d) return;
-      e.preventDefault();
-      const n = tabBtns[(i + d + tabBtns.length) % tabBtns.length];
-      n.focus();
-      showPane(n.dataset.tab);
-    });
-  });
-  showPane("doctor");
-  loadPane("doctor");
-  loadPane("compare");
 
   /* ---------- upgrade flow steps ---------- */
   const STEPS = [
@@ -449,8 +359,6 @@ exit ${exitCode(r.summary)}`,
     if (run) { setMenu(false); return load(run.dataset.run); }
     const rl = (e.target as HTMLElement).closest<HTMLElement>("[data-run-link]");
     if (rl) load(rl.dataset.runLink);
-    const tl = (e.target as HTMLElement).closest<HTMLElement>("[data-tab-link]");
-    if (tl) showPane(tl.dataset.tabLink);
     const f = (e.target as HTMLElement).closest<HTMLElement>("[data-f]");
     if (f) { filter = f.dataset.f!; return render(); }
     const c = (e.target as HTMLElement).closest<HTMLElement>("[data-copy]");
@@ -487,7 +395,7 @@ exit ${exitCode(r.summary)}`,
   const spy = new IntersectionObserver((entries) => {
     for (const e of entries) if (e.isIntersecting) navLinks.forEach((a) => a.setAttribute("aria-current", String(a.getAttribute("href") === `#${e.target.id}`)));
   }, { rootMargin: "-45% 0px -50% 0px" });
-  ["live", "harness", "flow", "runs", "v3"].forEach((id) => spy.observe(document.getElementById(id)!));
+  ["live", "flow", "v3"].forEach((id) => { const el = document.getElementById(id); if (el) spy.observe(el); });
 
   const start = RUNS.find((r) => `#${r.id}` === location.hash)?.id ?? "upgrade-ed100x";
   load(start);

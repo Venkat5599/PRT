@@ -34,7 +34,7 @@ export default function Uses() {
         <div className="use-out">
           <p className="eo">{"EXAMPLE OUTPUT"}</p>
           <code>{"report.html"}</code>
-          <a href="#runs" data-run-link="upgrade-ed100x">
+          <a href="/dashboard#runs">
             {"See the deposit regression "}
             <svg className="arr" viewBox="0 0 12 12" aria-hidden="true">
               <path d="M3.5 8.5l5-5M4.5 3.5h4v4"></path>
@@ -63,7 +63,7 @@ export default function Uses() {
         <div className="use-out">
           <p className="eo">{"EXAMPLE OUTPUT"}</p>
           <code>{"doctor.json"}</code>
-          <a href="#harness" data-tab-link="doctor">
+          <a href="/dashboard#doctor">
             {"See doctor on V3 "}
             <svg className="arr" viewBox="0 0 12 12" aria-hidden="true">
               <path d="M3.5 8.5l5-5M4.5 3.5h4v4"></path>

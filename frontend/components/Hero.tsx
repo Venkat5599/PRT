@@ -20,7 +20,7 @@ export default function Hero() {
       {" "}
       <div className="cta">
         {" "}
-        <a className="btn btn-ghost" href="#runs">{"See a run"}</a>
+        <a className="btn btn-ghost" href="/dashboard#runs">{"See a run"}</a>
         {" "}
         <a className="btn btn-blue" href="#live">{"Compare live"}</a>
         {" "}
@@ -67,7 +67,7 @@ export default function Hero() {
               {" "}
             </div>
             {" "}
-            <a className="go" href="#runs" aria-label="Open the full ledger for this run">
+            <a className="go" href="/dashboard#runs" aria-label="Open every recorded run on the dashboard">
               <svg viewBox="0 0 16 16" aria-hidden="true">
                 <path d="M8 13V3M3.5 7.5L8 3l4.5 4.5"></path>
               </svg>

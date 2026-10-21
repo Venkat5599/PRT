@@ -23,11 +23,9 @@ export default function Nav({ base = "", solid = false }: { base?: string; solid
           {" "}
           <a href="/dashboard" aria-current={solid ? "page" : undefined}>{"Dashboard"}</a>
           {" "}
-          <a href={`${base}#harness`}>{"Platform"}</a>
-          {" "}
           <a href={`${base}#flow`}>{"Upgrade flow"}</a>
           {" "}
-          <a href={`${base}#runs`}>{"Runs"}</a>
+          <a href="/dashboard#runs">{"Runs"}</a>
           {" "}
           <a href={`${base}#v3`}>{"V3 testnet"}</a>
           {" "}

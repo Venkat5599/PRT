@@ -23,9 +23,9 @@ export default function Footer() {
           {" "}
           <div>
             <p>{"Product"}</p>
-            <a href="#harness">{"Commands"}</a>
+            <a href="/dashboard#cli">{"Commands"}</a>
             <a href="#flow">{"Upgrade flow"}</a>
-            <a href="#runs">{"Recorded runs"}</a>
+            <a href="/dashboard#runs">{"Recorded runs"}</a>
           </div>
           {" "}
           <div>

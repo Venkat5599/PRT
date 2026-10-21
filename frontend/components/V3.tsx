@@ -5,7 +5,7 @@ export default function V3() {
       {" "}
       <header className="sec-head">
         {" "}
-        <p className="num">{"#03 / PORTALDOT V3"}</p>
+        <p className="num">{"PORTALDOT V3"}</p>
         {" "}
         <h2 id="v-title">
           {"Mainnet against V3, "}

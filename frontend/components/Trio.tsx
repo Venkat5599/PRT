@@ -14,7 +14,7 @@ export default function Trio() {
         {" "}
         <p>{"Diagnose any endpoint layer by layer, DNS to runtime, and fingerprint what is running behind it."}</p>
         {" "}
-        <a className="explore" href="#harness" data-tab-link="doctor">
+        <a className="explore" href="/dashboard#doctor">
           {"EXPLORE "}
           <svg className="arr" viewBox="0 0 12 12" aria-hidden="true">
             <path d="M3.5 8.5l5-5M4.5 3.5h4v4"></path>
@@ -34,7 +34,7 @@ export default function Trio() {
         {" "}
         <p>{"Diff two live runtimes, V13 or V14 metadata, and flag changes that would halt a chain."}</p>
         {" "}
-        <a className="explore" href="#harness" data-tab-link="compare">
+        <a className="explore" href="/dashboard#compare">
           {"EXPLORE "}
           <svg className="arr" viewBox="0 0 12 12" aria-hidden="true">
             <path d="M3.5 8.5l5-5M4.5 3.5h4v4"></path>
@@ -54,7 +54,7 @@ export default function Trio() {
         {" "}
         <p>{"Run real workflows on baseline and candidate, then return a verdict with the state that diverged."}</p>
         {" "}
-        <a className="explore" href="#harness" data-tab-link="test">
+        <a className="explore" href="/dashboard#runs">
           {"EXPLORE "}
           <svg className="arr" viewBox="0 0 12 12" aria-hidden="true">
             <path d="M3.5 8.5l5-5M4.5 3.5h4v4"></path>
