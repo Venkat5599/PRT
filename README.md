@@ -90,7 +90,7 @@ The public dev node and mainnet report the same `spec_version` 1002 but are diff
 
 ### In the browser
 
-The landing page ([portal-canary.vercel.app](https://portal-canary.vercel.app/#live)) runs the same comparison live. The page opens a WebSocket to each node and calls `canary-chain`'s decoder and diff, compiled to WebAssembly (`crates/canary-wasm`, about 300 KB). There is no extension, wallet or server involved. The page streams new heads from both chains and lets you filter and search every change and download the `compare.json`. Rebuild the engine with `scripts/build-wasm.sh`. `bun scripts/engine-live.test.ts` runs the browser module against mainnet and V3 and checks it against the CLI result (948 changes, 3 hazards, and 0 for the control).
+The landing page ([portal-canary.vercel.app](https://portal-canary.vercel.app/#live)) runs the same comparison live. The page opens a WebSocket to each node and calls `canary-chain`'s decoder and diff, compiled to WebAssembly (`crates/canary-wasm`, about 300 KB). There is no extension, wallet or server involved. The page streams new heads from both chains and lets you filter and search every change and download the `compare.json`. The site is a Next.js app in `web/` (`bun run dev` / `bun run build`). Rebuild the engine with `scripts/build-wasm.sh`. `bun scripts/engine-live.test.ts` runs the browser module against mainnet and V3 and checks it against the CLI result (948 changes, 3 hazards, and 0 for the control).
 
 ## Available now: `canary test` and `canary reproduce`
 

@@ -10,6 +10,6 @@ CARGO_PROFILE_RELEASE_CODEGEN_UNITS=1 \
 CARGO_PROFILE_RELEASE_STRIP=true \
 CARGO_PROFILE_RELEASE_PANIC=abort \
   cargo build -p canary-wasm --release --target wasm32-unknown-unknown
-mkdir -p site/engine
-cp "$target/wasm32-unknown-unknown/release/canary_wasm.wasm" site/engine/canary.wasm
-ls -l site/engine/canary.wasm
+mkdir -p web/public/engine
+cp "$target/wasm32-unknown-unknown/release/canary_wasm.wasm" web/public/engine/canary.wasm
+ls -l web/public/engine/canary.wasm
