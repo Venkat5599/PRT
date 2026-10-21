@@ -8,7 +8,7 @@ use std::collections::BTreeMap;
 use std::io::Write;
 use std::path::PathBuf;
 use std::process::{Command, Stdio};
-use std::time::Duration;
+use std::time::{Duration, Instant};
 
 use anyhow::{anyhow, bail, Context};
 use canary_chain::{invariant, storage};
@@ -242,6 +242,34 @@ pub fn run_side(wf: &Workflow, ns: &Namespace, ws: &str, driver: &Driver, timeou
     run
 }
 
+/// The driver reports a step once it is in a block, which can be ahead of the state
+/// the transaction pool validates against. Submitting the first step before the
+/// funding is visible there gets it rejected as "unable to pay fees" (seen in CI on
+/// the baseline == candidate control), so wait for every funded balance at the best block.
+fn wait_funded(
+    rpc: &mut canary_chain::rpc::WsRpc,
+    wf: &Workflow,
+    ids: &BTreeMap<String, Vec<u8>>,
+    timeout: Duration,
+) -> anyhow::Result<()> {
+    let deadline = Instant::now() + timeout;
+    loop {
+        let best = best_hash(rpc)?;
+        let balances = read_balances(rpc, ids, &best)?;
+        let short = wf.fund.iter().find(|f| {
+            let want: u128 = f.amount.parse().unwrap_or(0);
+            balances.get(&f.account).is_none_or(|(free, _)| *free < want)
+        });
+        match short {
+            None => return Ok(()),
+            Some(f) if Instant::now() >= deadline => {
+                bail!("funding of {} not visible at the best block after {}s", f.account, timeout.as_secs())
+            }
+            Some(_) => std::thread::sleep(Duration::from_millis(500)),
+        }
+    }
+}
+
 fn execute(wf: &Workflow, ns: &Namespace, ws: &str, driver: &Driver, timeout: Duration, run: &mut SideRun) -> anyhow::Result<()> {
     let name = |n: &str| uri(ns, wf, n);
     let uris: Vec<String> = wf.accounts.iter().map(|a| name(a)).collect();
@@ -268,6 +296,7 @@ fn execute(wf: &Workflow, ns: &Namespace, ws: &str, driver: &Driver, timeout: Du
         .collect::<anyhow::Result<_>>()?;
 
     let mut rpc = connect(ws, timeout)?;
+    wait_funded(&mut rpc, wf, &ids, timeout)?;
     let pre = best_hash(&mut rpc)?;
     let before = read_balances(&mut rpc, &ids, &pre)?;
     run.pre_block = Some(pre);
