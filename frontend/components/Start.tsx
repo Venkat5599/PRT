@@ -27,20 +27,6 @@ export default function Start() {
           {" "}
         </div>
         {" "}
-        <dl className="exits">
-          <div>
-            <dt>{"0"}</dt>
-            <dd>{"Pass, or a difference where every expectation still holds"}</dd>
-          </div>
-          <div>
-            <dt>{"1"}</dt>
-            <dd>{"Regression: holds on the baseline, fails on the candidate"}</dd>
-          </div>
-          <div>
-            <dt>{"2"}</dt>
-            <dd>{"Inconclusive: not comparable, never reported as success"}</dd>
-          </div>
-        </dl>
         {" "}
         <div className="cta">
           {" "}

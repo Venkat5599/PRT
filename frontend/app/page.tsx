@@ -7,7 +7,6 @@ import Live from "@/components/Live";
 import Motion from "@/components/Motion";
 import Nav from "@/components/Nav";
 import Start from "@/components/Start";
-import Trio from "@/components/Trio";
 import Uses from "@/components/Uses";
 import V3 from "@/components/V3";
 
@@ -18,7 +17,6 @@ export default function Home() {
       <Hero />
       <main>
         <Live />
-        <Trio />
         <Flow />
         <V3 />
         <Uses />

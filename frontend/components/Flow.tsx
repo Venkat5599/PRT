@@ -7,7 +7,6 @@ export default function Flow() {
         {" "}
         <div>
           {" "}
-          <p className="num">{"ONE UPGRADE. NOTHING ASSUMED."}</p>
           {" "}
           <h2 id="f-title">
             {"One setCode."}

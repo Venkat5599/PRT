@@ -5,7 +5,6 @@ export default function V3() {
       {" "}
       <header className="sec-head">
         {" "}
-        <p className="num">{"PORTALDOT V3"}</p>
         {" "}
         <h2 id="v-title">
           {"Mainnet against V3, "}
@@ -47,58 +46,6 @@ export default function V3() {
         {" "}
       </div>
       {" "}
-      <div className="setcode">
-        {" "}
-        <p className="setcode-title">
-          {"Every local candidate went in through "}
-          <code>{"system.setCode"}</code>
-          {", and counts only after three more blocks."}
-        </p>
-        {" "}
-        <div className="chains">
-          {" "}
-          <article className="chain">
-            <h4>
-              {"clean "}
-              <small>{"1002 → 1003"}</small>
-            </h4>
-            <svg viewBox="0 0 400 54" preserveAspectRatio="none" data-blocks="live" aria-label="blocks #4 to #7 after setCode"></svg>
-            <p>{"#4 → #7, live"}</p>
-          </article>
-          {" "}
-          <article className="chain">
-            <h4>
-              {"fee10x "}
-              <small>{"injected · 1002 → 1005"}</small>
-            </h4>
-            <svg viewBox="0 0 400 54" preserveAspectRatio="none" data-blocks="live" aria-label="blocks #78 to #81 after setCode"></svg>
-            <p>{"#78 → #81, live"}</p>
-          </article>
-          {" "}
-          <article className="chain">
-            <h4>
-              {"ed100x "}
-              <small>{"injected · 1002 → 1004"}</small>
-            </h4>
-            <svg viewBox="0 0 400 54" preserveAspectRatio="none" data-blocks="live" aria-label="blocks #9 to #12 after setCode"></svg>
-            <p>{"#9 → #12, live"}</p>
-          </article>
-          {" "}
-          <article className="chain halted">
-            <h4>
-              {"public source, 60 s slots "}
-              <small>{"1002 → 1003"}</small>
-            </h4>
-            <svg viewBox="0 0 400 54" preserveAspectRatio="none" data-blocks="halt" aria-label="stuck at block #110"></svg>
-            <p>
-              {"stuck at #110 · "}
-              <code>{"Timestamp slot must match CurrentSlot"}</code>
-            </p>
-          </article>
-          {" "}
-        </div>
-        {" "}
-      </div>
       {" "}
       <a className="frame-link" href="https://github.com/Venkat5599/PRT/blob/main/docs/V3_READINESS.md">
         {"READ THE V3 READINESS LOG "}

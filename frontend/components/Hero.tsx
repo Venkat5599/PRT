@@ -79,7 +79,6 @@ export default function Hero() {
           {" "}
         </div>
         {" "}
-        <figcaption className="stage-cap">{"ONE RUNTIME. TWO RUNS. EVERY DIFFERENCE ACCOUNTED FOR."}</figcaption>
         {" "}
       </figure>
       {" "}

@@ -214,3 +214,9 @@ main > .trio { margin-bottom: 0; }
 @media (max-width: 720px) {
   .flow, .v3, .uses, .invariant, .start { margin-top: 110px; }
 }
+
+/* Landing: the live section is the verdict alone; the numbers are in the V3 section. */
+.live:not(.is-standalone) .tally { display: none; }
+.live:not(.is-standalone) .live-verdict { border-bottom: 0; padding-bottom: 44px; }
+/* Use cases: who and what, nothing else. */
+@media (min-width: 961px) { .use { grid-template-columns: 60px 1fr 1.4fr; } }
