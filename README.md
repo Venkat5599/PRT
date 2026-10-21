@@ -124,24 +124,6 @@ Severity is rule-based (invariant → Critical; core dispatch/delta → High; �
 
 **Determinism control** (same dev node as baseline and candidate): all PASS. [`examples/self-compare`](examples/self-compare)
 
-**Injected regression** (clearly labelled; a deliberately tampered dev node, not a Portaldot finding): a sudo `system.setStorage` credits 1,000 POT without updating TotalIssuance, the effect of a faulty balance migration ([`driver/src/inject.ts`](driver/src/inject.ts)):
-
-```
-$ canary test --baseline ws://127.0.0.1:9944 --candidate ws://127.0.0.1:9945 --injected "faulty-migration: …"
-REGRESSION    Critical  balances.transfer.basic
-    ✗ invariant supply_conservation  baseline: … sum 35000100000000000000 vs issuance 35000100000000000000
-                                     candidate: … sum 35100100000000000000 vs issuance 35000100000000000000
-…
-4 regression(s) detected across 4 workflow(s).
-
-$ canary reproduce balances.transfer.basic --run runs/1792086881
-recorded   REGRESSION  5f12966df3963538
-reproduced Regression  5f12966df3963538
-REPRODUCED: identical finding hash
-```
-
-Full report: [`examples/injected-faulty-migration/report.html`](examples/injected-faulty-migration/report.html).
-
 ## Available now: real runtime upgrades (`canary upgrade`)
 
 Mode B applies a runtime built from the public Portaldot source to a running dev chain with `sudo.sudoUncheckedWeight(system.setCode)`, then runs the corpus against the upgraded chain. An upgrade only counts once the new runtime has produced three more blocks.
@@ -254,7 +236,6 @@ bash scripts/upgrade-demo.sh  # real setCode upgrades: clean vs INJECTED ed100x,
 - [x] Workflow corpus (YAML) + side-by-side runner (two dev nodes)
 - [x] Verdict classifier (REGRESSION / DIFFERENCE / INCONCLUSIVE / PASS) + JSON/HTML report
 - [x] `reproduce` with stable finding hash
-- [x] Injected regression: simulated faulty migration (storage injection)
 - [x] Candidate runtimes built from source + real-upgrade mode (`system.setCode`) with liveness check
 - [x] Upgrade hazards in `compare` (BABE slot/epoch changes)
 - [x] On-chain attestation via `system.remark` (`canary attest` / `canary verify`) on the dev chain

@@ -7,7 +7,7 @@ export default function Runs() {
         {" "}
         <p className="num">{"#02 / RECORDED RUNS"}</p>
         {" "}
-        <h2 id="r-title">{"Four upgrades. Every expectation, side by side."}</h2>
+        <h2 id="r-title">{"Three upgrades. Every expectation, side by side."}</h2>
         {" "}
       </header>
       {" "}

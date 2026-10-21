@@ -179,3 +179,18 @@ html { overflow-x: clip; }
   .nav-gh { display: none; }
   .wallet-menu { position: fixed; left: 16px; right: 16px; top: 64px; width: auto; }
 }
+
+/* Phone: the hero headline holds to "Upgrade the runtime. / Know what breaks." */
+@media (max-width: 720px) {
+  .hero h1 { font-size: clamp(30px, 9.2vw, 44px); letter-spacing: -.026em; }
+}
+
+/* ---------- 404 ---------- */
+.lost { min-height: 100vh; display: grid; place-content: center; gap: 22px; padding: 120px var(--gut) 80px; text-align: center; }
+.lost h1 { font: 300 clamp(40px, 7vw, 76px)/1.05 var(--serif); letter-spacing: -.02em; }
+.lost h1 em { font-style: italic; color: var(--peri); }
+.lost p { color: var(--mute); max-width: 40ch; margin: 0 auto; }
+.lost code { color: var(--ink); }
+.lost-links { display: flex; gap: 22px; justify-content: center; font: 600 12px/1 var(--mono); letter-spacing: .07em; text-transform: uppercase; }
+.lost-links a { color: var(--peri); transition: color .2s; }
+.lost-links a:hover { color: var(--ink); }

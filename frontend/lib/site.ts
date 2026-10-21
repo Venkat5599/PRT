@@ -7,7 +7,6 @@ export function initSite() {
     { id: "self-compare", name: "Control", hint: "Same node twice. Nothing should differ." },
     { id: "upgrade-fee10x", name: "Byte fee ×10", hint: "Injected via setCode. Fees move." },
     { id: "upgrade-ed100x", name: "Deposit ×100", hint: "Injected via setCode. A transfer breaks." },
-    { id: "injected-faulty-migration", name: "Faulty migration", hint: "Injected setStorage. Supply stops adding up." },
   ];
   const PLANCK = 10n ** 14n;
   const $ = (s: string, el: ParentNode = document): any => el.querySelector(s);
@@ -232,51 +231,50 @@ export function initSite() {
   }
 
   /* ---------- harness panes ---------- */
+  // Doctor and compare show the recorded CLI output verbatim (examples/mainnet-vs-v3),
+  // fetched from the files themselves; only colour is added. Nothing is typed by hand.
+  const SRC = "/examples/mainnet-vs-v3/";
   const PANES: Record<string, { file: string; copy: string; foot: string; code: string }> = {
     doctor: {
       file: "doctor.txt",
-      copy: "canary doctor --ws wss://test-node-v3.portaldot.dev",
-      foot: "Live output · PortaldotV3 testnet · 17 Oct 2026",
-      code: `<span class="c-dim">$</span> canary doctor --ws wss://test-node-v3.portaldot.dev
-<span class="c-k">substrate</span>  wss://test-node-v3.portaldot.dev
-  network     <span class="c-ok">ok</span> (Cloudflare, 4 addresses)
-  chain       PortaldotV3 Test  (node 3.0.0-dev-fddd43141f2)
-  runtime     portaldot-v3 spec_version=3002 tx_version=2
-  best block  #75075
-  metadata    V14 (561916 bytes, sha256 5f33dd90fab35fa3…)
-  apis        26 total; consensus, core, evm, fees,
-              finality, signing, wasm-contracts
-    wasm-contracts   <span class="c-ok">present</span>
-    evm              <span class="c-ok">present</span>  (ReviveApi)
-    upgrade-testing  <span class="c-dim">absent</span>
-  verdict     <span class="c-ok">HEALTHY</span>`,
+      copy: "canary doctor --ws wss://mainnet.portaldot.io --ws wss://test-node-v3.portaldot.dev --eth https://test-evm-rpc-v3.portaldot.dev",
+      foot: "Recorded output · examples/mainnet-vs-v3/doctor.txt · 17 Oct 2026",
+      code: '<span class="c-dim">Loading recorded output…</span>',
     },
     compare: {
       file: "compare.txt",
       copy: "canary compare --baseline wss://mainnet.portaldot.io --candidate wss://test-node-v3.portaldot.dev",
-      foot: "Live output · mainnet vs PortaldotV3 · excerpt of 948 changes",
-      code: `<span class="c-dim">$</span> canary compare --baseline wss://mainnet.portaldot.io \\
-                 --candidate wss://test-node-v3.portaldot.dev
-baseline   mainnet          spec portaldot#1002     V13
-candidate  test-node-v3     spec portaldot-v3#3002  V14
-pallets    31 vs 69
-
-<span class="c-warn">~</span> Balances.constant.ExistentialDeposit
-    baseline:  T::Balance = 100000000000000
-    candidate: u128 = 10000000000000
-<span class="c-ok">+</span> Revive
-    candidate: pallet #80
-<span class="c-bad">-</span> TransactionPayment.constant.TransactionByteFee
-<span class="c-warn">~</span> Babe.constant.ExpectedBlockTime
-    baseline:  T::Moment = 60000
-    candidate: u64 = 6000
-
-<span class="c-bad">HAZARD</span>   Babe.constant.ExpectedBlockTime: BABE slot duration
-         cannot change on a running chain; block production halts
-
-948 change(s)  ·  exit 1`,
+      foot: "Recorded output · examples/mainnet-vs-v3/compare.txt · 17 Oct 2026",
+      code: '<span class="c-dim">Loading recorded output…</span>',
     },
   };
+  const paint = (text: string) => esc(text).split("\n").map((l) => {
+    if (/^HAZARD|^\s+applying this candidate/.test(l)) return `<span class="c-bad">${l}</span>`;
+    if (/^WARNING/.test(l)) return `<span class="c-warn">${l}</span>`;
+    if (/^\+ /.test(l)) return `<span class="c-ok">+</span>${l.slice(1)}`;
+    if (/^- /.test(l)) return `<span class="c-bad">-</span>${l.slice(1)}`;
+    if (/^~ /.test(l)) return `<span class="c-warn">~</span>${l.slice(1)}`;
+    if (/^(substrate|evm) /.test(l)) return `<span class="c-k">${l.split(" ")[0]}</span>${l.slice(l.indexOf(" "))}`;
+    return l.replace(/\b(HEALTHY|present|ok)\b/g, '<span class="c-ok">$1</span>').replace(/\b(absent)\b/g, '<span class="c-dim">$1</span>');
+  }).join("\n");
+  async function loadPane(name: "doctor" | "compare") {
+    try {
+      const res = await fetch(`${SRC}${name}.txt`);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const text = (await res.text()).trimEnd();
+      let body = text;
+      if (name === "compare") {
+        // 2,316 lines: show the real head and tail, and say exactly what is left out.
+        const lines = text.split("\n");
+        const head = 16, tail = lines.length - lines.findIndex((l) => l.startsWith("HAZARD")) + 1;
+        body = `${lines.slice(0, head).join("\n")}\n\n… lines ${head + 1}–${lines.length - tail} omitted (full file in the repo) …\n\n${lines.slice(-tail).join("\n")}`;
+      }
+      PANES[name].code = `<span class="c-dim">$</span> ${esc(PANES[name].copy)}\n${paint(body)}`;
+    } catch (e: any) {
+      PANES[name].code = `<span class="c-bad">Could not load ${name}.txt (${esc(e.message)})</span>`;
+    }
+    if (tab === name) showPane(name);
+  }
 
   function testPane() {
     const r = current;
@@ -308,8 +306,8 @@ exit ${exitCode(r.summary)}`,
     $('[data-k="code"]').innerHTML = p.code;
     $('[data-k="foot"]').textContent = p.foot;
     $("[data-copy-pane]").dataset.copy = p.copy;
-    const gh = "https://github.com/Venkat5599/PRT/blob/main/examples/mainnet-vs-v3/";
-    $('[data-k="json"]').href = name === "test" ? `/reports/${currentId}/report.json` : `${gh}${name}.json`;
+    // JSON form of the same recorded run.
+    $('[data-k="json"]').href = name === "test" ? `/reports/${currentId}/report.json` : `${SRC}${name}.json`;
   }
   const tabBtns = $$("[data-tab]");
   tabBtns.forEach((b, i) => {
@@ -324,6 +322,8 @@ exit ${exitCode(r.summary)}`,
     });
   });
   showPane("doctor");
+  loadPane("doctor");
+  loadPane("compare");
 
   /* ---------- upgrade flow steps ---------- */
   const STEPS = [

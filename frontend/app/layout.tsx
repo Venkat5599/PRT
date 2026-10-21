@@ -3,6 +3,9 @@ import "./globals.css";
 import "./motion.css";
 
 export const metadata: Metadata = {
+  metadataBase: new URL("https://portal-canary.vercel.app"),
+  openGraph: { type: "website", siteName: "Portal Canary", title: "Portal Canary", description: "Mainnet vs PortaldotV3: 948 runtime changes, 3 would halt the chain. Compare any two Portaldot runtimes live in your browser." },
+  twitter: { card: "summary_large_image" },
   title: "Portal Canary",
   description:
     "Differential runtime-upgrade testing for Portaldot. Run the same workflows before and after an upgrade, see exactly what diverged, and reproduce it with one command. Live on the PortaldotV3 testnet.",

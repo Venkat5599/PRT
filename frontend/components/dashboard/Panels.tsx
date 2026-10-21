@@ -84,7 +84,6 @@ const RUNS = [
   { id: "self-compare", name: "Control", hint: "Same node twice. Nothing should differ." },
   { id: "upgrade-fee10x", name: "Byte fee ×10", hint: "Injected via setCode. Fees move." },
   { id: "upgrade-ed100x", name: "Deposit ×100", hint: "Injected via setCode. A transfer breaks." },
-  { id: "injected-faulty-migration", name: "Faulty migration", hint: "Injected setStorage. Supply stops adding up." },
 ];
 type Summary = { workflows: number; regression: number; difference: number; inconclusive: number; pass: number };
 type RunData = { summary: Summary; manifest: { baseline: { spec_version: number }; candidate: { spec_version: number } } };
@@ -106,7 +105,7 @@ export function RunsPanel() {
   return (
     <section className="frame panel" aria-labelledby="runs-title">
       <header className="live-head">
-        <h2 id="runs-title">Four upgrades, <em>recorded.</em></h2>
+        <h2 id="runs-title">Three upgrades, <em>recorded.</em></h2>
         <p className="lead">Each run is <code>canary test</code> against a local Portaldot dev node, with the candidate pushed through <code>system.setCode</code>. Open the report for every expectation, side by side.</p>
       </header>
       <ul className="run-list">

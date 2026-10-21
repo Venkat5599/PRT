@@ -4,8 +4,9 @@
 #   1. start two local Portaldot dev nodes (baseline :9944, candidate :9945)
 #   2. doctor + compare against live mainnet
 #   3. determinism control: baseline vs itself  -> expect all PASS
-#   4. INJECTED faulty migration on the candidate -> expect Critical REGRESSION
-#   5. reproduce one finding, attest the run on-chain, verify the attestation
+#   4. reproduce one finding, attest the run on-chain, verify the attestation
+#
+# Real regressions come from real runtime upgrades: see scripts/upgrade-demo.sh.
 #
 # Env: PORTALDOT_DEV (path to portaldot_dev; downloaded if unset), CANARY_BUN.
 set -uo pipefail
@@ -47,15 +48,7 @@ say "compare: live mainnet vs dev node"
 say "determinism control: baseline vs itself"
 "$CANARY" test --baseline ws://127.0.0.1:9944 --candidate ws://127.0.0.1:9944 --out runs/demo-control
 echo "exit $? (expect 0)"
-
-say "INJECTED faulty migration on candidate"
-(cd driver && bun src/inject.ts ws://127.0.0.1:9945)
-
-say "baseline vs injected candidate"
-"$CANARY" test --baseline ws://127.0.0.1:9944 --candidate ws://127.0.0.1:9945 --out runs/demo \
-  --injected "faulty-migration: sudo setStorage credits 1000 POT without updating TotalIssuance"
-echo "exit $? (expect 1)"
-RUN="$(ls -d runs/demo/* | sort | tail -n 1)"
+RUN="$(ls -d runs/demo-control/* | sort | tail -n 1)"
 
 say "reproduce"
 "$CANARY" reproduce balances.transfer.basic --run "$RUN"

@@ -34,8 +34,8 @@ export default function Uses() {
         <div className="use-out">
           <p className="eo">{"EXAMPLE OUTPUT"}</p>
           <code>{"report.html"}</code>
-          <a href="#runs" data-run-link="injected-faulty-migration">
-            {"See the faulty migration "}
+          <a href="#runs" data-run-link="upgrade-ed100x">
+            {"See the deposit regression "}
             <svg className="arr" viewBox="0 0 12 12" aria-hidden="true">
               <path d="M3.5 8.5l5-5M4.5 3.5h4v4"></path>
             </svg>
