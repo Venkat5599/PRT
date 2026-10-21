@@ -31,13 +31,13 @@ runs:
         bun-version: 1.1.38
     - shell: bash
       run: |
-        cd "${{ github.action_path }}"
+        cd "${{ github.action_path }}/backend"
         cargo build --release -q
         (cd driver && bun install --silent)
     - id: run
       shell: bash
       run: |
-        A="${{ github.action_path }}"
+        A="${{ github.action_path }}/backend"
         SUITE="${{ inputs.suite }}"; [ -n "$SUITE" ] || SUITE="$A/tests/workflows"
         ARGS=(--baseline "${{ inputs.baseline }}" --candidate "${{ inputs.candidate }}" --suite "$SUITE" --out runs/canary --driver "$A/driver/src/run.ts")
         [ -n "${{ inputs.injected }}" ] && ARGS+=(--injected "${{ inputs.injected }}")

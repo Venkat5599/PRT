@@ -16,7 +16,7 @@ flowchart LR
   end
 
   subgraph run["differential runner"]
-    wf["YAML corpus<br/>tests/workflows"]
+    wf["YAML corpus<br/>backend/tests/workflows"]
     side["run_side x2<br/>namespaced accounts<br/>pre/post state"]
     cls["classifier<br/>REGRESSION · DIFFERENCE<br/>INCONCLUSIVE · PASS"]
     rep["report.json + report.html<br/>manifest · finding hash"]
@@ -45,8 +45,8 @@ flowchart LR
 |---|---|---|
 | `canary-chain` | Raw JSON-RPC, SCALE, metadata V13, storage, invariants | Portaldot runs metadata V13; modern `subxt` cannot decode it. No dependency on Substrate crates, so it builds anywhere |
 | `canary-cli` | Commands, runner, classifier, reports, attestation | Usable in CI without any UI |
-| `driver/` | Signing, submission, event decoding | `@polkadot/api` already handles V13 extrinsic formats; Canary pins the one type it gets wrong |
-| `runtimes/` | Building candidate WASM from the public source with a pinned 2021 toolchain | Reproducible candidates with recorded patches and hashes |
+| `backend/driver/` | Signing, submission, event decoding | `@polkadot/api` already handles V13 extrinsic formats; Canary pins the one type it gets wrong |
+| `backend/runtimes/` | Building candidate WASM from the public source with a pinned 2021 toolchain | Reproducible candidates with recorded patches and hashes |
 
 ## Trust model
 

@@ -20,7 +20,7 @@ Update (2026-10-17, dev-announcement): the `feso-apps.xyz` endpoints are retired
 
 ## Runtime comparison: mainnet vs V3 testnet
 
-`canary compare` decodes both V13 and V14 (`crates/canary-chain/src/metadata_v14.rs` resolves the V14 type registry onto the same structural model). Reproduce with `scripts/v3-snapshot.sh`; output is in [`examples/mainnet-vs-v3`](../examples/mainnet-vs-v3).
+`canary compare` decodes both V13 and V14 (`backend/crates/canary-chain/src/metadata_v14.rs` resolves the V14 type registry onto the same structural model). Reproduce with `scripts/v3-snapshot.sh`; output is in [`examples/mainnet-vs-v3`](../examples/mainnet-vs-v3).
 
 | Date (UTC) | Baseline | Candidate | Result |
 |---|---|---|---|

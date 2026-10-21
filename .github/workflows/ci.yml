@@ -6,18 +6,24 @@ on:
   pull_request:
 
 jobs:
-  unit:
+  backend:
+    # The Rust workspace in backend/: unit tests and the release CLI.
     runs-on: ubuntu-22.04
+    defaults:
+      run:
+        working-directory: backend
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
       - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: backend
       - run: cargo test --all
       - run: cargo build --release
 
-  web:
-    # The site: the wasm compare engine must build from the same Rust code, and the
-    # Next.js app must typecheck and prerender.
+  frontend:
+    # The site in frontend/: the wasm compare engine must build from the same Rust
+    # code, and the Next.js app must typecheck and prerender.
     runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v4
@@ -25,22 +31,29 @@ jobs:
         with:
           targets: wasm32-unknown-unknown
       - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: backend
       - uses: oven-sh/setup-bun@v2
         with:
           bun-version: 1.3.8
-      - run: cargo test -p canary-wasm
+      - run: cd backend && cargo test -p canary-wasm
       - run: scripts/build-wasm.sh
-      - run: cd web && bun install --frozen-lockfile && bun run build
+      - run: cd frontend && bun install --frozen-lockfile && bun run build
 
   integration:
     # Real Portaldot dev node: doctor, live-mainnet compare, and a determinism
     # control (baseline == candidate) that must come back all PASS.
     runs-on: ubuntu-22.04
-    needs: unit
+    needs: backend
+    defaults:
+      run:
+        working-directory: backend
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
       - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: backend
       - uses: oven-sh/setup-bun@v2
         with:
           bun-version: 1.1.38
@@ -63,5 +76,5 @@ jobs:
         with:
           name: canary-report
           path: |
-            runs/ci
-            node.log
+            backend/runs/ci
+            backend/node.log

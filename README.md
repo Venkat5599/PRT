@@ -8,6 +8,23 @@
 
 > Status: early development for the Portaldot Hacker House 2026 (Node Operations & Tooling track). See [`docs/PLAN.md`](docs/PLAN.md) for the full design and [`docs/V3_READINESS.md`](docs/V3_READINESS.md) for live V3 endpoint checks.
 
+## Repository layout
+
+```
+frontend/   Next.js site: landing page and /dashboard (live compare, doctor, runs, invariants)
+backend/    Rust workspace: the canary CLI and engine
+  crates/canary-chain   metadata decoder (V13 + V14), structural diff, hazards, RPC
+  crates/canary-cli     canary doctor / compare / invariants / test / upgrade / reproduce
+  crates/canary-wasm    the compare engine compiled to WebAssembly for the frontend
+  driver/               bun + @polkadot/api: signs and submits workflow steps
+  tests/workflows/      YAML workflow corpus
+  runtimes/             candidate runtimes built from the public Portaldot source
+scripts/    demos, wasm build, V3 snapshot
+examples/   recorded outputs (mainnet vs V3, upgrade runs)
+docs/       plan, architecture, V3 readiness log
+action.yml  GitHub Action
+```
+
 ## Why it exists
 
 Portaldot mainnet runs a 2021-era Substrate runtime with **metadata V13**. Modern tooling such as `subxt` requires V14+ and cannot decode it. Canary speaks raw JSON-RPC and SCALE, so it works on Portaldot mainnet today. It decodes both V13 (mainnet) and V14 (the live V3 testnet), so it can diff mainnet against V3 directly: see [`examples/mainnet-vs-v3`](examples/mainnet-vs-v3) and [`docs/V3_READINESS.md`](docs/V3_READINESS.md).
@@ -90,11 +107,11 @@ The public dev node and mainnet report the same `spec_version` 1002 but are diff
 
 ### In the browser
 
-The landing page ([portal-canary.vercel.app](https://portal-canary.vercel.app/#live)) runs the same comparison live. The page opens a WebSocket to each node and calls `canary-chain`'s decoder and diff, compiled to WebAssembly (`crates/canary-wasm`, about 300 KB). There is no extension, wallet or server involved. The page streams new heads from both chains and lets you filter and search every change and download the `compare.json`. The site is a Next.js app in `web/` (`bun run dev` / `bun run build`). Rebuild the engine with `scripts/build-wasm.sh`. `bun scripts/engine-live.test.ts` runs the browser module against mainnet and V3 and checks it against the CLI result (948 changes, 3 hazards, and 0 for the control).
+The landing page ([portal-canary.vercel.app](https://portal-canary.vercel.app/#live)) runs the same comparison live. The page opens a WebSocket to each node and calls `canary-chain`'s decoder and diff, compiled to WebAssembly (`crates/canary-wasm`, about 300 KB). There is no extension, wallet or server involved. The page streams new heads from both chains and lets you filter and search every change and download the `compare.json`. The site is a Next.js app in `frontend/` (`bun run dev` / `bun run build`). Rebuild the engine with `scripts/build-wasm.sh`. `bun scripts/engine-live.test.ts` runs the browser module against mainnet and V3 and checks it against the CLI result (948 changes, 3 hazards, and 0 for the control).
 
 ## Available now: `canary test` and `canary reproduce`
 
-Run a YAML workflow corpus ([`tests/workflows`](tests/workflows)) against a baseline and a candidate runtime. Each workflow runs on both sides with freshly funded, per-run namespaced accounts; state is read before and after, pinned to block hashes; every expectation is evaluated on both sides and classified:
+Run a YAML workflow corpus ([`backend/tests/workflows`](backend/tests/workflows)) against a baseline and a candidate runtime. Each workflow runs on both sides with freshly funded, per-run namespaced accounts; state is read before and after, pinned to block hashes; every expectation is evaluated on both sides and classified:
 
 | Verdict | Meaning |
 |---|---|
@@ -129,7 +146,7 @@ Full report: [`examples/injected-faulty-migration/report.html`](examples/injecte
 
 Mode B applies a runtime built from the public Portaldot source to a running dev chain with `sudo.sudoUncheckedWeight(system.setCode)`, then runs the corpus against the upgraded chain. An upgrade only counts once the new runtime has produced three more blocks.
 
-Candidates are built by [`runtimes/build.sh`](runtimes/build.sh) from [portaldotVolunteer/Portaldot](https://github.com/portaldotVolunteer/Portaldot) with a pinned 2021 nightly toolchain. Each WASM is committed with its exact source diff and hash ([`runtimes/out`](runtimes/out)):
+Candidates are built by [`backend/runtimes/build.sh`](backend/runtimes/build.sh) from [portaldotVolunteer/Portaldot](https://github.com/portaldotVolunteer/Portaldot) with a pinned 2021 nightly toolchain. Each WASM is committed with its exact source diff and hash ([`backend/runtimes/out`](backend/runtimes/out)):
 
 | WASM | Source change | spec |
 |---|---|---|
@@ -209,7 +226,7 @@ Linux or WSL2 (recommended on Windows):
 
 ```bash
 sudo apt install -y build-essential pkg-config libssl-dev
-cargo build --release
+cd backend && cargo build --release
 ./target/release/canary doctor --ws wss://mainnet.portaldot.io
 ```
 

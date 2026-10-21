@@ -3,13 +3,13 @@
 // rejections would show up here first.
 //   bun scripts/engine-live.test.ts
 import { readFileSync } from "node:fs";
-import { Node, readRuntime, loadEngine, compare, tally } from "../web/lib/canary.ts";
+import { Node, readRuntime, loadEngine, compare, tally } from "../frontend/lib/canary.ts";
 
 const ORIGIN = process.env.CANARY_ORIGIN ?? "https://portal-canary.vercel.app";
 const BASE = process.env.CANARY_BASELINE ?? "wss://mainnet.portaldot.io";
 const CAND = process.env.CANARY_CANDIDATE ?? "wss://test-node-v3.portaldot.dev";
 
-await loadEngine(new Uint8Array(readFileSync(new URL("../web/public/engine/canary.wasm", import.meta.url))));
+await loadEngine(new Uint8Array(readFileSync(new URL("../frontend/public/engine/canary.wasm", import.meta.url))));
 const open = (url: string) => new Node(url, { wsOptions: { headers: { Origin: ORIGIN } } });
 
 const t0 = performance.now();

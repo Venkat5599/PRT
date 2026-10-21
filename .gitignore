@@ -1,6 +1,6 @@
 *.env
 .env*
-driver/node_modules/
+node_modules/
 runs/
 target/
 Plans/

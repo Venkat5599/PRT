@@ -1,13 +1,13 @@
 #!/usr/bin/env bash
 # Snapshot the live PortaldotV3 testnet against Portaldot mainnet.
-# Writes examples/mainnet-vs-v3/{doctor,compare}.{txt,json}.
+# Writes examples/ (from backend/): mainnet-vs-v3/{doctor,compare}.{txt,json}.
 set -u
-cd "$(dirname "$0")/.."
+cd "$(dirname "$0")/../backend"
 CANARY="${CANARY:-${CARGO_TARGET_DIR:-target}/release/canary}"
 MAINNET="wss://mainnet.portaldot.io"
 V3="wss://test-node-v3.portaldot.dev"
 V3_EVM="https://test-evm-rpc-v3.portaldot.dev"
-OUT=examples/mainnet-vs-v3
+OUT=../examples/mainnet-vs-v3
 mkdir -p "$OUT"
 
 "$CANARY" doctor --ws "$MAINNET" --ws "$V3" --eth "$V3_EVM" > "$OUT/doctor.txt"

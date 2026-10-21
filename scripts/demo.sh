@@ -9,7 +9,7 @@
 #
 # Env: PORTALDOT_DEV (path to portaldot_dev; downloaded if unset), CANARY_BUN.
 set -uo pipefail
-ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+ROOT="$(cd "$(dirname "$0")/../backend" && pwd)"
 cd "$ROOT"
 export PATH="$HOME/.cargo/bin:$HOME/.bun/bin:$PATH"
 export CANARY_BUN="${CANARY_BUN:-$(command -v bun)}"
