@@ -3,6 +3,7 @@ import ChainRibbon from "./ChainRibbon";
 export default function Hero() {
   return (
     <header className="hero" id="top">
+      <canvas className="dither hero-bg" data-dither="hero" aria-hidden="true"></canvas>
       {" "}
       <a className="announce" href="#v3">
         <b>{"NEW"}</b>
@@ -33,7 +34,6 @@ export default function Hero() {
       {" "}
       <figure className="stage" aria-label="Recorded run console over a dithered mountain landscape">
         {" "}
-        <canvas className="dither" data-dither="valley" aria-hidden="true"></canvas>
         {" "}
         <div className="console" data-console="">
           {" "}

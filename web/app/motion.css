@@ -1,3 +1,32 @@
+/* ---------- hero: one dithered landscape behind everything ---------- */
+/* The full-bleed scene is 100vw (wider than the viewport when a scrollbar shows) and scales on scroll. */
+html { overflow-x: clip; }
+.hero { position: relative; isolation: isolate; }
+/* Full-bleed past the wrap; centred with `translate` so the scroll drift can own `transform`. */
+.dither.hero-bg { z-index: -2; top: 0; bottom: auto; left: 50%; right: auto; width: 100vw; height: 100%; translate: -50% 0;
+  -webkit-mask-image: linear-gradient(to bottom, #000 0%, #000 60%, rgba(0, 0, 0, .94) 66%, rgba(0, 0, 0, .82) 72%, rgba(0, 0, 0, .64) 78%, rgba(0, 0, 0, .44) 84%, rgba(0, 0, 0, .26) 89%, rgba(0, 0, 0, .12) 94%, rgba(0, 0, 0, .04) 97%, transparent 100%);
+  mask-image: linear-gradient(to bottom, #000 0%, #000 60%, rgba(0, 0, 0, .94) 66%, rgba(0, 0, 0, .82) 72%, rgba(0, 0, 0, .64) 78%, rgba(0, 0, 0, .44) 84%, rgba(0, 0, 0, .26) 89%, rgba(0, 0, 0, .12) 94%, rgba(0, 0, 0, .04) 97%, transparent 100%); }
+/* Darkening only behind the copy, gone well before the edges. */
+.hero::before { content: ""; position: absolute; z-index: -1; top: 0; left: 50%; width: 100vw; height: 640px; translate: -50% 0; pointer-events: none;
+  background: radial-gradient(ellipse 52% 78% at 50% 34%, rgba(11, 12, 11, .7) 0%, rgba(11, 12, 11, .5) 45%, rgba(11, 12, 11, .18) 75%, transparent 100%), linear-gradient(to bottom, rgba(11, 12, 11, .55) 0, rgba(11, 12, 11, .2) 60%, transparent 100%); }
+.hero h1, .hero .sub { text-shadow: 0 2px 18px rgba(8, 10, 9, .6); }
+.hero .sub { color: rgba(237, 237, 237, .84); }
+.stage { background: none; overflow: visible; }
+.hero .btn-ghost { background: rgba(14, 15, 14, .62); border-color: rgba(236, 235, 231, .26); }
+.hero .btn-ghost:hover { background: rgba(14, 15, 14, .8); border-color: rgba(236, 235, 231, .42); }
+.links a[aria-current="page"] { color: var(--ink); }
+.ribbon .rib-name { color: rgba(237, 237, 237, .78); }
+.ribbon .rib-cells li { background: rgba(14, 15, 14, .62); color: rgba(237, 237, 237, .55); }
+.ribbon .rib-cells li.rib-head { background: rgba(28, 37, 72, .9); color: var(--ink); }
+.ribbon .rib-num { text-shadow: 0 1px 10px rgba(8, 10, 9, .7); }
+
+/* ---------- /dashboard ---------- */
+.dash-page { padding-top: 64px; min-height: 100vh; }
+.dash-page > .live { border-top: 1px solid var(--line); margin-top: 32px; margin-bottom: 64px; }
+.dash-link { display: flex; align-items: center; gap: 8px; width: fit-content; margin-top: 16px; font: 600 12px/1 var(--mono); letter-spacing: .07em; text-transform: uppercase; color: var(--peri); transition: color .2s; }
+.dash-link:hover { color: var(--ink); }
+.dash-link:hover .arr { transform: translate(2px, -2px); }
+
 /* ---------- hero chain ribbon ---------- */
 .ribbon { display: grid; gap: 10px; width: min(760px, 100%); margin: 34px auto 0; }
 .rib-lane { display: grid; grid-template-columns: 112px minmax(0, 1fr) 112px; grid-template-areas: "name cells num"; align-items: center; gap: 16px; font: 12.5px/1 var(--mono); }
@@ -33,7 +62,7 @@
     .stats > div:nth-child(2), .v3-grid > div:nth-child(2), .trio article:nth-child(2) { animation-range: entry 6% entry 76%; }
     .stats > div:nth-child(3), .v3-grid > div:nth-child(3), .trio article:nth-child(3) { animation-range: entry 12% entry 82%; }
     .stats > div:nth-child(4), .v3-grid > div:nth-child(4) { animation-range: entry 18% entry 88%; }
-    .stage .dither { animation: drift linear both; animation-timeline: view(); animation-range: exit 0% exit 100%; }
+    .hero-bg { animation: drift linear both; animation-timeline: view(); animation-range: exit 0% exit 100%; }
   }
 }
 @keyframes settle { from { transform: translateY(36px); } }

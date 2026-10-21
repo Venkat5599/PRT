@@ -1,5 +1,5 @@
 // Generated from the original static markup; class names and whitespace match it exactly.
-export default function Live() {
+export default function Live({ standalone = false }: { standalone?: boolean }) {
   return (
     <section className="frame live" id="live" aria-labelledby="l-title" data-live="">
       {" "}
@@ -16,6 +16,12 @@ export default function Live() {
           {"Your browser opens a WebSocket to each node and runs Canary's Rust engine, compiled to WebAssembly. Same decoder, same diff, same hazard rules as "}
           <code>{"canary compare"}</code>
           {". Nothing to install."}
+          {!standalone && (
+            <a className="dash-link" href="/dashboard">
+              {"Open the full dashboard"}
+              <svg className="arr" viewBox="0 0 12 12" aria-hidden="true"><path d="M3.5 8.5l5-5M4.5 3.5h4v4"></path></svg>
+            </a>
+          )}
         </p>
         {" "}
       </header>

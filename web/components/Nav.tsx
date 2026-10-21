@@ -1,11 +1,11 @@
 // Generated from the original static markup; class names and whitespace match it exactly.
-export default function Nav() {
+export default function Nav({ base = "", solid = false }: { base?: string; solid?: boolean }) {
   return (
-    <nav className="nav" aria-label="Main" data-nav="">
+    <nav className={solid ? "nav scrolled" : "nav"} aria-label="Main" data-nav="">
       {" "}
       <div className="nav-in">
         {" "}
-        <a className="brand" href="#top" aria-label="Portal Canary, top">
+        <a className="brand" href={`${base}#top`} aria-label="Portal Canary, top">
           {" "}
           <svg className="mark" viewBox="0 0 24 24" aria-hidden="true">
             <path className="m-a" d="M3 8.5h5.5l1.8-4.5 3 9 1.7-4.5H21"></path>
@@ -18,15 +18,17 @@ export default function Nav() {
         {" "}
         <div className="links">
           {" "}
-          <a href="#live">{"Live"}</a>
+          <a href={`${base}#live`}>{"Live"}</a>
           {" "}
-          <a href="#harness">{"Platform"}</a>
+          <a href="/dashboard" aria-current={solid ? "page" : undefined}>{"Dashboard"}</a>
           {" "}
-          <a href="#flow">{"Upgrade flow"}</a>
+          <a href={`${base}#harness`}>{"Platform"}</a>
           {" "}
-          <a href="#runs">{"Runs"}</a>
+          <a href={`${base}#flow`}>{"Upgrade flow"}</a>
           {" "}
-          <a href="#v3">{"V3 testnet"}</a>
+          <a href={`${base}#runs`}>{"Runs"}</a>
+          {" "}
+          <a href={`${base}#v3`}>{"V3 testnet"}</a>
           {" "}
         </div>
         {" "}

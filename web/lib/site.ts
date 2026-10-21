@@ -382,6 +382,7 @@ exit ${exitCode(r.summary)}`,
   const BAYER = [0, 8, 2, 10, 12, 4, 14, 6, 3, 11, 1, 9, 15, 7, 13, 5].map((v) => (v + 0.5) / 16);
   const PHOTOS: Record<string, { src: string; levels: number; focus: number; tone: number }> = {
     valley: { src: "/images/valley.jpg", levels: 7, focus: 0.55, tone: 1 },
+    hero: { src: "/images/valley.jpg", levels: 7, focus: 0.6, tone: 0.82 },
     stairs: { src: "/images/stairs.jpg", levels: 6, focus: 0.35, tone: 1.35 },
     summit: { src: "/images/summit.jpg", levels: 6, focus: 0.5, tone: 0.85 },
   };
