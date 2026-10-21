@@ -1,4 +1,5 @@
 // Generated from the original static markup; class names and whitespace match it exactly.
+import WalletButton from "./WalletButton";
 export default function Nav({ base = "", solid = false }: { base?: string; solid?: boolean }) {
   return (
     <nav className={solid ? "nav scrolled" : "nav"} aria-label="Main" data-nav="">
@@ -32,12 +33,15 @@ export default function Nav({ base = "", solid = false }: { base?: string; solid
           {" "}
         </div>
         {" "}
-        <a className="btn btn-blue nav-cta" href="https://github.com/Venkat5599/PRT">
+        <div className="nav-actions">
+        <a className="nav-gh" href="https://github.com/Venkat5599/PRT">
           {"GitHub "}
           <svg className="arr" viewBox="0 0 12 12" aria-hidden="true">
             <path d="M3.5 8.5l5-5M4.5 3.5h4v4"></path>
           </svg>
         </a>
+        <WalletButton />
+        </div>
         {" "}
       </div>
       {" "}
