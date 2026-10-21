@@ -147,6 +147,8 @@ export function initSite() {
 
     const big = $('[data-k="big"]');
     big.className = h.cls;
+    // Each run swaps in with a short settle; skipped when motion is off.
+    if (!still) big.parentElement?.animate([{ transform: "translateY(8px)" }, { transform: "none" }], { duration: 480, easing: "cubic-bezier(.22,.7,.2,1)" });
     big.textContent = h.text;
     $('[data-k="small"]').textContent = `across ${plural(s.workflows, "workflow", "workflows")}${worst ? ` · worst ${worst}` : ""} · exit ${exitCode(s)}`;
     $('[data-k="cmd"]').textContent = `canary test --baseline ${m.baseline.endpoint} --candidate ${m.candidate.endpoint}`;
