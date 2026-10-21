@@ -3,12 +3,16 @@
 
 use std::hash::Hasher;
 
-use anyhow::{anyhow, Context};
+use anyhow::Context;
+#[cfg(feature = "net")]
+use anyhow::anyhow;
 use blake2::digest::{Update, VariableOutput};
 use blake2::Blake2bVar;
+#[cfg(feature = "net")]
 use serde_json::{json, Value};
 use twox_hash::XxHash64;
 
+#[cfg(feature = "net")]
 use crate::rpc::WsRpc;
 
 pub fn twox_128(data: &[u8]) -> [u8; 16] {
@@ -50,6 +54,7 @@ pub fn from_hex(s: &str) -> anyhow::Result<Vec<u8>> {
     hex::decode(s.trim_start_matches("0x")).with_context(|| format!("invalid hex: {s}"))
 }
 
+#[cfg(feature = "net")]
 pub fn finalized_head(rpc: &mut WsRpc) -> anyhow::Result<String> {
     rpc.call("chain_getFinalizedHead", json!([]))?
         .as_str()
@@ -57,12 +62,14 @@ pub fn finalized_head(rpc: &mut WsRpc) -> anyhow::Result<String> {
         .ok_or_else(|| anyhow!("chain_getFinalizedHead returned non-string"))
 }
 
+#[cfg(feature = "net")]
 pub fn block_number(rpc: &mut WsRpc, at: &str) -> anyhow::Result<u64> {
     let header = rpc.call("chain_getHeader", json!([at]))?;
     let n = header["number"].as_str().ok_or_else(|| anyhow!("header has no number"))?;
     Ok(u64::from_str_radix(n.trim_start_matches("0x"), 16)?)
 }
 
+#[cfg(feature = "net")]
 pub fn get(rpc: &mut WsRpc, key: &[u8], at: &str) -> anyhow::Result<Option<Vec<u8>>> {
     match rpc.call("state_getStorage", json!([to_hex(key), at]))? {
         Value::Null => Ok(None),
@@ -71,6 +78,7 @@ pub fn get(rpc: &mut WsRpc, key: &[u8], at: &str) -> anyhow::Result<Option<Vec<u
     }
 }
 
+#[cfg(feature = "net")]
 /// Every `(key, value)` under `prefix` at block `at`, fetched in pages.
 pub fn iter_prefix(
     rpc: &mut WsRpc,

@@ -1,6 +1,6 @@
 [workspace]
 resolver = "2"
-members = ["crates/canary-chain", "crates/canary-cli"]
+members = ["crates/canary-chain", "crates/canary-cli", "crates/canary-wasm"]
 
 [workspace.package]
 version = "0.1.0"

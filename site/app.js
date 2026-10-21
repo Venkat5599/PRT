@@ -482,7 +482,7 @@ const navLinks = $$(".links a");
 const spy = new IntersectionObserver((entries) => {
   for (const e of entries) if (e.isIntersecting) navLinks.forEach((a) => a.setAttribute("aria-current", String(a.getAttribute("href") === `#${e.target.id}`)));
 }, { rootMargin: "-45% 0px -50% 0px" });
-["harness", "flow", "runs", "v3"].forEach((id) => spy.observe(document.getElementById(id)));
+["live", "harness", "flow", "runs", "v3"].forEach((id) => spy.observe(document.getElementById(id)));
 
 const start = RUNS.find((r) => `#${r.id}` === location.hash)?.id ?? "upgrade-ed100x";
 load(start);

@@ -1,0 +1,15 @@
+[package]
+name = "canary-wasm"
+description = "Portal Canary's compare engine for the browser: decode and diff two runtimes' metadata"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+canary-chain = { path = "../canary-chain", default-features = false }
+serde.workspace = true
+serde_json.workspace = true
+hex.workspace = true

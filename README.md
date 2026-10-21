@@ -88,6 +88,10 @@ WARNING  runtime changed without a spec_version/transaction_version bump
 
 The public dev node and mainnet report the same `spec_version` 1002 but are different runtimes, so dev-node results do not automatically carry over to mainnet.
 
+### In the browser
+
+The landing page ([portal-canary.vercel.app](https://portal-canary.vercel.app/#live)) runs the same comparison live. The page opens a WebSocket to each node and calls `canary-chain`'s decoder and diff, compiled to WebAssembly (`crates/canary-wasm`, about 300 KB). There is no extension, wallet or server involved. The page streams new heads from both chains and lets you filter and search every change and download the `compare.json`. Rebuild the engine with `scripts/build-wasm.sh`. `bun scripts/engine-live.test.ts` runs the browser module against mainnet and V3 and checks it against the CLI result (948 changes, 3 hazards, and 0 for the control).
+
 ## Available now: `canary test` and `canary reproduce`
 
 Run a YAML workflow corpus ([`tests/workflows`](tests/workflows)) against a baseline and a candidate runtime. Each workflow runs on both sides with freshly funded, per-run namespaced accounts; state is read before and after, pinned to block hashes; every expectation is evaluated on both sides and classified:

@@ -6,12 +6,17 @@
 
 pub mod apis;
 pub mod codec;
+pub mod compare;
 pub mod diff;
+#[cfg(feature = "net")]
 pub mod endpoint;
+#[cfg(feature = "net")]
 pub mod invariant;
+#[cfg(feature = "net")]
 pub mod eth;
 pub mod metadata;
 pub mod metadata_v13;
 pub mod metadata_v14;
+#[cfg(feature = "net")]
 pub mod rpc;
 pub mod storage;
