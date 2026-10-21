@@ -1,7 +1,7 @@
 // Generated from the original static markup; class names and whitespace match it exactly.
 export default function Live({ standalone = false }: { standalone?: boolean }) {
   return (
-    <section className="frame live" id="live" aria-labelledby="l-title" data-live="">
+    <section className={standalone ? "frame live is-standalone" : "frame live"} id="live" aria-labelledby="l-title" data-live="">
       {" "}
       <header className="live-head">
         {" "}
@@ -26,33 +26,15 @@ export default function Live({ standalone = false }: { standalone?: boolean }) {
         {" "}
       </header>
       {" "}
-      <form className="live-form" data-live-form="">
-        {" "}
-        <label className="ep">
-          <span>{"Baseline"}</span>
-          <input name="baseline" list="ep-presets" defaultValue="wss://mainnet.portaldot.io" spellCheck="false" autoComplete="off" required />
-        </label>
-        {" "}
-        <button type="button" className="swap" data-swap="" aria-label="Swap baseline and candidate">
-          <svg viewBox="0 0 16 16" aria-hidden="true">
-            <path d="M4 2.5v11M1.5 11L4 13.5 6.5 11M12 13.5v-11M9.5 5L12 2.5 14.5 5"></path>
-          </svg>
-        </button>
-        {" "}
-        <label className="ep">
-          <span>{"Candidate"}</span>
-          <input name="candidate" list="ep-presets" defaultValue="wss://test-node-v3.portaldot.dev" spellCheck="false" autoComplete="off" required />
-        </label>
-        {" "}
+      <form className="live-form pairs" data-live-form="">
+        <input type="hidden" name="baseline" defaultValue="wss://mainnet.portaldot.io" />
+        <input type="hidden" name="candidate" defaultValue="wss://test-node-v3.portaldot.dev" />
+        <div className="pair-group" role="group" aria-label="Runtimes to compare">
+          <button type="button" className="pair" data-pair="wss://mainnet.portaldot.io wss://test-node-v3.portaldot.dev" aria-pressed="true"><b>{"Mainnet → V3"}</b><small>{"The upgrade question"}</small></button>
+          <button type="button" className="pair" data-pair="wss://test-node-v3.portaldot.dev wss://test-node-v3.portaldot.dev" aria-pressed="false"><b>{"V3 → V3"}</b><small>{"Control: nothing should differ"}</small></button>
+          <button type="button" className="pair" data-pair="wss://mainnet.portaldot.io wss://mainnet.portaldot.io" aria-pressed="false"><b>{"Mainnet → Mainnet"}</b><small>{"Control on the live chain"}</small></button>
+        </div>
         <button type="submit" className="btn btn-blue run-btn" data-run-btn="">{"Compare"}</button>
-        {" "}
-        <datalist id="ep-presets">
-          <option value="wss://mainnet.portaldot.io">{"Portaldot mainnet"}</option>
-          <option value="wss://test-node-v3.portaldot.dev">{"PortaldotV3 testnet"}</option>
-          <option value="ws://127.0.0.1:9944">{"Local node 9944"}</option>
-          <option value="ws://127.0.0.1:9945">{"Local node 9945"}</option>
-        </datalist>
-        {" "}
       </form>
       {" "}
       <div className="lanes">
@@ -182,11 +164,6 @@ export default function Live({ standalone = false }: { standalone?: boolean }) {
         <div className="explorer-bar">
           {" "}
           <div className="filters" role="group" aria-label="Filter changes" data-cats=""></div>
-          {" "}
-          <label className="search">
-            <span className="sr">{"Search changes"}</span>
-            <input type="search" placeholder="Search a pallet, call or constant" data-search="" spellCheck="false" autoComplete="off" />
-          </label>
           {" "}
         </div>
         {" "}

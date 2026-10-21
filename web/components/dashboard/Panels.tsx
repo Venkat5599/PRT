@@ -8,6 +8,10 @@ const fmt = (n: number | null | undefined) => (n == null ? "–" : n.toLocaleStr
 /* ---------- doctor: one endpoint, live ---------- */
 type Health = { peers: number; isSyncing: boolean };
 type Report = { rt: Runtime; health: Health | null; ms: number };
+const DOCTOR_TARGETS = [
+  { name: "V3 testnet", url: "wss://test-node-v3.portaldot.dev" },
+  { name: "Mainnet", url: "wss://mainnet.portaldot.io" },
+];
 
 export function DoctorPanel() {
   const [url, setUrl] = useState("wss://test-node-v3.portaldot.dev");
@@ -52,10 +56,16 @@ export function DoctorPanel() {
         <h2 id="doc-title">Is this node <em>healthy?</em></h2>
         <p className="lead">The browser version of <code>canary doctor</code>: connect, fingerprint the runtime and report what is actually running behind an endpoint.</p>
       </header>
-      <form className="live-form one" onSubmit={(e) => { e.preventDefault(); run(); }}>
-        <label className="ep"><span>Endpoint</span><input value={url} onChange={(e) => setUrl(e.target.value)} list="ep-presets" spellCheck={false} autoComplete="off" required /></label>
-        <button type="submit" className="btn btn-blue run-btn" disabled={busy}>{busy ? "Checking…" : "Check"}</button>
-      </form>
+      <div className="live-form pairs">
+        <div className="pair-group" role="group" aria-label="Endpoint to check">
+          {DOCTOR_TARGETS.map((t) => (
+            <button key={t.url} type="button" className="pair" aria-pressed={url === t.url} disabled={busy} onClick={() => { setUrl(t.url); run(t.url); }}>
+              <b>{t.name}</b><small>{t.url.replace("wss://", "")}</small>
+            </button>
+          ))}
+        </div>
+        <button type="button" className="btn btn-blue run-btn" disabled={busy} onClick={() => run()}>{busy ? "Checking…" : "Check again"}</button>
+      </div>
       <div className="live-verdict" aria-live="polite">
         <p className={`verdict-line ${err ? "reg" : out ? "same" : ""}`}>{err ? "Unhealthy." : out ? "Healthy." : "Connecting…"}</p>
         <p className="verdict-sub">{err ?? (out ? `${out.rt.endpoint} answered in ${out.ms} ms` : "")}</p>

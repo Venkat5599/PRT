@@ -151,7 +151,6 @@ export function initLive() {
     hzList.hidden = !h;
 
     cat = "all"; query = ""; shown = 150;
-    $("[data-search]", root).value = "";
     renderCats();
     renderList();
     const cli = `canary compare --baseline ${a.endpoint} --candidate ${b.endpoint} --json`;
@@ -218,18 +217,17 @@ export function initLive() {
   }
 
   form.addEventListener("submit", (e) => { e.preventDefault(); run(); });
-  $("[data-swap]", root).addEventListener("click", () => {
-    [form.baseline.value, form.candidate.value] = [form.candidate.value, form.baseline.value];
-  });
   root.addEventListener("click", (e) => {
     const c = (e.target as HTMLElement).closest<HTMLElement>("[data-cat]");
     if (c) { cat = c.dataset.cat!; shown = 150; renderCats(); renderList(); }
     if ((e.target as HTMLElement).closest<HTMLElement>("[data-more]")) { shown += 300; renderList(); }
-  });
-  let searchTimer;
-  $("[data-search]", root).addEventListener("input", (e) => {
-    clearTimeout(searchTimer);
-    searchTimer = setTimeout(() => { query = e.target.value.trim(); shown = 150; renderList(); }, 120);
+    // A preset pair replaces the endpoint fields: pick it and run.
+    const pair = (e.target as HTMLElement).closest<HTMLElement>("[data-pair]");
+    if (pair) {
+      [form.baseline.value, form.candidate.value] = pair.dataset.pair!.split(" ");
+      $$("[data-pair]", root).forEach((b) => b.setAttribute("aria-pressed", String(b === pair)));
+      run();
+    }
   });
 
   // Start once the dashboard is near the screen, so the page itself loads light.
