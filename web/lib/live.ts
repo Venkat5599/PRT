@@ -1,6 +1,7 @@
 // The live dashboard: read two runtimes straight from their nodes, diff them with
 // the wasm build of `canary compare`, and keep both chains' heads ticking.
 import { Node, readRuntime, compare, tally, loadEngine, type Runtime, type Comparison } from "./canary";
+import { countUp } from "./motion";
 
 export function initLive() {
 
@@ -96,8 +97,8 @@ export function initLive() {
   function renderList() {
     const hz = new Set(result.upgrade_hazards.map((h) => h.path));
     const list = visible();
-    $("[data-changes]", root).innerHTML = list.slice(0, shown).map((c) => `
-    <li class="ch k-${c.kind}${hz.has(c.path) ? " is-hz" : ""}">
+    $("[data-changes]", root).innerHTML = list.slice(0, shown).map((c, i) => `
+    <li class="ch k-${c.kind}${hz.has(c.path) ? " is-hz" : ""}" style="--i:${i}">
       <span class="ch-tag" aria-label="${c.kind}">${TAG[c.kind]}</span>
       <span class="ch-path">${esc(c.path)}</span>
       ${c.baseline != null ? `<span class="ch-v"><i>A</i>${esc(c.baseline)}</span>` : ""}
@@ -139,6 +140,7 @@ export function initLive() {
     set("constants", fmt(t.constants));
     set("errors", fmt(t.errors));
     $("[data-tally]", root).hidden = false;
+    $$("[data-t]", root).forEach((el) => countUp(el));
 
     const hzList = $("[data-hazards]", root);
     hzList.innerHTML = r.upgrade_hazards.map((x) => {

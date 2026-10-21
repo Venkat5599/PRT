@@ -3,6 +3,7 @@
 import { useEffect } from "react";
 import { initSite } from "@/lib/site";
 import { initLive } from "@/lib/live";
+import { initMotion } from "@/lib/motion";
 
 // The page is static markup; its behaviour attaches once on the client.
 // Module-level guard: StrictMode runs effects twice in development.
@@ -14,6 +15,7 @@ export default function Behaviors() {
     started = true;
     initSite();
     initLive();
+    initMotion();
   }, []);
   return null;
 }

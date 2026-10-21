@@ -1,4 +1,5 @@
 // Generated from the original static markup; class names and whitespace match it exactly.
+import ChainRibbon from "./ChainRibbon";
 export default function Hero() {
   return (
     <header className="hero" id="top">
@@ -7,6 +8,7 @@ export default function Hero() {
         <b>{"NEW"}</b>
         <span>{"Live on the PortaldotV3 testnet. Mainnet vs V3: 948 changes, 3 hazards."}</span>
       </a>
+      <ChainRibbon />
       {" "}
       <h1>
         {"Upgrade the runtime."}
