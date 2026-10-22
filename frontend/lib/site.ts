@@ -387,10 +387,13 @@ export function initSite() {
   motionBtn.addEventListener("click", () => setStill(!still));
   setStill(still);
 
+  // The landing page uses MorphNav, which tracks scroll itself; only the plain Nav needs this.
   const nav = $("[data-nav]");
-  const onScroll = () => nav.classList.toggle("scrolled", scrollY > 30);
-  addEventListener("scroll", onScroll, { passive: true });
-  onScroll();
+  if (nav) {
+    const onScroll = () => nav.classList.toggle("scrolled", scrollY > 30);
+    addEventListener("scroll", onScroll, { passive: true });
+    onScroll();
+  }
   const navLinks = $$(".links a");
   const spy = new IntersectionObserver((entries) => {
     for (const e of entries) if (e.isIntersecting) navLinks.forEach((a) => a.setAttribute("aria-current", String(a.getAttribute("href") === `#${e.target.id}`)));

@@ -5,7 +5,7 @@ import Hero from "@/components/Hero";
 import Invariant from "@/components/Invariant";
 import Live from "@/components/Live";
 import Motion from "@/components/Motion";
-import Nav from "@/components/Nav";
+import LandingNav from "@/components/LandingNav";
 import Start from "@/components/Start";
 import Uses from "@/components/Uses";
 import V3 from "@/components/V3";
@@ -13,7 +13,7 @@ import V3 from "@/components/V3";
 export default function Home() {
   return (
     <>
-      <Nav morph />
+      <LandingNav />
       <Hero />
       <main>
         <Live />
