@@ -20,9 +20,9 @@ export default function Hero() {
       {" "}
       <div className="cta">
         {" "}
-        <a className="btn btn-ghost" href="/dashboard#runs">{"See a run"}</a>
+        <a className="btn btn-ghost" href="#live">{"Compare live"}</a>
         {" "}
-        <a className="btn btn-blue" href="#live">{"Compare live"}</a>
+        <a className="btn btn-blue" href="/dashboard">{"Open dashboard"}</a>
         {" "}
       </div>
       {" "}
