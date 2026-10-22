@@ -220,3 +220,17 @@ main > .trio { margin-bottom: 0; }
 .live:not(.is-standalone) .live-verdict { border-bottom: 0; padding-bottom: 44px; }
 /* Use cases: who and what, nothing else. */
 @media (min-width: 961px) { .use { grid-template-columns: 60px 1fr 1.4fr; } }
+
+/* ---------- morph nav (landing): full bar -> floating icon pill on scroll ---------- */
+.nav .ni { display: none; width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
+.nav.morph { padding: 0 16px; }
+.nav.morph .nav-in { border: 1px solid transparent; transition: max-width .55s var(--ease), margin-top .55s var(--ease), padding .55s var(--ease), border-radius .55s var(--ease), background-color .3s, border-color .3s; }
+.nav.morph.scrolled { background: none; border-color: transparent; backdrop-filter: none; -webkit-backdrop-filter: none; }
+.nav.morph.scrolled .nav-in { max-width: 278px; margin-top: 12px; padding: 5px 6px 5px 14px; gap: 8px; border-radius: 999px; background: rgba(17, 17, 16, .88); border-color: var(--line-2); box-shadow: inset 0 1px 0 rgba(255, 255, 255, .06); backdrop-filter: saturate(140%) blur(14px); -webkit-backdrop-filter: saturate(140%) blur(14px); }
+.nav.morph.scrolled .brand > span, .nav.morph.scrolled .nav-actions { display: none; }
+.nav.morph.scrolled .links { display: flex; gap: 2px; margin: 0 0 0 auto; }
+.nav.morph.scrolled .links a { width: 40px; height: 40px; display: grid; place-items: center; border-radius: 999px; transition: color .2s, background-color .2s; }
+.nav.morph.scrolled .links a:hover { background: var(--panel-2); color: var(--ink); }
+.nav.morph.scrolled .ni { display: block; }
+.nav.morph.scrolled .lb { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+@media (prefers-reduced-motion: reduce) { .nav.morph .nav-in { transition: none; } }

@@ -20,6 +20,8 @@ export type WalletInfo = { id: string; name: string; kind: WalletKind; install: 
 export type Connected = { wallet: WalletInfo; address: string; name?: string; accounts: string[] };
 
 export const WALLETS: WalletInfo[] = [
+  // Portaldot's own extension (polkadot-js fork); it injects under this exact key, space included.
+  { id: "portaldot extension", name: "Portaldot", kind: "substrate", install: "https://chromewebstore.google.com/detail/cpdecangbhmfijmlmjglfcocfpaojceo" },
   { id: "talisman", name: "Talisman", kind: "substrate", install: "https://talisman.xyz/download" },
   { id: "subwallet-js", name: "SubWallet", kind: "substrate", install: "https://www.subwallet.app/download.html" },
   { id: "polkadot-js", name: "Polkadot.js", kind: "substrate", install: "https://polkadot.js.org/extension/" },

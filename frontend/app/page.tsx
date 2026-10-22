@@ -1,4 +1,4 @@
-import Behaviors from "@/components/Behaviors";
+﻿import Behaviors from "@/components/Behaviors";
 import Flow from "@/components/Flow";
 import Footer from "@/components/Footer";
 import Hero from "@/components/Hero";
@@ -13,7 +13,7 @@ import V3 from "@/components/V3";
 export default function Home() {
   return (
     <>
-      <Nav />
+      <Nav morph />
       <Hero />
       <main>
         <Live />
