@@ -166,7 +166,7 @@ Control (clean upgrade vs itself): all PASS. `canary reproduce` returns the iden
 
 ### Contract workflow
 
-`contracts.counter` deploys a WASM contract with `Contracts.instantiateWithCode`, calls it twice and checks the value it emits each time (`ContractEmitted` with `0x01…`, then `0x02…`). The contract is 264 bytes of hand-written WAT against the `seal0` API ([`tests/contracts/counter.wat`](tests/contracts/counter.wat)), so the corpus needs no ink!/cargo-contract toolchain matching Portaldot's 2021 pallet-contracts. Workflow args can reference files (`file:tests/contracts/counter.wasm`) and earlier events (`step:0:contracts.Instantiated:1`, the new contract's address).
+`contracts.counter` deploys a WASM contract with `Contracts.instantiateWithCode`, calls it twice and checks the value it emits each time (`ContractEmitted` with `0x01…`, then `0x02…`). The contract is 264 bytes of hand-written WAT against the `seal0` API ([`backend/tests/contracts/counter.wat`](backend/tests/contracts/counter.wat)), so the corpus needs no ink!/cargo-contract toolchain matching Portaldot's 2021 pallet-contracts. Workflow args can reference files (`file:tests/contracts/counter.wasm`) and earlier events (`step:0:contracts.Instantiated:1`, the new contract's address).
 
 | Run | `contracts.counter` |
 |---|---|
