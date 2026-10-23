@@ -31,18 +31,20 @@ html { overflow-x: clip; }
 }
 @keyframes lift { from { transform: translateY(18px); } }
 
-/* ---------- scroll: sections settle into place as they arrive ---------- */
+/* ---------- scroll reveal: blocks rise into place as they arrive ---------- */
+/* .rv is only ever added by JS (lib/motion.ts) to blocks below the fold. The
+   start state is offset and dimmed, never invisible, so a reveal that does not
+   fire still leaves readable content. */
 @media (prefers-reduced-motion: no-preference) {
+  .rv { transform: translateY(56px); opacity: .35;
+    transition: transform 1.05s cubic-bezier(.16, 1, .3, 1), opacity .8s ease-out;
+    transition-delay: calc(min(var(--rv-i, 0), 6) * 85ms); }
+  .rv.rv-in { transform: none; opacity: 1; }
   @supports (animation-timeline: view()) {
-    main > section, .foot-in { animation: settle linear both; animation-timeline: view(); animation-range: entry 0% entry 55%; }
-    .stats > div, .v3-grid > div, .tally > div, .trio article { animation: settle linear both; animation-timeline: view(); animation-range: entry 0% entry 70%; }
-    .stats > div:nth-child(2), .v3-grid > div:nth-child(2), .trio article:nth-child(2) { animation-range: entry 6% entry 76%; }
-    .stats > div:nth-child(3), .v3-grid > div:nth-child(3), .trio article:nth-child(3) { animation-range: entry 12% entry 82%; }
-    .stats > div:nth-child(4), .v3-grid > div:nth-child(4) { animation-range: entry 18% entry 88%; }
     .hero-bg { animation: drift linear both; animation-timeline: view(); animation-range: exit 0% exit 100%; }
   }
 }
-@keyframes settle { from { transform: translateY(36px); } }
+html.still .rv { transform: none; opacity: 1; transition: none; }
 @keyframes drift { to { transform: translateY(60px) scale(1.04); } }
 
 /* ---------- live diff: rows assemble ---------- */
