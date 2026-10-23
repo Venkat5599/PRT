@@ -45,13 +45,15 @@ function deriveFrom(keyring: Keyring, name: string) {
 async function main() {
   const job: Job = JSON.parse(await Bun.stdin.text());
   await cryptoWaitReady();
-  // Portaldot's 2021 runtime encodes DispatchError::Module as { index: u8, error: u8 };
-  // current polkadot.js assumes the later 4-byte error and fails to decode System.Events.
+  // Portaldot's 2021 runtime (spec "portaldot", metadata V13) encodes DispatchError::Module
+  // as { index: u8, error: u8 }; current polkadot.js assumes the later 4-byte error and fails
+  // to decode System.Events. Scoped to that spec only: PortaldotV3 ("portaldot-v3") ships V14
+  // metadata with its own type registry and must not get the legacy override.
   const api = await ApiPromise.create({
     provider: new WsProvider(job.ws),
     noInitWarn: true,
     throwOnConnect: true,
-    types: { DispatchErrorModule: "DispatchErrorModuleU8" },
+    typesBundle: { spec: { portaldot: { types: [{ minmax: [0, undefined], types: { DispatchErrorModule: "DispatchErrorModuleU8" } }] } } },
   });
   const keyring = new Keyring({ type: "sr25519", ss58Format: 42 });
 
