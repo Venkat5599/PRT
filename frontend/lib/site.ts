@@ -4,6 +4,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 export function initSite() {
   const RUNS = [
+    { id: "upgrade-halve-reserved", name: "Migration bug", hint: "Injected migration. Funds vanish, chain stays live." },
     { id: "self-compare", name: "Control", hint: "Same node twice. Nothing should differ." },
     { id: "upgrade-fee10x", name: "Byte fee ×10", hint: "Injected via setCode. Fees move." },
     { id: "upgrade-ed100x", name: "Deposit ×100", hint: "Injected via setCode. A transfer breaks." },
@@ -50,6 +51,7 @@ export function initSite() {
 
   const plural = (n, one, many) => `${n} ${n === 1 ? one : many}`;
   function headline(s) {
+    if (s.regression && s.headline) return { text: s.headline, cls: "reg" };
     if (s.regression) return { text: plural(s.regression, "regression", "regressions"), cls: "reg" };
     if (s.difference) return { text: plural(s.difference, "difference", "differences"), cls: "diff" };
     if (s.inconclusive) return { text: `${s.inconclusive} inconclusive`, cls: "base" };
@@ -149,8 +151,11 @@ export function initSite() {
     // Each run swaps in with a short settle; skipped when motion is off.
     if (!still) big.parentElement?.animate([{ transform: "translateY(8px)" }, { transform: "none" }], { duration: 480, easing: "cubic-bezier(.22,.7,.2,1)" });
     big.textContent = h.text;
-    $('[data-k="small"]').textContent = `across ${plural(s.workflows, "workflow", "workflows")}${worst ? ` · worst ${worst}` : ""} · exit ${exitCode(s)}`;
-    $('[data-k="cmd"]').textContent = `canary test --baseline ${m.baseline.endpoint} --candidate ${m.candidate.endpoint}`;
+    // Upgrade-state runs (canary upgrade) carry their own command and one-line detail.
+    $('[data-k="small"]').textContent = m.detail
+      ? `${m.detail}${worst ? ` · ${worst}` : ""} · exit ${exitCode(s)}`
+      : `across ${plural(s.workflows, "workflow", "workflows")}${worst ? ` · worst ${worst}` : ""} · exit ${exitCode(s)}`;
+    $('[data-k="cmd"]').textContent = m.command ?? `canary test --baseline ${m.baseline.endpoint} --candidate ${m.candidate.endpoint}`;
     $('[data-k="runname"]').textContent = RUNS.find((x) => x.id === currentId)!.name;
     // The run ledger is on /dashboard now; the hero console above is all the landing page shows.
     if (!$("[data-workflows]")) return;
@@ -400,6 +405,6 @@ export function initSite() {
   }, { rootMargin: "-45% 0px -50% 0px" });
   ["live", "flow", "v3"].forEach((id) => { const el = document.getElementById(id); if (el) spy.observe(el); });
 
-  const start = RUNS.find((r) => `#${r.id}` === location.hash)?.id ?? "upgrade-ed100x";
+  const start = RUNS.find((r) => `#${r.id}` === location.hash)?.id ?? "upgrade-halve-reserved";
   load(start);
 }

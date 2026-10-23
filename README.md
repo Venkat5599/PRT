@@ -8,6 +8,32 @@
 
 > Status: early development for the Portaldot Hacker House 2026 (Node Operations & Tooling track). See [`docs/PLAN.md`](docs/PLAN.md) for the full design and [`docs/V3_READINESS.md`](docs/V3_READINESS.md) for live V3 endpoint checks.
 
+## The case Canary exists for: an upgrade that silently destroys funds
+
+A runtime upgrade can do everything right on the surface: `setCode` succeeds, `spec_version` goes up, blocks keep coming, no error is emitted. Its migration can still rewrite balances. `halve-reserved.compact.wasm` is built from the public Portaldot source with one **INJECTED** migration ([`backend/runtimes/out/halve-reserved.patch`](backend/runtimes/out/halve-reserved.patch)): it halves every reserved balance and leaves `TotalIssuance` alone. `canary upgrade` snapshots every account and the supply invariant at a pinned block before `setCode` and again after, and diffs them. Real output from two dev nodes ([`scripts/migration-demo.sh`](scripts/migration-demo.sh)):
+
+```
+$ canary upgrade --ws ws://127.0.0.1:9950 --wasm runtimes/out/clean.compact.wasm
+after      spec_version 1003
+liveness   ok (#19 -> #22 under the new runtime)
+state      before #17 supply_conservation PASS  (10 accounts, issuance 350001 POT, held 350001 POT)
+state      after  #22 supply_conservation PASS  (10 accounts, issuance 350001 POT, held 350001 POT)
+verdict    PASS: supply conserved across the upgrade (0 accounts changed, all accounted for)
+
+$ canary upgrade --ws ws://127.0.0.1:9951 --wasm runtimes/out/halve-reserved.compact.wasm
+events     system.CodeUpdated, sudo.Sudid, system.ExtrinsicSuccess
+after      spec_version 1006
+liveness   ok (#24 -> #27 under the new runtime)
+state      before #22 supply_conservation PASS  (10 accounts, issuance 350001 POT, held 350001 POT)
+state      after  #27 supply_conservation FAIL  (10 accounts, issuance 350001 POT, held 349991 POT)
+changed    2 accounts (2 with reserved moved):
+  5Ejp33yciyo8HUo5QyQMk2t6UcQAGsBRo9YHGURsueEZXscJ  reserved 10 -> 5 (-5)
+  5HgvZvxhB9quVpMigzS3pTmKuYXeqF451LyJykbSF8HZ9ScM  reserved 10 -> 5 (-5)
+verdict    REGRESSION Critical: supply invariant broken by the upgrade; accounts now hold 10 POT less than TotalIssuance: funds destroyed
+```
+
+Exit code 1, so it blocks CI. `canary invariants --at <post-upgrade block>` confirms it independently (delta −10 POT). Full JSON: [`examples/upgrade-halve-reserved`](examples/upgrade-halve-reserved). The injected bug is a test runtime, not a Portaldot finding.
+
 ## Repository layout
 
 ```
@@ -135,6 +161,7 @@ Candidates are built by [`backend/runtimes/build.sh`](backend/runtimes/build.sh)
 | `clean.compact.wasm` | none besides dev-chain block time (6 s) | 1003 |
 | `ed100x.compact.wasm` | **INJECTED**: `ExistentialDeposit` 1 → 100 POT | 1004 |
 | `fee10x.compact.wasm` | **INJECTED**: `TransactionByteFee` 10 → 100 MILLICENTS | 1005 |
+| `halve-reserved.compact.wasm` | **INJECTED** migration: halves every reserved balance, `TotalIssuance` unchanged | 1006 |
 | `source-60s.compact.wasm` | unmodified public source (60 s blocks) | 1003 |
 
 `scripts/upgrade-demo.sh` runs the whole thing with no manual steps. Real output:
@@ -225,6 +252,7 @@ End-to-end demos (need [bun](https://bun.sh); download the dev node if `PORTALDO
 ```bash
 bash scripts/demo.sh          # doctor, compare, control, injected migration, reproduce, attest, verify
 bash scripts/upgrade-demo.sh  # real setCode upgrades: clean vs INJECTED ed100x, plus the halting source runtime
+bash scripts/migration-demo.sh  # an upgrade whose migration destroys funds, caught by canary upgrade
 ```
 
 ## Roadmap
@@ -238,6 +266,7 @@ bash scripts/upgrade-demo.sh  # real setCode upgrades: clean vs INJECTED ed100x,
 - [x] `reproduce` with stable finding hash
 - [x] Candidate runtimes built from source + real-upgrade mode (`system.setCode`) with liveness check
 - [x] Upgrade hazards in `compare` (BABE slot/epoch changes)
+- [x] State diff across `setCode`: per-account balances and the supply invariant, before vs after (`canary upgrade`)
 - [x] On-chain attestation via `system.remark` (`canary attest` / `canary verify`) on the dev chain
 - [x] GitHub Action ([`action.yml`](action.yml)) and CI against a real Portaldot dev node
 - [ ] Attestation on the public V3 testnet (endpoints have no DNS yet, see [`docs/V3_READINESS.md`](docs/V3_READINESS.md))

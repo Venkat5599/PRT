@@ -81,14 +81,16 @@ export function DoctorPanel() {
 
 /* ---------- recorded test runs ---------- */
 const RUNS = [
-  { id: "self-compare", name: "Control", hint: "Same node twice. Nothing should differ." },
-  { id: "upgrade-fee10x", name: "Byte fee ×10", hint: "Injected via setCode. Fees move." },
-  { id: "upgrade-ed100x", name: "Deposit ×100", hint: "Injected via setCode. A transfer breaks." },
+  { id: "upgrade-halve-reserved", name: "Migration bug", hint: "Injected migration. Funds vanish, chain stays live.", report: "output.txt" },
+  { id: "self-compare", name: "Control", hint: "Same node twice. Nothing should differ.", report: "report.html" },
+  { id: "upgrade-fee10x", name: "Byte fee ×10", hint: "Injected via setCode. Fees move.", report: "report.html" },
+  { id: "upgrade-ed100x", name: "Deposit ×100", hint: "Injected via setCode. A transfer breaks.", report: "report.html" },
 ];
-type Summary = { workflows: number; regression: number; difference: number; inconclusive: number; pass: number };
-type RunData = { summary: Summary; manifest: { baseline: { spec_version: number }; candidate: { spec_version: number } } };
+type Summary = { workflows: number; regression: number; difference: number; inconclusive: number; pass: number; headline?: string };
+type RunData = { summary: Summary; manifest: { detail?: string; baseline: { spec_version: number }; candidate: { spec_version: number } } };
 
 function verdict(s: Summary) {
+  if (s.regression && s.headline) return { text: s.headline, cls: "reg", exit: 1 };
   if (s.regression) return { text: `${s.regression} regression${s.regression > 1 ? "s" : ""}`, cls: "reg", exit: 1 };
   if (s.inconclusive) return { text: `${s.inconclusive} inconclusive`, cls: "base", exit: 2 };
   if (s.difference) return { text: `${s.difference} difference${s.difference > 1 ? "s" : ""}`, cls: "diff", exit: 0 };
@@ -105,8 +107,8 @@ export function RunsPanel() {
   return (
     <section className="frame panel" aria-labelledby="runs-title">
       <header className="live-head">
-        <h2 id="runs-title">Three upgrades, <em>recorded.</em></h2>
-        <p className="lead">Each run is <code>canary test</code> against a local Portaldot dev node, with the candidate pushed through <code>system.setCode</code>. Open the report for every expectation, side by side.</p>
+        <h2 id="runs-title">Four upgrades, <em>recorded.</em></h2>
+        <p className="lead">Each candidate is pushed through <code>system.setCode</code> on a local Portaldot dev node. The migration bug is caught by <code>canary upgrade</code>, which diffs every account and the supply invariant across the upgrade; the rest are <code>canary test</code> workflow runs.</p>
       </header>
       <ul className="run-list">
         {RUNS.map((r) => {
@@ -116,9 +118,9 @@ export function RunsPanel() {
             <li key={r.id}>
               <div className="rl-main"><b>{r.name}</b><span>{r.hint}</span></div>
               <div className="rl-verdict">
-                {v ? <><strong className={v.cls}>{v.text}</strong><span>{(d as RunData).summary.workflows} workflows · spec {(d as RunData).manifest.baseline.spec_version} → {(d as RunData).manifest.candidate.spec_version} · exit {v.exit}</span></> : <span>{d === "error" ? "report unavailable" : "loading…"}</span>}
+                {v ? <><strong className={v.cls}>{v.text}</strong><span>{(d as RunData).manifest.detail ?? `${(d as RunData).summary.workflows} workflows`} · spec {(d as RunData).manifest.baseline.spec_version} → {(d as RunData).manifest.candidate.spec_version} · exit {v.exit}</span></> : <span>{d === "error" ? "report unavailable" : "loading…"}</span>}
               </div>
-              <div className="rl-links"><a href={`/reports/${r.id}/report.html`}>Report</a><a href={`/reports/${r.id}/report.json`}>JSON</a></div>
+              <div className="rl-links"><a href={`/reports/${r.id}/${r.report}`}>Report</a><a href={`/reports/${r.id}/report.json`}>JSON</a></div>
             </li>
           );
         })}

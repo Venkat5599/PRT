@@ -1,0 +1,128 @@
+{
+  "manifest": {
+    "kind": "upgrade",
+    "command": "canary upgrade --ws ws://127.0.0.1:9951 --wasm runtimes/out/halve-reserved.compact.wasm",
+    "detail": "10 POT destroyed · 2 accounts · chain live",
+    "injected": "halve-reserved: the migration halves every reserved balance and leaves TotalIssuance untouched (runtimes/out/halve-reserved.patch)",
+    "baseline": {
+      "endpoint": "ws://127.0.0.1:9951",
+      "spec_version": 1002,
+      "block": 22
+    },
+    "candidate": {
+      "endpoint": "ws://127.0.0.1:9951",
+      "spec_version": 1006,
+      "block": 27,
+      "wasm_sha256": "33104bea2dc69cc2837baa00474fa03316157d24d82522abecca17aa3c2eafba"
+    }
+  },
+  "summary": {
+    "workflows": 1,
+    "pass": 0,
+    "difference": 0,
+    "inconclusive": 0,
+    "regression": 1,
+    "headline": "Funds destroyed",
+    "statement": "supply invariant broken by the upgrade; accounts now hold 10 POT less than TotalIssuance: funds destroyed"
+  },
+  "results": [
+    {
+      "finding": {
+        "workflow": "upgrade.state",
+        "verdict": "REGRESSION",
+        "severity": "critical",
+        "rationale": "supply invariant broken by the upgrade; accounts now hold 10 POT less than TotalIssuance: funds destroyed",
+        "regressed": [
+          {
+            "what": "supply: accounts hold TotalIssuance",
+            "baseline": "350,001 POT of 350,001 POT",
+            "candidate": "349,991 POT of 350,001 POT"
+          },
+          {
+            "what": "5Ejp33…XscJ reserved kept",
+            "baseline": "1000000000000000",
+            "candidate": "500000000000000"
+          },
+          {
+            "what": "5HgvZv…9ScM reserved kept",
+            "baseline": "1000000000000000",
+            "candidate": "500000000000000"
+          }
+        ],
+        "baseline_failures": [],
+        "differences": [
+          {
+            "what": "spec_version",
+            "baseline": "1002",
+            "candidate": "1006"
+          }
+        ],
+        "normalised": [],
+        "finding_hash": "8fcf5f8d6d06004159177243e922e02823205d7d3aa15f026df958fece5f8e7a"
+      },
+      "baseline": {
+        "side": "baseline",
+        "endpoint": "ws://127.0.0.1:9951",
+        "setup_error": null,
+        "pre_block": "0x7b553896063a2ac7671839bc48c865c87d5fa6fa2e5441860768696f80bf3633",
+        "post_block": "0x7b553896063a2ac7671839bc48c865c87d5fa6fa2e5441860768696f80bf3633",
+        "expectations": [
+          {
+            "description": "supply: accounts hold TotalIssuance",
+            "observed": "350,001 POT of 350,001 POT",
+            "pass": true
+          },
+          {
+            "description": "5Ejp33…XscJ reserved kept",
+            "observed": "1000000000000000",
+            "pass": true
+          },
+          {
+            "description": "5HgvZv…9ScM reserved kept",
+            "observed": "1000000000000000",
+            "pass": true
+          },
+          {
+            "description": "block production",
+            "observed": "live, spec 1002",
+            "pass": true
+          }
+        ]
+      },
+      "candidate": {
+        "side": "candidate",
+        "endpoint": "ws://127.0.0.1:9951",
+        "setup_error": null,
+        "pre_block": "0x6e35dc922650ccf9685beae65e4fda07187f86df8fca9a0dad112be0faeb8061",
+        "post_block": "0x6e35dc922650ccf9685beae65e4fda07187f86df8fca9a0dad112be0faeb8061",
+        "expectations": [
+          {
+            "description": "supply: accounts hold TotalIssuance",
+            "observed": "349,991 POT of 350,001 POT",
+            "pass": false
+          },
+          {
+            "description": "5Ejp33…XscJ reserved kept",
+            "observed": "500000000000000",
+            "pass": false
+          },
+          {
+            "description": "5HgvZv…9ScM reserved kept",
+            "observed": "500000000000000",
+            "pass": false
+          },
+          {
+            "description": "block production",
+            "observed": "ok, spec 1006",
+            "pass": true
+          }
+        ]
+      },
+      "reproduce": "bash scripts/migration-demo.sh"
+    }
+  ],
+  "source": {
+    "file": "upgrade.json",
+    "id": "ws://127.0.0.1:9951 33104bea2dc69cc2837baa00474fa03316157d24d82522abecca17aa3c2eafba"
+  }
+}

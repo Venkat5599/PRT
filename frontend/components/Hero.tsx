@@ -55,7 +55,7 @@ export default function Hero() {
                   <path d="M2 3.5l3 3-3 3M7 10.5h5"></path>
                 </svg>
                 {" "}
-                <span data-k="runname">{"Deposit ×100"}</span>
+                <span data-k="runname">{"Migration bug"}</span>
                 {" "}
                 <svg className="chev" viewBox="0 0 12 12" aria-hidden="true">
                   <path d="M3 4.5l3 3 3-3"></path>

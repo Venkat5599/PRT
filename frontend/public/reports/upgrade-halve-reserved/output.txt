@@ -1,0 +1,43 @@
+== legacy state: identities with reserved deposits on both chains
+ok: deposits reserved on both chains
+
+== control: :9950 <- clean (spec 1003)
+wasm       runtimes/out/clean.compact.wasm (2452877 bytes, sha256 9bc1ae0b7d76970a616d3a0b3f105569470dcaf243a7007974f574572c77a1f7)
+before     spec_version 1002
+tx         0x5e1d720e29532026774a4f1823244262a156749353197279d131cf6c28242a0c success in 0x83139d2ee0c8a98599076c1dfab6d9fbfc1372248b3de2ee1210e14e669f3572
+events     system.CodeUpdated, sudo.Sudid, system.ExtrinsicSuccess
+after      spec_version 1003
+liveness   ok (#19 -> #22 under the new runtime)
+state      before #17 supply_conservation PASS  (10 accounts, issuance 350001 POT, held 350001 POT)
+state      after  #22 supply_conservation PASS  (10 accounts, issuance 350001 POT, held 350001 POT)
+verdict    PASS: supply conserved across the upgrade (0 accounts changed, all accounted for)
+saved      runs/migration/control/upgrade.json
+exit 0 (expect 0)
+
+== candidate: :9951 <- halve-reserved (spec 1006, INJECTED migration)
+wasm       runtimes/out/halve-reserved.compact.wasm (2456463 bytes, sha256 33104bea2dc69cc2837baa00474fa03316157d24d82522abecca17aa3c2eafba)
+before     spec_version 1002
+tx         0x28bda6342fc97b3367eb27f4335f705d63eab0637d22a7cfe822254d3ffdca89 success in 0x742c95e3a8e98574d599bf27938789acff13f8843e40e2ea99d207c62381b266
+events     system.CodeUpdated, sudo.Sudid, system.ExtrinsicSuccess
+after      spec_version 1006
+liveness   ok (#24 -> #27 under the new runtime)
+state      before #22 supply_conservation PASS  (10 accounts, issuance 350001 POT, held 350001 POT)
+state      after  #27 supply_conservation FAIL  (10 accounts, issuance 350001 POT, held 349991 POT)
+changed    2 accounts (2 with reserved moved):
+  5Ejp33yciyo8HUo5QyQMk2t6UcQAGsBRo9YHGURsueEZXscJ  reserved 10 -> 5 (-5)
+  5HgvZvxhB9quVpMigzS3pTmKuYXeqF451LyJykbSF8HZ9ScM  reserved 10 -> 5 (-5)
+verdict    REGRESSION Critical: supply invariant broken by the upgrade; accounts now hold 10 POT less than TotalIssuance: funds destroyed
+saved      runs/migration/halve-reserved/upgrade.json
+exit 1 (expect 1: REGRESSION Critical)
+
+== independent check: canary invariants on the upgraded candidate, same block
+invariant  supply_conservation  (ws://127.0.0.1:9951)
+  block           #27 0x6e35dc922650ccf9685beae65e4fda07187f86df8fca9a0dad112be0faeb8061
+  accounts        10 (layouts: {"with_sufficients": 10}, decode errors: 0)
+  sum free        349981 POT
+  sum reserved    10 POT
+  sum total       349991 POT
+  total issuance  350001 POT
+  delta           -1000000000000000 planck
+  verdict         FAIL
+exit 1 (expect 1: FAIL)
