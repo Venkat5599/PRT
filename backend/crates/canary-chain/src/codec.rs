@@ -75,9 +75,55 @@ pub fn format_units(amount: u128, decimals: u32) -> String {
     }
 }
 
+/// SS58 address for a 32-byte account id with a one-byte network prefix (42 = generic
+/// Substrate, which Portaldot uses): base58(prefix ++ id ++ blake2b_512("SS58PRE" ++ prefix ++ id)[..2]).
+pub fn ss58(account_id: &[u8; 32], prefix: u8) -> String {
+    use blake2::digest::{Update, VariableOutput};
+    let mut body = vec![prefix];
+    body.extend_from_slice(account_id);
+    let mut h = blake2::Blake2bVar::new(64).expect("64 is a valid blake2b output size");
+    h.update(b"SS58PRE");
+    h.update(&body);
+    let mut sum = [0u8; 64];
+    h.finalize_variable(&mut sum).expect("buffer matches output size");
+    body.extend_from_slice(&sum[..2]);
+    base58(&body)
+}
+
+fn base58(bytes: &[u8]) -> String {
+    const ALPHABET: &[u8; 58] = b"123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz";
+    let mut digits: Vec<u8> = Vec::new(); // base-58 digits, least significant first
+    for &b in bytes {
+        let mut carry = b as u32;
+        for d in digits.iter_mut() {
+            carry += (*d as u32) << 8;
+            *d = (carry % 58) as u8;
+            carry /= 58;
+        }
+        while carry > 0 {
+            digits.push((carry % 58) as u8);
+            carry /= 58;
+        }
+    }
+    let zeros = bytes.iter().take_while(|&&b| b == 0).count();
+    std::iter::repeat('1')
+        .take(zeros)
+        .chain(digits.iter().rev().map(|&d| ALPHABET[d as usize] as char))
+        .collect()
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn ss58_matches_known_dev_address() {
+        let alice: [u8; 32] = hex::decode("d43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d")
+            .unwrap()
+            .try_into()
+            .unwrap();
+        assert_eq!(ss58(&alice, 42), "5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY");
+    }
 
     fn encode(header: &[u32], data: [u128; 4]) -> Vec<u8> {
         let mut v: Vec<u8> = header.iter().flat_map(|x| x.to_le_bytes()).collect();

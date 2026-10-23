@@ -124,8 +124,9 @@ enum Command {
         #[command(flatten)]
         driver: DriverArgs,
     },
-    /// Apply a candidate runtime WASM to a development node (sudo setCode) and wait until it is
-    /// live and producing blocks. Exits 1 if the chain halts after the upgrade, 2 if not applied.
+    /// Apply a candidate runtime WASM to a development node (sudo setCode), wait until it is
+    /// live and producing blocks, and diff every account and the supply invariant across the
+    /// upgrade. Exits 1 if the chain halts or the migration breaks supply, 2 if not applied.
     Upgrade {
         #[arg(long, default_value = "ws://127.0.0.1:9944")]
         ws: String,
@@ -133,6 +134,9 @@ enum Command {
         wasm: PathBuf,
         #[arg(long, default_value_t = 120)]
         timeout: u64,
+        /// Write the full result (state snapshots, per-account changes) to this JSON file.
+        #[arg(long)]
+        out: Option<PathBuf>,
         #[command(flatten)]
         driver: DriverArgs,
     },
@@ -186,8 +190,8 @@ fn main() -> ExitCode {
         Command::Attest { run, ws, signer, timeout, driver } => {
             attest::attest(&run, &ws, &signer, &driver.into_driver(), Duration::from_secs(timeout))
         }
-        Command::Upgrade { ws, wasm, timeout, driver } => {
-            upgrade::run(&ws, &wasm, &driver.into_driver(), Duration::from_secs(timeout))
+        Command::Upgrade { ws, wasm, timeout, out, driver } => {
+            upgrade::run(&ws, &wasm, &driver.into_driver(), Duration::from_secs(timeout), out.as_deref())
         }
         Command::Verify { run, ws, timeout } => attest::verify(&run, ws.as_deref(), Duration::from_secs(timeout)),
         Command::Reproduce { workflow, run, timeout, driver } => {

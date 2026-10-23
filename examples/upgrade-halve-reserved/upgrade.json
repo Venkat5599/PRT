@@ -1,0 +1,59 @@
+{
+  "endpoint": "ws://127.0.0.1:9951",
+  "wasm": "runtimes/out/halve-reserved.compact.wasm",
+  "wasm_sha256": "33104bea2dc69cc2837baa00474fa03316157d24d82522abecca17aa3c2eafba",
+  "spec_before": 1002,
+  "spec_after": 1006,
+  "tx_hash": "0x28bda6342fc97b3367eb27f4335f705d63eab0637d22a7cfe822254d3ffdca89",
+  "liveness": "ok (#24 -> #27 under the new runtime)",
+  "state": {
+    "before": {
+      "block_number": 22,
+      "block_hash": "0x7b553896063a2ac7671839bc48c865c87d5fa6fa2e5441860768696f80bf3633",
+      "accounts": 10,
+      "decode_errors": 0,
+      "sum_free": "34998100000000000000",
+      "sum_reserved": "2000000000000000",
+      "total_issuance": "35000100000000000000",
+      "delta": "+0",
+      "supply_conservation": "PASS"
+    },
+    "after": {
+      "block_number": 27,
+      "block_hash": "0x6e35dc922650ccf9685beae65e4fda07187f86df8fca9a0dad112be0faeb8061",
+      "accounts": 10,
+      "decode_errors": 0,
+      "sum_free": "34998100000000000000",
+      "sum_reserved": "1000000000000000",
+      "total_issuance": "35000100000000000000",
+      "delta": "-1000000000000000",
+      "supply_conservation": "FAIL"
+    },
+    "changed_accounts": 2,
+    "reserved_changed": 2,
+    "changes": [
+      {
+        "address": "5Ejp33yciyo8HUo5QyQMk2t6UcQAGsBRo9YHGURsueEZXscJ",
+        "account_id": "0x764bd68f4e8ffb5f88a7c11d76293069e1994d03d6a3ce5e426cac36caa14106",
+        "free_before": "98998779696653133",
+        "free_after": "98998779696653133",
+        "reserved_before": "1000000000000000",
+        "reserved_after": "500000000000000",
+        "total_delta": "-500000000000000"
+      },
+      {
+        "address": "5HgvZvxhB9quVpMigzS3pTmKuYXeqF451LyJykbSF8HZ9ScM",
+        "account_id": "0xf8cccad2ce164f781b53a2ed21dfd6031364f583d1599fee5240a60ff137e741",
+        "free_before": "98998779696651351",
+        "free_after": "98998779696651351",
+        "reserved_before": "1000000000000000",
+        "reserved_after": "500000000000000",
+        "total_delta": "-500000000000000"
+      }
+    ],
+    "verdict": "REGRESSION",
+    "severity": "Critical",
+    "rationale": "supply invariant broken by the upgrade; accounts now hold 10 POT less than TotalIssuance: funds destroyed"
+  },
+  "verdict": "REGRESSION"
+}

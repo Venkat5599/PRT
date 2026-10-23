@@ -1,0 +1,40 @@
+{
+  "endpoint": "ws://127.0.0.1:9950",
+  "wasm": "runtimes/out/clean.compact.wasm",
+  "wasm_sha256": "9bc1ae0b7d76970a616d3a0b3f105569470dcaf243a7007974f574572c77a1f7",
+  "spec_before": 1002,
+  "spec_after": 1003,
+  "tx_hash": "0x5e1d720e29532026774a4f1823244262a156749353197279d131cf6c28242a0c",
+  "liveness": "ok (#19 -> #22 under the new runtime)",
+  "state": {
+    "before": {
+      "block_number": 17,
+      "block_hash": "0x73af283ee8e888afe19d0dad8e8df13142689610a4c1ebc860314de4f9e6d16e",
+      "accounts": 10,
+      "decode_errors": 0,
+      "sum_free": "34998100000000000000",
+      "sum_reserved": "2000000000000000",
+      "total_issuance": "35000100000000000000",
+      "delta": "+0",
+      "supply_conservation": "PASS"
+    },
+    "after": {
+      "block_number": 22,
+      "block_hash": "0x0cbf53438de00f3ac3522f2d8c65415ab1cdefc0c6c3093368203f7d88e919fb",
+      "accounts": 10,
+      "decode_errors": 0,
+      "sum_free": "34998100000000000000",
+      "sum_reserved": "2000000000000000",
+      "total_issuance": "35000100000000000000",
+      "delta": "+0",
+      "supply_conservation": "PASS"
+    },
+    "changed_accounts": 0,
+    "reserved_changed": 0,
+    "changes": [],
+    "verdict": "PASS",
+    "severity": null,
+    "rationale": "supply conserved across the upgrade (0 accounts changed, all accounted for)"
+  },
+  "verdict": "PASS"
+}

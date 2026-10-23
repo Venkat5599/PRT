@@ -30,19 +30,33 @@ pub fn total_issuance(rpc: &mut WsRpc, at: &str) -> anyhow::Result<u128> {
 
 /// Sum of `free + reserved` over all accounts must equal `Balances.TotalIssuance`.
 pub fn supply_at(rpc: &mut WsRpc, at: &str) -> anyhow::Result<Supply> {
+    Ok(snapshot(rpc, at)?.0)
+}
+
+/// One account's balances at a pinned block.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct Balances {
+    pub free: u128,
+    pub reserved: u128,
+}
+
+/// Every `System.Account` entry at `at`, keyed by 32-byte account id, plus the supply
+/// totals. Keys are `prefix(32) ++ blake2_128(16) ++ account_id(32)`.
+pub fn snapshot(rpc: &mut WsRpc, at: &str) -> anyhow::Result<(Supply, std::collections::BTreeMap<[u8; 32], Balances>)> {
     let total_issuance = total_issuance(rpc, at)?;
     let entries = storage::iter_prefix(rpc, &storage::prefix("System", "Account"), at, 1000, |_| {})?;
     let mut s = Supply { accounts: entries.len(), decode_errors: 0, sum_free: 0, sum_reserved: 0, total_issuance };
-    for (_, v) in &entries {
-        match codec::decode_account_info(v) {
-            Ok(i) => {
-                s.sum_free += i.free;
-                s.sum_reserved += i.reserved;
-            }
-            Err(_) => s.decode_errors += 1,
-        }
+    let mut accounts = std::collections::BTreeMap::new();
+    for (k, v) in &entries {
+        let (Some(id), Ok(i)) = (k.get(48..80).and_then(|b| <[u8; 32]>::try_from(b).ok()), codec::decode_account_info(v)) else {
+            s.decode_errors += 1;
+            continue;
+        };
+        s.sum_free += i.free;
+        s.sum_reserved += i.reserved;
+        accounts.insert(id, Balances { free: i.free, reserved: i.reserved });
     }
-    Ok(s)
+    Ok((s, accounts))
 }
 
 /// `System.Account` for one 32-byte account id; `None` if the account does not exist.
