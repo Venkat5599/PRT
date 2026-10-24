@@ -63,3 +63,20 @@ Implication: results from the local dev node do not automatically transfer to ma
 | [`self-compare`](../examples/self-compare) | P4 (control) | #175,823 | `0x360f8ea2122559b7873cbcb6758fbd614d593b3d5cc5c992b70af596be4491ac` |
 
 Reproduce: `canary verify --run examples/<run>` (reads `attestation.json`, needs no key).
+
+## CanaryRegistry contract (V3 EVM)
+
+2026-10-24: [`contracts/src/CanaryRegistry.sol`](../contracts/src/CanaryRegistry.sol) deployed to the PortaldotV3 EVM (pallet-revive accepts plain solc 0.8.28 EVM bytecode; no resolc needed).
+
+- Address: `0x62Eacc58CE0FA37F06F24074AFb7B3F22Df708FF` (chain id 420420777, `https://test-evm-rpc-v3.portaldot.dev`)
+- Deploy tx: `0xadb58c0b7ff356a1304e8422b7f606782c91e39460bca2ab9ace133cc8656ed2`
+- Cost: about 217 tPOT to deploy and about 27 tPOT per `attest`, mostly the storage deposit. Budget for this before attesting many runs.
+
+| Id | Run | Tx hash | Block |
+|---|---|---|---|
+| 0 | `upgrade-halve-reserved` | `0x1d15ca01d3bdf11f2062b182dfca7b378c8a05278beb7e6b2f8e49a5a2ab7a30` | #175,877 |
+| 1 | `upgrade-ed100x` | `0x0017a02af40acdc883ad8807a1fd6f054b80b4275c8d2e87d33db662a61360eb` | #175,886 |
+| 2 | `upgrade-fee10x` | `0xb14a42825cc241b933f92a87cffd5897fd8b13cdc4e49c649e388639d9175248` | #175,891 |
+| 3 | `self-compare` | `0x4b4d542edd6275e6f023082fed68ab4e2ea392caea4145ed66b468468cf1bc95` | #175,893 |
+
+Check: `cast call --rpc-url https://test-evm-rpc-v3.portaldot.dev 0x62Eacc58CE0FA37F06F24074AFb7B3F22Df708FF "count()(uint256)"` returns 4. Record a new run with `bun scripts/registry-attest.ts <run dir>`. The dashboard's Registry panel reads the contract live and checks each published report's sha256 against it.

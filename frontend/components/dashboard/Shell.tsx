@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, type ReactNode } from "react";
-import { CliPanel, DoctorPanel, InvariantsPanel, RunsPanel } from "./Panels";
+import { CliPanel, DoctorPanel, InvariantsPanel, RegistryPanel, RunsPanel } from "./Panels";
 
 // Dashboard layout: a sidebar of every feature, one panel at a time, selected by
 // the URL hash so each panel can be linked. Compare is server-rendered markup
@@ -10,6 +10,7 @@ const ITEMS = [
   { id: "compare", label: "Compare", hint: "Diff two live runtimes", icon: <path d="M5 5h6v14H5zM13 5h6v14h-6z" /> },
   { id: "doctor", label: "Doctor", hint: "Check one endpoint", icon: <><circle cx="12" cy="12" r="8.5" /><path d="M12 7.5V12l3 2" /></> },
   { id: "runs", label: "Test runs", hint: "Recorded upgrades", icon: <><path d="M4 8h5l2-4 3 9 2-5h4" /><path d="M4 17h5l2-2 2 2h7" /></> },
+  { id: "registry", label: "Registry", hint: "Verdicts on V3 testnet", icon: <><path d="M6 4h12v16H6z" /><path d="M9 9h6M9 13h6M9 17h3" /></> },
   { id: "invariants", label: "Invariants", hint: "Mainnet supply", icon: <path d="M5 9h14M5 15h14" /> },
   { id: "cli", label: "CLI", hint: "Commands and CI", icon: <path d="M5 7l5 5-5 5M12 17h7" /> },
 ] as const;
@@ -46,6 +47,7 @@ export default function Shell({ compare }: { compare: ReactNode }) {
         {/* Other panels mount the first time they are opened, then stay mounted. */}
         {seen.has("doctor") && <div hidden={active !== "doctor"}><DoctorPanel /></div>}
         {seen.has("runs") && <div hidden={active !== "runs"}><RunsPanel /></div>}
+        {seen.has("registry") && <div hidden={active !== "registry"}><RegistryPanel /></div>}
         {seen.has("invariants") && <div hidden={active !== "invariants"}><InvariantsPanel /></div>}
         {seen.has("cli") && <div hidden={active !== "cli"}><CliPanel /></div>}
       </div>

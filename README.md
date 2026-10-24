@@ -270,6 +270,7 @@ bash scripts/migration-demo.sh  # an upgrade whose migration destroys funds, cau
 - [x] On-chain attestation via `system.remark` (`canary attest` / `canary verify`) on the dev chain
 - [x] GitHub Action ([`action.yml`](action.yml)) and CI against a real Portaldot dev node
 - [x] Attestation on the public V3 testnet: 4 example runs anchored and verified on `wss://test-node-v3.portaldot.dev` (tx hashes in [`docs/V3_READINESS.md`](docs/V3_READINESS.md#v3-testnet-attestations))
+- [x] `CanaryRegistry` contract live on the V3 EVM at `0x62Eacc58CE0FA37F06F24074AFb7B3F22Df708FF`, holding all four verdicts, read live by the dashboard's Registry panel ([`contracts/`](contracts), `forge test`)
 - [x] WASM contract workflow (`contracts.counter`, hand-written against pallet-contracts v3)
 - [ ] EVM contract workflows (no EVM API on Portaldot today; revisit on V3)
 

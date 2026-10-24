@@ -2,6 +2,8 @@
 
 import { useEffect, useState } from "react";
 import { Node, readRuntime, type Runtime } from "@/lib/canary";
+import { readRegistry, sha256Of, REGISTRY, type OnChain } from "@/lib/registry";
+import { V3 } from "@/lib/wallet";
 
 const fmt = (n: number | null | undefined) => (n == null ? "–" : n.toLocaleString("en"));
 
@@ -125,6 +127,84 @@ export function RunsPanel() {
           );
         })}
       </ul>
+    </section>
+  );
+}
+
+/* ---------- on-chain registry (PortaldotV3 EVM) ---------- */
+type Row = OnChain & { run?: (typeof RUNS)[number]; matches: boolean; tx?: string };
+
+export function RegistryPanel() {
+  const [rows, setRows] = useState<Row[] | null>(null);
+  const [block, setBlock] = useState(0);
+  const [err, setErr] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+
+  async function load() {
+    setBusy(true); setErr(null);
+    try {
+      // Hash every report this site serves, then match it against the contract.
+      const [{ list, block }, local] = await Promise.all([
+        readRegistry(),
+        Promise.all(RUNS.map(async (r) => ({
+          r,
+          hash: await sha256Of(`/reports/${r.id}/report.json`).catch(() => ""),
+          tx: await fetch(`/reports/${r.id}/registry.json`).then((x) => x.json()).then((j) => j.tx_hash as string).catch(() => undefined),
+        }))),
+      ]);
+      setBlock(block);
+      setRows(list.map((a) => {
+        const hit = local.find((l) => l.hash === a.reportHash);
+        return { ...a, run: hit?.r, matches: !!hit, tx: hit?.tx };
+      }));
+    } catch (e) {
+      setErr((e as Error).message);
+    } finally {
+      setBusy(false);
+    }
+  }
+  useEffect(() => { load(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const matched = rows?.filter((r) => r.matches).length ?? 0;
+  return (
+    <section className="frame panel" aria-labelledby="reg-title">
+      <header className="live-head">
+        <h2 id="reg-title">Every verdict, <em>on-chain.</em></h2>
+        <p className="lead">Canary writes each report&apos;s sha256, the runtime it judged and its verdict counts to the <code>CanaryRegistry</code> contract on the PortaldotV3 testnet. This panel reads the contract live, hashes the reports served by this site in your browser and checks they match.</p>
+      </header>
+      <div className="live-form pairs">
+        <p className="verdict-sub">Contract <code>{REGISTRY}</code> · PortaldotV3 · chain id {V3.chainId}</p>
+        <button type="button" className="btn btn-blue run-btn" disabled={busy} onClick={load}>{busy ? "Reading…" : "Read again"}</button>
+      </div>
+      <div className="live-verdict" aria-live="polite">
+        <p className={`verdict-line ${err ? "reg" : rows ? (matched === rows.length ? "same" : "diff") : ""}`}>
+          {err ? "Registry unreachable." : rows ? `${matched} of ${rows.length} on-chain reports match this site.` : "Reading the contract…"}
+        </p>
+        <p className="verdict-sub">{err ?? (rows ? `eth_call all() · ${V3.evmRpc.replace("https://", "")} · block #${fmt(block)}` : "")}</p>
+      </div>
+      {rows && (
+        <ul className="run-list">
+          {rows.map((a) => {
+            const v = verdict({ workflows: 0, regression: a.regressions, difference: a.differences, inconclusive: a.inconclusive, pass: a.passes });
+            return (
+              <li key={a.id}>
+                <div className="rl-main">
+                  <b>#{a.id} {a.run?.name ?? "Unknown report"}</b>
+                  <span>report {a.reportHash.slice(0, 12)}… · {a.matches ? "hash matches the published file" : "no matching file on this site"}</span>
+                </div>
+                <div className="rl-verdict">
+                  <strong className={v.cls}>{v.text}</strong>
+                  <span>spec {a.baselineSpec} → {a.candidateSpec} · {new Date(a.timestamp * 1000).toUTCString().slice(5, 22)} UTC{a.tx ? ` · tx ${a.tx.slice(0, 10)}…` : ""}</span>
+                </div>
+                <div className="rl-links">
+                  {a.run && <a href={`/reports/${a.run.id}/${a.run.report}`}>Report</a>}
+                  {a.run && <a href={`/reports/${a.run.id}/registry.json`}>Receipt</a>}
+                </div>
+              </li>
+            );
+          })}
+        </ul>
+      )}
     </section>
   );
 }

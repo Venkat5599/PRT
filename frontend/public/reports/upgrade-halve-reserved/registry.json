@@ -1,0 +1,18 @@
+{
+  "registry": "0x62Eacc58CE0FA37F06F24074AFb7B3F22Df708FF",
+  "chain_id": 420420777,
+  "rpc": "https://test-evm-rpc-v3.portaldot.dev",
+  "id": 0,
+  "reportHash": "0xe2ffb2e014c77ae77c56df8c1cc98c7be9bb2e0b73a181674c9c36432d952e64",
+  "candidate": "0x33104bea2dc69cc2837baa00474fa03316157d24d82522abecca17aa3c2eafba",
+  "baselineSpec": 1002,
+  "candidateSpec": 1006,
+  "counts": [
+    1,
+    0,
+    0,
+    0
+  ],
+  "tx_hash": "0x1d15ca01d3bdf11f2062b182dfca7b378c8a05278beb7e6b2f8e49a5a2ab7a30",
+  "block_number": 175877
+}
