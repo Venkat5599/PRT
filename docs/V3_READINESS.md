@@ -50,3 +50,16 @@ Mainnet genesis: `0x83b5212c69f85f3996f8696bb35bf913af51b176a5f53d0a74fd3a83dc0b
 | 2026-10-15 | `wss://mainnet.portaldot.io` (spec 1002, metadata `b87080f9…`) | `portaldot_dev --dev` 2.0.0, binary dated 2025-12-29 (spec 1002, metadata `b7ad30de…`) | **12 constant changes with the same spec_version and transaction_version** (unversioned change). Examples: Babe.EpochDuration 120 → 1200, Babe.ExpectedBlockTime 60000 → 6000 ms, Timestamp.MinimumPeriod, election phases, Treasury.SpendPeriod, Contracts deposits and RentFraction. 31 pallets on both, no call/event/storage changes |
 
 Implication: results from the local dev node do not automatically transfer to mainnet. Canary reports this instead of assuming equivalence.
+
+## V3 testnet attestations
+
+2026-10-24: each example run's report hash and verdict counts anchored on the public V3 testnet with `canary attest --signer env` (dedicated testnet key, `system.remark`), then checked with `canary verify` (report hash, rebuilt payload, genesis `0xd4f9acbc…283bd`, remark present in block). All four **VERIFIED**.
+
+| Run | Verdict | Block | Tx hash |
+|---|---|---|---|
+| [`upgrade-halve-reserved`](../examples/upgrade-halve-reserved) | R1 (INJECTED, spec 1002 → 1006) | #175,811 | `0x805186766b1b988287476ec30c8d81ae79e5d9afb5d5c6d1e800f6d3f4ea0928` |
+| [`upgrade-ed100x`](../examples/upgrade-ed100x) | R1 P3 (spec 1003 → 1004) | #175,818 | `0x3c1f703a5a948b523fe54ef889169abbe7307021b72e8c06c2e0605732907e87` |
+| [`upgrade-fee10x`](../examples/upgrade-fee10x) | D4 (spec 1003 → 1005) | #175,820 | `0x33546334281586ca6a07bfc74b0868512e348def8f686867d07f60f18193bbbd` |
+| [`self-compare`](../examples/self-compare) | P4 (control) | #175,823 | `0x360f8ea2122559b7873cbcb6758fbd614d593b3d5cc5c992b70af596be4491ac` |
+
+Reproduce: `canary verify --run examples/<run>` (reads `attestation.json`, needs no key).
