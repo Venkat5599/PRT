@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, type ReactNode } from "react";
+import WalletButton from "@/components/WalletButton";
 import { CliPanel, DoctorPanel, InvariantsPanel, RegistryPanel, RunsPanel } from "./Panels";
 
 // Dashboard layout: a sidebar of every feature, one panel at a time, selected by
@@ -19,20 +20,28 @@ type Id = (typeof ITEMS)[number]["id"];
 export default function Shell({ compare }: { compare: ReactNode }) {
   const [active, setActive] = useState<Id>("compare");
   const [seen, setSeen] = useState<Set<Id>>(new Set(["compare"]));
+  const [open, setOpen] = useState(false);
 
   useEffect(() => {
     const read = () => {
       const h = location.hash.slice(1) as Id;
       if (ITEMS.some((i) => i.id === h)) { setActive(h); setSeen((s) => new Set(s).add(h)); }
+      setOpen(false);
     };
     read();
     addEventListener("hashchange", read);
     return () => removeEventListener("hashchange", read);
   }, []);
 
+  const current = ITEMS.find((i) => i.id === active)!;
   return (
     <div className="dash-shell">
-      <nav className="side" aria-label="Dashboard">
+      <nav className={open ? "side open" : "side"} aria-label="Dashboard">
+        <a className="side-brand" href="/" aria-label="Portal Canary home">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/assets/images/header/logo.png" width={28} height={28} alt="" />
+          <span>Portal Canary</span>
+        </a>
         <p className="side-title">Dashboard</p>
         {ITEMS.map((i) => (
           <a key={i.id} href={`#${i.id}`} aria-current={active === i.id ? "page" : undefined} className="side-item">
@@ -40,16 +49,28 @@ export default function Shell({ compare }: { compare: ReactNode }) {
             <span><b>{i.label}</b><small>{i.hint}</small></span>
           </a>
         ))}
-        <p className="side-foot">Live against Portaldot mainnet and the V3 testnet. Nothing to install.</p>
+        <p className="side-foot"><i aria-hidden="true" />Live against Portaldot mainnet and the V3 testnet. Nothing to install.</p>
       </nav>
       <div className="dash-main">
-        <div hidden={active !== "compare"}>{compare}</div>
-        {/* Other panels mount the first time they are opened, then stay mounted. */}
-        {seen.has("doctor") && <div hidden={active !== "doctor"}><DoctorPanel /></div>}
-        {seen.has("runs") && <div hidden={active !== "runs"}><RunsPanel /></div>}
-        {seen.has("registry") && <div hidden={active !== "registry"}><RegistryPanel /></div>}
-        {seen.has("invariants") && <div hidden={active !== "invariants"}><InvariantsPanel /></div>}
-        {seen.has("cli") && <div hidden={active !== "cli"}><CliPanel /></div>}
+        <header className="dash-top">
+          <button type="button" className="dash-menu" aria-label="Menu" aria-expanded={open} onClick={() => setOpen((o) => !o)}>
+            <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M3 6h14M3 10h14M3 14h14" /></svg>
+          </button>
+          <div className="dash-title"><h1>{current.label}</h1><span>{current.hint}</span></div>
+          <div className="dash-actions">
+            <a className="dash-gh" href="https://github.com/Venkat5599/PRT">GitHub <svg className="arr" viewBox="0 0 12 12" aria-hidden="true"><path d="M3.5 8.5l5-5M4.5 3.5h4v4" /></svg></a>
+            <WalletButton />
+          </div>
+        </header>
+        <div className="dash-body">
+          <div hidden={active !== "compare"}>{compare}</div>
+          {/* Other panels mount the first time they are opened, then stay mounted. */}
+          {seen.has("doctor") && <div hidden={active !== "doctor"}><DoctorPanel /></div>}
+          {seen.has("runs") && <div hidden={active !== "runs"}><RunsPanel /></div>}
+          {seen.has("registry") && <div hidden={active !== "registry"}><RegistryPanel /></div>}
+          {seen.has("invariants") && <div hidden={active !== "invariants"}><InvariantsPanel /></div>}
+          {seen.has("cli") && <div hidden={active !== "cli"}><CliPanel /></div>}
+        </div>
       </div>
     </div>
   );
