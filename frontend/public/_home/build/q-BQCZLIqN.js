@@ -1,0 +1,1 @@
+import{b as e,M as t}from"./q-BP74M_ze.js";const o=()=>{e("cta_clicked",{cta_label:"Read docs",cta_location:"cta-banner",destination:"/assets/docs",device_type:window.innerWidth<t?"mobile":"desktop"})};export{o as s_yLPXZ1cMgBU};

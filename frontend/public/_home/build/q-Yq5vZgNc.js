@@ -1,0 +1,1 @@
+import{v as e}from"./q-B92X-Pvc.js";import{_hW as s}from"./q-B92X-Pvc.js";const r=()=>{const[t]=e(),o=document.querySelector(t);o==null||o.scrollIntoView({behavior:"instant",block:"center",inline:"center"}),setTimeout(()=>{o==null||o.scrollIntoView({behavior:"instant",block:"center",inline:"center"})},100)};export{s as _hW,r as s_wn8NVCFRD88};

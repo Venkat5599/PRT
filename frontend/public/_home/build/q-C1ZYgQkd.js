@@ -1,0 +1,1 @@
+class Analytics{load(){}page(){}track(){}}export{Analytics};

@@ -1,0 +1,1 @@
+import{v}from"./q-B92X-Pvc.js";import{_hW as b}from"./q-B92X-Pvc.js";const l=()=>{const[o,e,t,n,r]=v();e.value=!0;const s=new IntersectionObserver(([i])=>{e.value=i.isIntersecting,o&&r.value.classList.toggle("is-visible",e.value),t&&e.value&&(s.disconnect(),s.unobserve(r.value))},{threshold:n});return s.observe(r.value),()=>s.disconnect()};export{b as _hW,l as s_PUsmr0z4vbM};

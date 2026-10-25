@@ -1,0 +1,1 @@
+import{v as o}from"./q-B92X-Pvc.js";import{_hW as l}from"./q-B92X-Pvc.js";const s=()=>{const[t]=o();let e=0;const r=setInterval(()=>{t.value=".".repeat(e),e=(e+1)%4},500);return()=>clearInterval(r)};export{l as _hW,s as s_JLM4LbI4sxg};

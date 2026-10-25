@@ -1,0 +1,1 @@
+import{v as r}from"./q-B92X-Pvc.js";import{_hW as v}from"./q-B92X-Pvc.js";const a=()=>{const[t]=r(),e=setInterval(()=>{t.value=(t.value+1)%4},500);return()=>clearInterval(e)};export{v as _hW,a as s_cW7WFm8H5QQ};

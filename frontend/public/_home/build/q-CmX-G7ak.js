@@ -1,0 +1,1 @@
+import{v as a}from"./q-B92X-Pvc.js";import{_hW as m}from"./q-B92X-Pvc.js";const n=()=>{const[r,e]=a(),t=()=>{setTimeout(()=>{e.value=Math.min(e.value+1,9),e.value!==9?t():setTimeout(()=>{r.value=!0},500)},50+Math.random()*100)};t()};export{m as _hW,n as s_OGr1FlrGMtk};

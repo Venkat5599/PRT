@@ -1,0 +1,1 @@
+import{v as s}from"./q-B92X-Pvc.js";import{_hW as m}from"./q-B92X-Pvc.js";import{t as c}from"./q-BP74M_ze.js";const f=({track:e})=>{const[t,a]=s(),n=e(()=>a.url.href),o=new URL(n,window.location.origin),r=`${o.pathname}${o.search}${o.hash}`;r!==t.value&&(t.value=r,c(o))};export{m as _hW,f as s_f0lzz8tLBDQ};

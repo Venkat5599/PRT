@@ -1,0 +1,1 @@
+import{I as e,A as n,s as o}from"./q-B92X-Pvc.js";const s=()=>e("span",null,{class:"font-mono text-[12px]/[16px] bg-white/8 before:inside-border before:border-white/6 relative px-8 py-4 rounded-6 mr-4"},n(o,null,3,"nm_3"),1,"nm_4");export{s as s_JmGCL0OQENU};

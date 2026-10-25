@@ -1,0 +1,1 @@
+import{v as r}from"./q-B92X-Pvc.js";import{_hW as i}from"./q-B92X-Pvc.js";const s=()=>{const[o]=r(),e=Object.keys(o).flatMap(t=>[setTimeout(()=>{o[t]="loading"},500+Math.random()*500),setTimeout(()=>{o[t]="finished"},1e3+Math.random()*1500)]);return()=>e.forEach(t=>clearTimeout(t))};export{i as _hW,s as s_PR44PEn1Zw8};

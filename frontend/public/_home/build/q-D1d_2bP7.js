@@ -1,0 +1,1 @@
+import{I as a,R as l}from"./q-B92X-Pvc.js";const n=e=>a("span",{class:["text-body-normal md-max:text-[12px] transition-all features-smoke-check-success absolute top-0 left-0",{"opacity-0 blur-[2px]":e.leaveTo||e.enterFrom,"translate-x-40":e.leaveTo,"-translate-x-10":e.enterFrom}]},null,l(t=>t.successLabel,[e]),3,"TX_7");export{n as s_zlQ1UICevqY};

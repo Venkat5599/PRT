@@ -1,0 +1,1 @@
+import{I as a,R as l}from"./q-B92X-Pvc.js";const o=t=>a("span",{class:["text-body-normal md-max:text-[12px] transition-all features-smoke-check-loading absolute top-0 left-0",{"opacity-0 blur-[2px]":t.leaveTo||t.enterFrom,"translate-x-40":t.leaveTo,"-translate-x-10":t.enterFrom}]},null,l(e=>e.loadingLabel,[t]),3,"TX_6");export{o as s_bcPKs03tBA4};

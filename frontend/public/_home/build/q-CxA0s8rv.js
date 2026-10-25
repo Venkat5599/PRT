@@ -1,0 +1,1 @@
+import{b as t,M as e}from"./q-BP74M_ze.js";const a=()=>{t("cta_clicked",{cta_label:"Compare live",cta_location:"site-hero",destination:"/dashboard#compare",device_type:window.innerWidth<e?"mobile":"desktop"})};export{a as s_4QeOn4xqlJs};

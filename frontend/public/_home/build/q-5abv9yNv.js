@@ -1,0 +1,1 @@
+import{v as t}from"./q-B92X-Pvc.js";import{_hW as c}from"./q-B92X-Pvc.js";const n=()=>{const[e,i]=t();e.value=i.value.clientHeight,window.addEventListener("resize",()=>{e.value=i.value.clientHeight})};export{c as _hW,n as s_iFbpclV1Tz8};

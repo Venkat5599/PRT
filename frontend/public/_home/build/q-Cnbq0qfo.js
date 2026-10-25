@@ -1,0 +1,1 @@
+import{I as n,R as l}from"./q-B92X-Pvc.js";const r=t=>n("div",null,{class:l(o=>["center-x -bottom-2 w-3 rounded-full h-3 bg-white/30 transition-all duration-[200ms]",{"opacity-0":o.leaveTo||o.enterFrom}],[t])},null,3,"KN_3");export{r as s_hJLv2sUbcMQ};

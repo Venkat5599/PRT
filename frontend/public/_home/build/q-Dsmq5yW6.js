@@ -1,0 +1,1 @@
+import{I as l,R as e}from"./q-B92X-Pvc.js";const n=a=>l("span",null,{class:"text-body-normal md-max:text-[12px] text-body-light-ghost opacity-50 transition-all absolute top-0 left-0",style:e(t=>t.leaveTo?{opacity:0,transform:"translateX(40px)",filter:"blur(2px)"}:{},[a])},e(t=>t.queueLabel,[a]),3,"TX_5");export{n as s_y1qVXSunNDI};
