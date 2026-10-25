@@ -87,7 +87,7 @@ export function TestPanel() {
         const info = await t.chainInfo(ws);
         setLanes((l) => l.map((x, k) => (k === i ? { ...x, info, busy: false } : x)));
       } catch (e) {
-        setLanes((l) => l.map((x, k) => (k === i ? { ...x, busy: false, err: isLocal(ws) ? `${(e as Error).message}: start a dev node on this port` : (e as Error).message } : x)));
+        setLanes((l) => l.map((x, k) => (k === i ? { ...x, busy: false, err: isLocal(ws) ? `${(e as Error).message}: start a dev node on this port, and allow local network access if the browser asks` : (e as Error).message } : x)));
       }
     };
     await Promise.all(eps.map(read));
@@ -199,7 +199,7 @@ export function TestPanel() {
       <dl className="facts test-facts">
         <div><dt>signer</dt><dd>{who.label || "–"}{devBoth && wallet?.wallet.kind === "substrate" && (
           <button type="button" className="more" disabled={busy} onClick={() => setUseWallet((u) => !u)}>{useWallet ? "use the dev account" : "sign with my wallet"}</button>)}</dd></div>
-        <div><dt>funding</dt><dd>{selected.length ? `${amount(need, lanes[0]?.info)} at a time, swept back after each workflow; fees and deposits are spent` : "–"}</dd></div>
+        <div><dt>funding</dt><dd>{selected.length && lanes[0]?.info ? `${amount(need, lanes[0].info)} at a time, swept back after each workflow; fees and deposits are spent` : "–"}</dd></div>
         {blocked && !busy && <div><dt>status</dt><dd className="bad">{blocked}</dd></div>}
       </dl>
 
