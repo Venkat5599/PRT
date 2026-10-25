@@ -1,1 +1,0 @@
-import{v as t}from"./q-B92X-Pvc.js";import{_hW as m}from"./q-B92X-Pvc.js";const r=({cleanup:o})=>{const[e]=t();o(()=>{e.value!==void 0&&window.clearTimeout(e.value)})};export{m as _hW,r as s_aWV0RxlVSK0};

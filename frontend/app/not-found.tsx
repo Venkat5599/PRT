@@ -1,3 +1,5 @@
+import "./globals.css";
+import "./motion.css";
 import Nav from "@/components/Nav";
 
 export default function NotFound() {

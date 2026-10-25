@@ -1,1 +1,0 @@
-import{I as l}from"./q-B92X-Pvc.js";const u=n=>l("span",null,{class:"flex gap-2 items-center"},[l("span",null,null,"[",3,null),Array.from({length:n.length},(e,s)=>l("div",{class:["w-6 bg-white/72",{"h-8":s<n.progress,"h-1":s>=n.progress}]},null,null,3,s)),l("span",null,null,"]",3,null)],1,"CZ_17");export{u as s_MqTJF3vqcUQ};

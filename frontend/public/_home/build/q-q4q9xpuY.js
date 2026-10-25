@@ -1,1 +1,0 @@
-import{v as m}from"./q-B92X-Pvc.js";import{_hW as l}from"./q-B92X-Pvc.js";import{i as c}from"./q-BP74M_ze.js";const p=({track:r})=>{const[o,s]=m();r(()=>o.src),s.value=o.mobileSrc&&c()?o.mobileSrc:o.src};export{l as _hW,p as s_f7mvgnwBEyM};

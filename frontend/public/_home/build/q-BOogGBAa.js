@@ -1,1 +1,0 @@
-const l=s=>{const e=document.querySelectorAll(".features-dashboard-sidebar-items-fade"),t=s.target;e[0].classList.toggle("opacity-0",t.scrollLeft===0),e[1].classList.toggle("opacity-0",t.scrollLeft+t.clientWidth>=t.scrollWidth)};export{l as s_5yNBuAt0new};

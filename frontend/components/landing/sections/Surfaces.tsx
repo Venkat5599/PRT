@@ -1,0 +1,42 @@
+// Generated from the landing markup by landing-port/gen.py. Do not edit by hand:
+// change the source or the generator and regenerate.
+import Wall from "@/components/landing/wall/Wall";
+
+export default function Surfaces() {
+  return (
+    <section className={"wall pt-144 md:pt-273 -mt-273 pb-56 md:pb-116 overflow-x-clip"}>
+      <div className={"w-713 max-w-[calc(100%-96px)] border-x border-white md:gradient-mask-b-0 h-[87px] md:h-[70%] top-0 center-x opacity-8 md:opacity-10 pointer-events-none"}></div>
+      <div className={"border max-w-992 w-[calc(100%-16px)] center-x top-86 md:top-200 border-white/10 gradient-mask-b-0 h-[70%] rounded-32 pointer-events-none"}></div>
+      <div className={"flex gap-2 items-center rounded-full bg-gradient-to-b from-white/10 to-white/5 py-4 px-8 bg-white/4 w-max mx-auto text-special-mono mb-12 shadow-badge-dark"}>
+        <svg fill={"none"} height={"14"} viewBox={"0 0 15 14"} width={"15"} xmlns={"http://www.w3.org/2000/svg"}>
+          <path d={"M7.7854 12.4673C12.76 9.67907 13.9839 6.35999 13.0481 4.02671C12.5938 2.89384 11.6402 2.08201 10.5155 1.83124C9.5253 1.61045 8.44318 1.83296 7.50016 2.58156C6.55714 1.83296 5.47503 1.61045 4.48481 1.83124C3.3601 2.08201 2.40651 2.89385 1.95218 4.02672C1.01643 6.36001 2.24036 9.67908 7.21499 12.4673C7.39216 12.5666 7.60823 12.5666 7.7854 12.4673Z"} fill={"url(#paint0_linear_554_4558)"} style={{} as React.CSSProperties}></path>
+          <defs>
+            <linearGradient gradientUnits={"userSpaceOnUse"} id={"paint0_linear_554_4558"} x1={"7.50017"} x2={"7.50017"} y1={"1.75"} y2={"12.5418"}>
+              <stop stopColor={"white"} style={{"stopColor": "white", "stopOpacity": "1"} as React.CSSProperties}></stop>
+              <stop offset={"1"} stopColor={"white"} stopOpacity={"0.8"} style={{"stopColor": "white", "stopOpacity": "0.8"} as React.CSSProperties}></stop>
+            </linearGradient>
+          </defs>
+        </svg>
+        <div className={"px-4 text-body-dark-label"}>
+          {"Live surfaces"}
+        </div>
+      </div>
+      <div className={"relative mb-24 px-24"}>
+        <h2 className={"relative z-10 block section-title text-title-h3 text-center"}>
+          <span className={"text-title-gradient"}>
+            {"Every check, running "}
+            <br />
+            {" against live Portaldot nodes"}
+          </span>
+          <span aria-hidden={"true"} className={"section-title-shadow overlay -z-10"}>
+            {"Every check, running "}
+            <br />
+            {" against live Portaldot nodes"}
+          </span>
+        </h2>
+        <div className={"max-w-992 w-full center-x -bottom-52 bg-white/10 h-1 rounded-32 md-max:!hidden"}></div>
+      </div>
+      <Wall />
+    </section>
+  );
+}

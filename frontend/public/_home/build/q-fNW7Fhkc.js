@@ -1,1 +1,0 @@
-import{b as t,M as e}from"./q-BP74M_ze.js";const i=()=>{t("cta_clicked",{cta_label:"Repository",cta_location:"header",destination:"https://github.com/Venkat5599/PRT",device_type:window.innerWidth<e?"mobile":"desktop"})};export{i as s_nH3DEu1eTQ0};

@@ -1,1 +1,0 @@
-import{v as r}from"./q-B92X-Pvc.js";import{_hW as i}from"./q-B92X-Pvc.js";const u=({track:t})=>{const[l,n]=r();t(()=>l.value),t(()=>n.value);const o=l.value,e=n.value;!o||!e||(e.childElementCount!==1||e.firstElementChild!==o)&&e.replaceChildren(o)};export{i as _hW,u as s_L4S0eFULsBg};

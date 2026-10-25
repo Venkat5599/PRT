@@ -1,1 +1,0 @@
-import{v as a}from"./q-B92X-Pvc.js";import{_hW as m}from"./q-B92X-Pvc.js";const n=({track:e})=>{const[s,i,f,r]=a();e(()=>r.url.pathname);const o=f.onQVisible$;if(o){const v=new CustomEvent("qvisible");Array.isArray(o)?o.flat(10).forEach(t=>t==null?void 0:t(v,s.value)):o==null||o(v,s.value)}s.value&&(i==null||i(void 0,s.value))};export{m as _hW,n as s_d0gsCqxn3LE};

@@ -1,9 +1,9 @@
 import type { Metadata, Viewport } from "next";
-import "./globals.css";
-import "./motion.css";
 
+// Bare root: each surface loads its own stylesheet (the landing in app/page.tsx,
+// the dashboard in app/dashboard/layout.tsx), so neither leaks into the other.
 export const metadata: Metadata = {
-  metadataBase: new URL("https://portal-canary.vercel.app"),
+  metadataBase: new URL("https://portal-canary-app.vercel.app"),
   openGraph: { type: "website", siteName: "Portal Canary", title: "Portal Canary", description: "Mainnet vs PortaldotV3: 948 runtime changes, 3 would halt the chain. Compare any two Portaldot runtimes live in your browser." },
   twitter: { card: "summary_large_image" },
   title: "Portal Canary",
@@ -17,10 +17,6 @@ export const viewport: Viewport = { width: "device-width", initialScale: 1, them
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en">
-      <head>
-        <link rel="preload" href="/fonts/sentient-300.woff2" as="font" type="font/woff2" crossOrigin="" />
-        <link rel="preload" href="/fonts/sentient-300i.woff2" as="font" type="font/woff2" crossOrigin="" />
-      </head>
       <body>{children}</body>
     </html>
   );

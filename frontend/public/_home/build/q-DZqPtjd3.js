@@ -1,1 +1,0 @@
-import{v as f}from"./q-B92X-Pvc.js";import{_hW as s}from"./q-B92X-Pvc.js";const c=()=>{const[t,o,n,r,e]=f();if(!e.value)return;const d=e.value.getBoundingClientRect(),a=Math.max((window.innerWidth-n)/2,0);o.value=d.bottom+8+r.value,t.value=a};export{s as _hW,c as s_fzeTpBrgayc};

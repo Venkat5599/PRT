@@ -1,1 +1,0 @@
-import{_ as r}from"./q-DJjmezVZ.js";import{k as e,g as n,d as _,L as o,e as i}from"./q-B92X-Pvc.js";const d=s=>{const a=e(s,["density"]),t=n();return _(o(()=>r(()=>import("./q-QlGISzv7.js"),[]),"s_nhOq80hMrm0",[t,s])),i("canvas",{...a,ref:t},null,0,"az_0")};export{d as s_S7h072dXnwg};

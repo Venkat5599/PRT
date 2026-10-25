@@ -1,1 +1,0 @@
-const o=e=>{e.preventDefault(),window.open("https://github.com/Venkat5599/PRT/issues","_blank","noopener")};export{o as s_abczO9QDTaY};
