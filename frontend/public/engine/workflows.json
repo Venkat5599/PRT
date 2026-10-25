@@ -1,0 +1,323 @@
+[
+ {
+  "path": "tests/workflows/balances.keep_alive.yaml",
+  "sha256": "90fecea30c3355730d68d000a88cbe3edfa7a77c2d875d1bf19409cddcfb0f8d",
+  "workflow": {
+   "id": "balances.keep_alive",
+   "description": "transfer_keep_alive of the whole balance must be refused so the sender is never reaped.",
+   "importance": "core",
+   "accounts": [
+    "sender",
+    "receiver"
+   ],
+   "fund": [
+    {
+     "account": "sender",
+     "amount": "100000000000000000"
+    }
+   ],
+   "steps": [
+    {
+     "call": "Balances.transferKeepAlive",
+     "signer": "sender",
+     "args": {
+      "dest": "receiver",
+      "value": "100000000000000000"
+     }
+    }
+   ],
+   "expect": [
+    {
+     "dispatch": {
+      "step": 0,
+      "status": "failed"
+     }
+    },
+    {
+     "delta": {
+      "account": "receiver",
+      "field": "free",
+      "eq": "0"
+     }
+    },
+    {
+     "invariant": "supply_conservation"
+    }
+   ]
+  }
+ },
+ {
+  "path": "tests/workflows/balances.transfer.basic.yaml",
+  "sha256": "9e36dec6262dbc2eeb0a68c74a57ce5b88ace9dff5db445f1507625e1a211a00",
+  "workflow": {
+   "id": "balances.transfer.basic",
+   "description": "A funded account transfers POT; the receiver gets exactly the amount and supply is conserved.",
+   "importance": "core",
+   "accounts": [
+    "sender",
+    "receiver"
+   ],
+   "fund": [
+    {
+     "account": "sender",
+     "amount": "100000000000000000"
+    }
+   ],
+   "steps": [
+    {
+     "call": "Balances.transfer",
+     "signer": "sender",
+     "args": {
+      "dest": "receiver",
+      "value": "100000000000000"
+     }
+    }
+   ],
+   "expect": [
+    {
+     "dispatch": {
+      "step": 0,
+      "status": "success"
+     }
+    },
+    {
+     "delta": {
+      "account": "receiver",
+      "field": "free",
+      "eq": "100000000000000"
+     }
+    },
+    {
+     "delta": {
+      "account": "sender",
+      "field": "free",
+      "lt": "-100000000000000"
+     }
+    },
+    {
+     "event": {
+      "step": 0,
+      "name": "balances.Transfer"
+     }
+    },
+    {
+     "invariant": "supply_conservation"
+    }
+   ]
+  }
+ },
+ {
+  "path": "tests/workflows/balances.transfer.insufficient.yaml",
+  "sha256": "c47741e21ab6388b85b06089b2d5f1c80742f27453be1faee731d69e957c1226",
+  "workflow": {
+   "id": "balances.transfer.insufficient",
+   "description": "A transfer larger than the balance must fail at dispatch and move no funds to the receiver.",
+   "importance": "core",
+   "accounts": [
+    "sender",
+    "receiver"
+   ],
+   "fund": [
+    {
+     "account": "sender",
+     "amount": "100000000000000000"
+    }
+   ],
+   "steps": [
+    {
+     "call": "Balances.transfer",
+     "signer": "sender",
+     "args": {
+      "dest": "receiver",
+      "value": "10000000000000000000"
+     }
+    }
+   ],
+   "expect": [
+    {
+     "dispatch": {
+      "step": 0,
+      "status": "failed",
+      "error": "InsufficientBalance"
+     }
+    },
+    {
+     "delta": {
+      "account": "receiver",
+      "field": "free",
+      "eq": "0"
+     }
+    },
+    {
+     "event": {
+      "step": 0,
+      "name": "system.ExtrinsicFailed"
+     }
+    },
+    {
+     "invariant": "supply_conservation"
+    }
+   ]
+  }
+ },
+ {
+  "path": "tests/workflows/contracts.counter.yaml",
+  "sha256": "fb68857eaca76f4ba9b0c4b82ddd3a5a159166175d2a4de32b7742ebc9c0a701",
+  "workflow": {
+   "id": "contracts.counter",
+   "description": "A WASM contract deploys with an endowment, keeps state across calls and emits the counter value.",
+   "importance": "core",
+   "history_events": [
+    "contracts.CodeStored"
+   ],
+   "accounts": [
+    "user"
+   ],
+   "fund": [
+    {
+     "account": "user",
+     "amount": "100000000000000000"
+    }
+   ],
+   "steps": [
+    {
+     "call": "Contracts.instantiateWithCode",
+     "signer": "user",
+     "args": {
+      "endowment": "5000000000000000",
+      "gas_limit": "200000000000",
+      "code": "file:tests/contracts/counter.wasm",
+      "data": "0x",
+      "salt": "0x00"
+     }
+    },
+    {
+     "call": "Contracts.call",
+     "signer": "user",
+     "args": {
+      "dest": "step:0:contracts.Instantiated:1",
+      "value": "0",
+      "gas_limit": "200000000000",
+      "data": "0x"
+     }
+    },
+    {
+     "call": "Contracts.call",
+     "signer": "user",
+     "args": {
+      "dest": "step:0:contracts.Instantiated:1",
+      "value": "0",
+      "gas_limit": "200000000000",
+      "data": "0x"
+     }
+    }
+   ],
+   "expect": [
+    {
+     "dispatch": {
+      "step": 0,
+      "status": "success"
+     }
+    },
+    {
+     "event": {
+      "step": 0,
+      "name": "contracts.Instantiated"
+     }
+    },
+    {
+     "dispatch": {
+      "step": 1,
+      "status": "success"
+     }
+    },
+    {
+     "event": {
+      "step": 1,
+      "name": "contracts.ContractEmitted",
+      "contains": "0x0100000000000000"
+     }
+    },
+    {
+     "dispatch": {
+      "step": 2,
+      "status": "success"
+     }
+    },
+    {
+     "event": {
+      "step": 2,
+      "name": "contracts.ContractEmitted",
+      "contains": "0x0200000000000000"
+     }
+    },
+    {
+     "delta": {
+      "account": "user",
+      "field": "free",
+      "lt": "-5000000000000000"
+     }
+    },
+    {
+     "invariant": "supply_conservation"
+    }
+   ]
+  }
+ },
+ {
+  "path": "tests/workflows/identity.deposit.yaml",
+  "sha256": "d8a7660450f049e455f1626e681d07aafa8d7a145a810afc40301c99d574473d",
+  "workflow": {
+   "id": "identity.deposit",
+   "description": "Setting an on-chain identity reserves a deposit from free balance; supply is conserved.",
+   "importance": "normal",
+   "accounts": [
+    "user"
+   ],
+   "fund": [
+    {
+     "account": "user",
+     "amount": "100000000000000000"
+    }
+   ],
+   "steps": [
+    {
+     "call": "Identity.setIdentity",
+     "signer": "user",
+     "args": {
+      "info": {
+       "display": {
+        "Raw": "canary"
+       },
+       "additional": []
+      }
+     }
+    }
+   ],
+   "expect": [
+    {
+     "dispatch": {
+      "step": 0,
+      "status": "success"
+     }
+    },
+    {
+     "delta": {
+      "account": "user",
+      "field": "reserved",
+      "gt": "0"
+     }
+    },
+    {
+     "event": {
+      "step": 0,
+      "name": "identity.IdentitySet"
+     }
+    },
+    {
+     "invariant": "supply_conservation"
+    }
+   ]
+  }
+ }
+]

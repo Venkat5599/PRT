@@ -4,7 +4,7 @@
 
 `try-runtime` tells you the migration ran. Portal Canary tells you whether your app still works, shows the exact state that diverged, and gives you one command to reproduce it.
 
-**Live:** https://portal-canary.vercel.app (recorded runs and their full reports)
+**Live:** https://portal-canary-app.vercel.app (live compare, the workflow suite with on-chain attestation, recorded runs and their full reports)
 
 > Status: early development for the Portaldot Hacker House 2026 (Node Operations & Tooling track). See [`docs/PLAN.md`](docs/PLAN.md) for the full design and [`docs/V3_READINESS.md`](docs/V3_READINESS.md) for live V3 endpoint checks.
 
@@ -37,7 +37,7 @@ Exit code 1, so it blocks CI. `canary invariants --at <post-upgrade block>` conf
 ## Repository layout
 
 ```
-frontend/   Next.js site: landing page and /dashboard (live compare, doctor, runs, invariants)
+frontend/   Next.js site: landing page and /dashboard (compare, test + attest, doctor, runs, registry, invariants)
 backend/    Rust workspace: the canary CLI and engine
   crates/canary-chain   metadata decoder (V13 + V14), structural diff, hazards, RPC
   crates/canary-cli     canary doctor / compare / invariants / test / upgrade / reproduce
@@ -133,7 +133,18 @@ The public dev node and mainnet report the same `spec_version` 1002 but are diff
 
 ### In the browser
 
-The landing page ([portal-canary.vercel.app](https://portal-canary.vercel.app/#live)) runs the same comparison live. The page opens a WebSocket to each node and calls `canary-chain`'s decoder and diff, compiled to WebAssembly (`backend/crates/canary-wasm`, about 300 KB). No server is involved and nothing needs installing. The full change list, an endpoint doctor, the recorded runs and the mainnet invariant live on [`/dashboard`](https://portal-canary.vercel.app/dashboard). A wallet adapter (Talisman, SubWallet, Polkadot.js, or MetaMask on the V3 EVM chain) is optional: it shows your address and live tPOT balance. The site is a Next.js app in `frontend/` (`bun run dev` / `bun run build`). Rebuild the engine with `scripts/build-wasm.sh`. `bun scripts/engine-live.test.ts` runs the browser module against mainnet and V3 and checks it against the CLI result (948 changes, 3 hazards, and 0 for the control).
+The landing page ([portal-canary-app.vercel.app](https://portal-canary-app.vercel.app)) runs the same comparison live. The page opens a WebSocket to each node and calls `canary-chain`'s decoder and diff, compiled to WebAssembly (`backend/crates/canary-wasm`, about 300 KB). No server is involved and nothing needs installing. [`/dashboard`](https://portal-canary-app.vercel.app/dashboard) holds the full change list, an endpoint doctor, the recorded runs, the on-chain registry and the mainnet invariant.
+
+Its **Test** panel is `canary test` and `canary attest` in the browser (`frontend/lib/tx`). It runs the workflow suite as real signed extrinsics on both endpoints, classifies each finding like `verdict.rs`, anchors the report with `system.remark` and verifies the anchor from the chain. On a local dev chain (`ws://127.0.0.1:9944`) the public dev accounts sign, so nothing is needed. On any other chain, including the V3 testnet, a connected Substrate wallet (Portaldot, Talisman, SubWallet, Polkadot.js) signs and pays. The panel reads the wallet's balance first and refuses to start a run the wallet cannot fund. Per-run accounts are swept back after each workflow, so a run costs only fees and deposits. `canary verify --run <dir>` accepts the `report.json` and `attestation.json` the page downloads.
+
+The site is a Next.js app in `frontend/` (`bun run dev` / `bun run build`). `bun run test` checks four things, and CI runs the same tests:
+
+- every landing component still server-renders the markup of the original static page;
+- every served report's finding hashes, verdicts and attestation payloads rebuild exactly;
+- the browser's runtime-API table matches `apis.rs`;
+- the packaged workflow suite matches `backend/tests` (`bun run suite` repackages it).
+
+Rebuild the engine with `scripts/build-wasm.sh`. `bun scripts/engine-live.test.ts` runs the browser module against mainnet and V3 and checks it against the CLI result (948 changes, 3 hazards, and 0 for the control).
 
 ## Available now: `canary test` and `canary reproduce`
 

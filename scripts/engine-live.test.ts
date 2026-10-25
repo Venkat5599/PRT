@@ -5,7 +5,7 @@
 import { readFileSync } from "node:fs";
 import { Node, readRuntime, loadEngine, compare, tally } from "../frontend/lib/canary.ts";
 
-const ORIGIN = process.env.CANARY_ORIGIN ?? "https://portal-canary.vercel.app";
+const ORIGIN = process.env.CANARY_ORIGIN ?? "https://portal-canary-app.vercel.app";
 const BASE = process.env.CANARY_BASELINE ?? "wss://mainnet.portaldot.io";
 const CAND = process.env.CANARY_CANDIDATE ?? "wss://test-node-v3.portaldot.dev";
 

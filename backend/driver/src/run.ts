@@ -15,6 +15,8 @@ import { ApiPromise, WsProvider } from "@polkadot/api";
 import { Keyring } from "@polkadot/keyring";
 import { u8aToHex } from "@polkadot/util";
 import { cryptoWaitReady } from "@polkadot/util-crypto";
+import { bridge } from "@polkadot/wasm-crypto";
+import { createWasm } from "@polkadot/wasm-crypto-init";
 
 type Step = {
   call: string;
@@ -42,9 +44,23 @@ function deriveFrom(keyring: Keyring, name: string) {
   return keyring.addFromUri(uri);
 }
 
+// cryptoWaitReady() resolves false (it does not throw) when the WASM crypto fails to
+// instantiate, and the failed attempt stays cached: every key derivation after it dies on a
+// null WASM instance. Check the result, retry with a fresh instance, and fail loudly with the
+// underlying error instead of reporting an unresolved step.
+async function cryptoReady() {
+  if (await cryptoWaitReady()) return;
+  for (let attempt = 1; attempt <= 3; attempt++) {
+    await bridge.init(createWasm);
+    if (bridge.wasm) return;
+    await Bun.sleep(200 * attempt);
+  }
+  throw new Error(`crypto initialisation failed: ${bridge.error ?? "unknown error"}`);
+}
+
 async function main() {
   const job: Job = JSON.parse(await Bun.stdin.text());
-  await cryptoWaitReady();
+  await cryptoReady();
   // Portaldot's 2021 runtime (spec "portaldot", metadata V13) encodes DispatchError::Module
   // as { index: u8, error: u8 }; current polkadot.js assumes the later 4-byte error and fails
   // to decode System.Events. Scoped to that spec only: PortaldotV3 ("portaldot-v3") ships V14

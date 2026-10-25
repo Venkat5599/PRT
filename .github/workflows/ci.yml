@@ -38,7 +38,14 @@ jobs:
           bun-version: 1.3.8
       - run: cd backend && cargo test -p canary-wasm
       - run: scripts/build-wasm.sh
-      - run: cd frontend && bun install --frozen-lockfile && bun run build
+      - name: install
+        run: cd frontend && bun install --frozen-lockfile
+      - name: typecheck
+        run: cd frontend && bun run typecheck
+      - name: tests (landing markup, report hashes and verdicts, CLI parity, packaged suite)
+        run: cd frontend && bun test tests
+      - name: build
+        run: cd frontend && bun run build
 
   integration:
     # Real Portaldot dev node: doctor, live-mainnet compare, and a determinism

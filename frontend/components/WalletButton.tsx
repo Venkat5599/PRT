@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { WALLETS, V3, balance, connect, installed, short, type Connected, type WalletInfo } from "@/lib/wallet";
+import { WALLETS, V3, balance, connect, installed, short, walletStore, type Connected, type WalletInfo } from "@/lib/wallet";
 
 const KEY = "canary.wallet";
 
@@ -50,7 +50,7 @@ export default function WalletButton() {
     setBusy(w.id); setErr(null);
     try {
       const c = await connect(w);
-      setConn(c); setBal(null);
+      setConn(c); setBal(null); walletStore.set(c);
       try { localStorage.setItem(KEY, w.id); } catch {}
     } catch (e) {
       if (!quiet) setErr((e as Error).message);
@@ -60,7 +60,7 @@ export default function WalletButton() {
   }
 
   function disconnect() {
-    setConn(null); setBal(null); setOpen(false);
+    setConn(null); setBal(null); setOpen(false); walletStore.set(null);
     try { localStorage.removeItem(KEY); } catch {}
   }
 

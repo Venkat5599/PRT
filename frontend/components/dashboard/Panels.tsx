@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { Node, readRuntime } from "@/lib/canary";
 import { readRegistry, sha256Of, REGISTRY, type OnChain } from "@/lib/registry";
 import {
@@ -9,14 +9,14 @@ import {
 } from "@/lib/checks";
 import { V3 } from "@/lib/wallet";
 
-const fmt = (n: number | null | undefined) => (n == null ? "–" : n.toLocaleString("en"));
-function download(name: string, data: unknown) {
+export const fmt = (n: number | null | undefined) => (n == null ? "–" : n.toLocaleString("en"));
+export function download(name: string, data: unknown) {
   const text = typeof data === "string" ? data : JSON.stringify(data, (_k, v) => (typeof v === "bigint" ? v.toString() : v), 2);
   const url = URL.createObjectURL(new Blob([text], { type: "application/json" }));
   Object.assign(document.createElement("a"), { href: url, download: name }).click();
   setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
-const Tick = ({ ok, wait }: { ok?: boolean; wait?: boolean }) => (
+export const Tick = ({ ok, wait }: { ok?: boolean; wait?: boolean }) => (
   <span className={`tick ${wait ? "wait" : ok ? "ok" : "bad"}`} aria-hidden="true">{wait ? "·" : ok ? "✓" : "✕"}</span>
 );
 
@@ -182,7 +182,7 @@ type SideRun = { endpoint: string; setup_error: string | null; expectations?: Ex
 type Contrast = { what: string; baseline: string; candidate: string };
 type Finding = { workflow: string; verdict: string; finding_hash: string; severity: string; rationale: string; regressed: Contrast[]; differences: Contrast[]; baseline_failures: Contrast[] };
 type Result = { finding: Finding; baseline?: SideRun; candidate?: SideRun; reproduce?: string };
-type RunData = {
+export type RunData = {
   summary: Summary;
   manifest: { kind?: string; detail?: string; injected?: string | null;
     baseline: { endpoint?: string; spec_version: number; metadata_version?: number }; candidate: { endpoint?: string; spec_version: number; metadata_version?: number } };
@@ -192,14 +192,14 @@ type StateSnap = { block_number: number; accounts: number; sum_free: string; sum
 type Upgrade = { wasm: string; spec_before: number; spec_after: number; liveness: string;
   state: { before: StateSnap; after: StateSnap; changes: { address: string; reserved_before: string; reserved_after: string; total_delta: string }[] } };
 
-function verdict(s: Summary) {
+export function verdict(s: Summary) {
   if (s.regression && s.headline) return { text: s.headline, cls: "reg", exit: 1 };
   if (s.regression) return { text: `${s.regression} regression${s.regression > 1 ? "s" : ""}`, cls: "reg", exit: 1 };
   if (s.inconclusive) return { text: `${s.inconclusive} inconclusive`, cls: "base", exit: 2 };
   if (s.difference) return { text: `${s.difference} difference${s.difference > 1 ? "s" : ""}`, cls: "diff", exit: 0 };
   return { text: "All pass", cls: "same", exit: 0 };
 }
-const vcls = (v: string) => ({ REGRESSION: "reg", DIFFERENCE: "diff", PASS: "same" } as Record<string, string>)[v] ?? "base";
+export const vcls = (v: string) => ({ REGRESSION: "reg", DIFFERENCE: "diff", PASS: "same" } as Record<string, string>)[v] ?? "base";
 const pot = (planck: string) => `${formatUnits(BigInt(planck.replace(/^\+/, "")), 14)} POT`;
 
 async function checkAnchor(id: string): Promise<{ att: Attestation; checks: Check[] }> {
@@ -226,7 +226,9 @@ function AttestBox({ id }: { id: string }) {
   );
 }
 
-function RunDetail({ id, d }: { id: string; d: RunData }) {
+/** One run: every finding with its expectations, each finding hash recomputed here, and the
+ * on-chain anchor. `attest` replaces the recorded-anchor box for a run made in this browser. */
+export function RunDetail({ id, d, attest }: { id: string; d: RunData; attest?: ReactNode }) {
   const [repro, setRepro] = useState<Record<string, boolean>>({});
   const [up, setUp] = useState<Upgrade | null>(null);
   useEffect(() => {
@@ -282,7 +284,7 @@ function RunDetail({ id, d }: { id: string; d: RunData }) {
           </details>
         ))}
       </div>
-      <AttestBox id={id} />
+      {attest ?? <AttestBox id={id} />}
     </div>
   );
 }

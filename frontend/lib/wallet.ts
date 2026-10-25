@@ -136,3 +136,12 @@ export async function balance(c: Connected): Promise<string> {
 }
 
 export const short = (a: string) => `${a.slice(0, 6)}…${a.slice(-4)}`;
+
+/* ---------- the connected wallet, shared by the header button and the panels that sign ---------- */
+let current: Connected | null = null;
+const listeners = new Set<(c: Connected | null) => void>();
+export const walletStore = {
+  get: () => current,
+  set(c: Connected | null) { current = c; listeners.forEach((f) => f(c)); },
+  subscribe(f: (c: Connected | null) => void) { listeners.add(f); return () => { listeners.delete(f); }; },
+};
