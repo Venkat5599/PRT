@@ -1,0 +1,181 @@
+name: canary run
+
+# One Portal Canary run, started from the dashboard (or `gh workflow run`). Two fresh
+# Portaldot dev chains; the baseline is upgraded to the clean build of the public source, the
+# candidate to the runtime under test. Then the CLI checks the upgrade (liveness, every account,
+# supply), diffs the two runtimes, and runs the workflow suite on both. Every result file is
+# uploaded as the artifact canary-run-<run_id>, which the dashboard reads.
+run-name: "canary run ${{ inputs.run_id }} · ${{ inputs.candidate }}"
+
+on:
+  workflow_dispatch:
+    inputs:
+      run_id:
+        description: "Id the dashboard uses to find this run (12 hex chars)"
+        required: true
+      candidate:
+        description: "Runtime under test: clean, ed100x, fee10x, halve-reserved, source-60s, or url"
+        required: true
+        default: ed100x
+      wasm_url:
+        description: "https URL of a .compact.wasm (only with candidate=url)"
+        required: false
+        default: ""
+      label:
+        description: "What changed in this runtime (recorded in the report)"
+        required: false
+        default: ""
+
+concurrency:
+  group: canary-run-${{ inputs.run_id }}
+
+permissions:
+  contents: read
+
+jobs:
+  run:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: backend
+    env:
+      OUT: ${{ github.workspace }}/out
+    steps:
+      - uses: actions/checkout@v5
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: backend
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.3.8
+
+      - name: Check inputs
+        env:
+          RUN_ID: ${{ inputs.run_id }}
+          CANDIDATE: ${{ inputs.candidate }}
+          WASM_URL: ${{ inputs.wasm_url }}
+        run: |
+          mkdir -p "$OUT"
+          [[ "$RUN_ID" =~ ^[0-9a-f]{12}$ ]] || { echo "run_id must be 12 hex characters"; exit 1; }
+          case "$CANDIDATE" in
+            clean|ed100x|fee10x|halve-reserved|source-60s) ;;
+            url) [[ "$WASM_URL" =~ ^https:// ]] || { echo "candidate=url needs an https wasm_url"; exit 1; } ;;
+            *) echo "unknown candidate $CANDIDATE"; exit 1 ;;
+          esac
+
+      - name: Build the canary CLI
+        run: |
+          cargo build --release -q
+          (cd driver && bun install --frozen-lockfile)
+          (cd runtimes/out && sha256sum -c SHA256SUMS)
+
+      - name: Get the candidate runtime
+        env:
+          CANDIDATE: ${{ inputs.candidate }}
+          WASM_URL: ${{ inputs.wasm_url }}
+        run: |
+          if [ "$CANDIDATE" = url ]; then
+            curl -fsSL --max-filesize 16000000 --max-time 60 -o "$OUT/candidate.wasm" "$WASM_URL"
+          else
+            cp "runtimes/out/$CANDIDATE.compact.wasm" "$OUT/candidate.wasm"
+          fi
+          ls -l "$OUT/candidate.wasm"
+          sha256sum "$OUT/candidate.wasm"
+
+      - name: Start two fresh Portaldot dev chains
+        run: |
+          curl -fsSL -o node.tgz https://github.com/portaldotVolunteer/Portaldot-node/raw/main/portaldot-testnet-ubuntu.tar.gz
+          tar -xzf node.tgz
+          NODE=./portaldot-testnet-ubuntu/portaldot_dev
+          $NODE --dev --tmp --ws-port 9944 --rpc-port 9933 --port 30333 > "$OUT/baseline-node.log" 2>&1 &
+          $NODE --dev --tmp --ws-port 9945 --rpc-port 9934 --port 30334 > "$OUT/candidate-node.log" 2>&1 &
+          for p in 9944 9945; do
+            for i in $(seq 90); do ./target/release/canary doctor --ws ws://127.0.0.1:$p > /dev/null 2>&1 && break; sleep 1; done
+          done
+          sleep 8
+          ./target/release/canary doctor --ws ws://127.0.0.1:9944 --ws ws://127.0.0.1:9945
+
+      - name: Upgrade the baseline to the clean runtime
+        run: ./target/release/canary upgrade --ws ws://127.0.0.1:9944 --wasm runtimes/out/clean.compact.wasm --out "$OUT/baseline-upgrade.json"
+
+      - name: Upgrade the candidate (liveness, accounts, supply)
+        id: upgrade
+        continue-on-error: true
+        run: |
+          set +e
+          ./target/release/canary upgrade --ws ws://127.0.0.1:9945 --wasm "$OUT/candidate.wasm" --timeout 60 --out "$OUT/upgrade.json" 2>&1 | tee "$OUT/upgrade.txt"
+          code=${PIPESTATUS[0]}
+          echo "exit=$code" >> "$GITHUB_OUTPUT"
+          grep -q HALTED "$OUT/upgrade.txt" && echo "halted=true" >> "$GITHUB_OUTPUT" || echo "halted=false" >> "$GITHUB_OUTPUT"
+          grep -m1 -o "panicked at [^,]*" "$OUT/candidate-node.log" > "$OUT/candidate-panic.txt" || true
+          exit $code
+
+      - name: Compare the two runtimes
+        id: compare
+        if: steps.upgrade.outputs.halted != 'true' && steps.upgrade.outputs.exit != '2'
+        continue-on-error: true
+        run: |
+          sleep 6
+          set +e
+          ./target/release/canary compare --baseline ws://127.0.0.1:9944 --candidate ws://127.0.0.1:9945 --json > "$OUT/compare.json"
+          code=$?
+          echo "exit=$code" >> "$GITHUB_OUTPUT"
+          exit $code
+
+      - name: Run the workflow suite on both
+        id: test
+        if: steps.upgrade.outputs.halted != 'true' && steps.upgrade.outputs.exit != '2'
+        continue-on-error: true
+        env:
+          LABEL: ${{ inputs.label }}
+        run: |
+          set +e
+          ./target/release/canary test --baseline ws://127.0.0.1:9944 --candidate ws://127.0.0.1:9945 --out runs/job ${LABEL:+--injected "$LABEL"} 2>&1 | tee "$OUT/test.txt"
+          code=${PIPESTATUS[0]}
+          echo "exit=$code" >> "$GITHUB_OUTPUT"
+          RUN="$(ls -d runs/job/* | sort | tail -n 1)"
+          cp "$RUN/report.json" "$OUT/report.json"
+          exit $code
+
+      - name: Write the result
+        if: always()
+        env:
+          RUN_ID: ${{ inputs.run_id }}
+          CANDIDATE: ${{ inputs.candidate }}
+          WASM_URL: ${{ inputs.wasm_url }}
+          LABEL: ${{ inputs.label }}
+          UPGRADE_EXIT: ${{ steps.upgrade.outputs.exit }}
+          HALTED: ${{ steps.upgrade.outputs.halted }}
+          COMPARE_EXIT: ${{ steps.compare.outputs.exit }}
+          TEST_EXIT: ${{ steps.test.outputs.exit }}
+        run: |
+          python3 - <<'EOF'
+          import hashlib, json, os
+          out = os.environ["OUT"]
+          def sha(p):
+              p = os.path.join(out, p) if not os.path.isabs(p) else p
+              return hashlib.sha256(open(p, "rb").read()).hexdigest() if os.path.exists(p) else None
+          num = lambda k: int(os.environ[k]) if os.environ.get(k, "").isdigit() else None
+          panic = os.path.join(out, "candidate-panic.txt")
+          json.dump({
+              "run_id": os.environ["RUN_ID"],
+              "candidate": {"name": os.environ["CANDIDATE"], "url": os.environ["WASM_URL"] or None, "label": os.environ["LABEL"] or None,
+                            "sha256": sha("candidate.wasm"), "bytes": os.path.getsize(os.path.join(out, "candidate.wasm")) if os.path.exists(os.path.join(out, "candidate.wasm")) else None},
+              "baseline": {"name": "clean", "sha256": sha(os.path.abspath("runtimes/out/clean.compact.wasm"))},
+              "exit": {"upgrade": num("UPGRADE_EXIT"), "compare": num("COMPARE_EXIT"), "test": num("TEST_EXIT")},
+              "halted": os.environ.get("HALTED") == "true",
+              "panic": open(panic).read().strip() or None if os.path.exists(panic) else None,
+              "files": sorted(f for f in os.listdir(out) if f.endswith((".json", ".txt"))),
+          }, open(os.path.join(out, "result.json"), "w"), indent=2)
+          EOF
+          cat "$OUT/result.json"
+          rm -f "$OUT/candidate.wasm"
+
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: canary-run-${{ inputs.run_id }}
+          path: out
+          retention-days: 30
