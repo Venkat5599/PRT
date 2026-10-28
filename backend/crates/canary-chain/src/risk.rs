@@ -116,6 +116,8 @@ pub fn assess(a: &Side, b: &Side, changes: &[Change]) -> Vec<Risk> {
             (Some("storage"), ChangeKind::Removed) => g.add(Severity::Migration, "storage-removed", p,
                 |n| format!("{p}: {} removed", plural(n, "storage item", "storage items")),
                 "the data stays in state unless a migration clears it; anything reading it gets nothing back", c),
+            // System.Version is the runtime version itself; it changes in every upgrade.
+            (Some("constant"), ChangeKind::Modified) if c.path == "System.constant.Version" => {}
             (Some("constant"), ChangeKind::Modified) => g.add(Severity::Behaviour, "constant", p,
                 |n| format!("{p}: {} change value", plural(n, "constant", "constants")),
                 "the chain behaves differently after the upgrade (fees, deposits, limits); accounts and apps tuned to the old value are affected", c),
@@ -237,6 +239,12 @@ mod tests {
         assert!(got.contains(&("error", Severity::Client)));
         assert!(got.contains(&("runtime-api", Severity::Client)));
         assert_eq!(r[0].severity, Severity::Behaviour);
+    }
+
+    #[test]
+    fn runtime_version_constant_is_not_a_risk() {
+        let c = [ch(ChangeKind::Modified, "System.constant.Version", Some("1003"), Some("1005"))];
+        assert!(assess(&side("p", 1003, 1), &side("p", 1005, 1), &c).is_empty());
     }
 
     #[test]
