@@ -83,3 +83,12 @@ test("Test panel's packaged suite matches backend/tests", () => {
   expect(readFileSync(join(ROOT, "public", "engine", "workflows.json"), "utf8")).toBe(json);
   expect(readFileSync(join(ROOT, "public", "engine", "contracts", "counter.wasm")).equals(wasm)).toBe(true);
 });
+
+// The remark `canary attest` writes for a full run (attest.rs test run_payload_from_result_json).
+test("run remark rebuilt in the page matches the CLI", async () => {
+  const { runPayload } = await import("../lib/runresult");
+  const text = readFileSync(join(import.meta.dir, "../../backend/tests/fixtures/run/result.json"), "utf8");
+  const { sha, payload } = await runPayload(text);
+  expect(sha).toBe("d06ca94c27db9c831dbb13b51b990962511834c89482cf510007cefd5544f36f");
+  expect(payload).toBe("canary-run/1 d06ca94c27db9c831dbb13b51b990962511834c89482cf510007cefd5544f36f 959e58764a17 u=1 c=0 t=1 h=0");
+});

@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { walletStore, type Connected } from "@/lib/wallet";
 import { verdictOf, file, potOf, dur, type Files, type Result, type Upgrade, type Comparison } from "@/lib/runresult";
 import { RunDetail, download, type RunData } from "./Panels";
-import { AttestRun, type Saved } from "./TestPanel";
+import { Proof } from "./Proof";
 
 // One run on GitHub's runners: its steps while it runs, then the verdict and the evidence behind
 // it (the upgrade, the runtime diff, every workflow), all read from the files the CLI wrote.
@@ -32,7 +32,6 @@ const plain = (v: string | null) => (v ?? "").replace(/\s*\(0x[0-9a-f]+\)$/i, ""
 export function RunView({ id }: { id: string }) {
   const [run, setRun] = useState<Run | null>(null);
   const [wallet, setWallet] = useState<Connected | null>(walletStore.get());
-  const [saved, setSaved] = useState<Saved | null>(null);
   const [, tick] = useState(0);
   useEffect(() => walletStore.subscribe(setWallet), []);
 
@@ -58,10 +57,6 @@ export function RunView({ id }: { id: string }) {
   const cmp = file<Comparison>(f, "compare.json");
   const report = file<RunData>(f, "report.json");
   const v = f ? verdictOf(f) : null;
-  useEffect(() => {
-    if (!f?.["report.json"]) return;
-    try { const s = localStorage.getItem(`canary.att.${id}`); setSaved(s ? JSON.parse(s) : { text: f["report.json"].text }); } catch { setSaved({ text: f["report.json"].text }); }
-  }, [f, id]);
 
   const steps = (run?.steps ?? []).filter((s) => OURS.test(s.name));
   const done = run?.status === "completed";
@@ -91,6 +86,8 @@ export function RunView({ id }: { id: string }) {
           {v.detail && <span>{v.detail}</span>}
         </section>
       )}
+
+      {f && done && <Proof id={id} files={f} wallet={wallet} />}
 
       <div className="run-grid">
         <section className="cx-card">
@@ -149,8 +146,8 @@ export function RunView({ id }: { id: string }) {
 
       <section className="cx-card">
         <header className="cx-card-h"><h2>Workflows</h2><span>{report ? report.summary.statement : ""}</span></header>
-        {report && saved ? (
-          <RunDetail id={`gh-${id}`} d={report} attest={<AttestRun saved={saved} wallet={wallet} onSaved={(s) => { setSaved(s); try { localStorage.setItem(`canary.att.${id}`, JSON.stringify(s)); } catch {} }} />} />
+        {report ? (
+          <RunDetail id={`gh-${id}`} d={report} />
         ) : <p className="muted pad">{done ? (result?.halted ? "not run: the candidate chain halted" : "not run") : "waiting for the workflow step"}</p>}
       </section>
 

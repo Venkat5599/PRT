@@ -1,0 +1,32 @@
+{
+  "run_id": "959e58764a17",
+  "candidate": {
+    "name": "url",
+    "url": "https://github.com/Venkat5599/PRT/releases/download/uploads/a7ef3ef0a76f.compact.wasm",
+    "label": "same uploaded file, with existing state",
+    "sha256": "33104bea2dc69cc2837baa00474fa03316157d24d82522abecca17aa3c2eafba",
+    "bytes": 2456463
+  },
+  "baseline": {
+    "name": "clean",
+    "sha256": "9bc1ae0b7d76970a616d3a0b3f105569470dcaf243a7007974f574572c77a1f7"
+  },
+  "exit": {
+    "upgrade": 1,
+    "compare": 0,
+    "test": 1
+  },
+  "halted": false,
+  "panic": null,
+  "files": [
+    "baseline-upgrade.json",
+    "candidate-panic.txt",
+    "compare.json",
+    "report.json",
+    "state-9944.txt",
+    "state-9945.txt",
+    "test.txt",
+    "upgrade.json",
+    "upgrade.txt"
+  ]
+}

@@ -1,8 +1,12 @@
 //! `canary attest` / `canary verify`: anchor a run's verdict on-chain with
 //! `system.remark`, and check an anchor against the chain and the report file.
 //!
-//! Payload (UTF-8, one line):
+//! Payload (UTF-8, one line), for a `canary test` run directory:
 //! `canary/1 <report sha256> b=<spec>:<metadata sha256[..16]> c=<spec>:<metadata sha256[..16]> R<n> D<n> I<n> P<n>`
+//!
+//! For a full canary run (upgrade + compare + test, written by `.github/workflows/canary-run.yml`)
+//! the directory holds `result.json`, which lists the sha256 of every other file; the payload is
+//! `canary-run/1 <result.json sha256> <run id> u=<exit> c=<exit> t=<exit> h=<0|1>`.
 
 use std::path::Path;
 use std::process::ExitCode;
@@ -37,6 +41,17 @@ fn side(m: &Value) -> String {
 }
 
 fn build_payload(run_dir: &Path) -> anyhow::Result<(String, String)> {
+    let result = run_dir.join("result.json");
+    if result.exists() {
+        let raw = std::fs::read(&result).with_context(|| format!("reading {}", result.display()))?;
+        let sha = hex::encode(Sha256::digest(&raw));
+        let r: Value = serde_json::from_slice(&raw)?;
+        let code = |k: &str| r["exit"][k].as_i64().map(|v| v.to_string()).unwrap_or_else(|| "-".into());
+        let id = r["run_id"].as_str().unwrap_or("-");
+        let halted = if r["halted"].as_bool().unwrap_or(false) { 1 } else { 0 };
+        let payload = format!("canary-run/1 {sha} {id} u={} c={} t={} h={halted}", code("upgrade"), code("compare"), code("test"));
+        return Ok((payload, sha));
+    }
     let raw = std::fs::read(run_dir.join("report.json")).with_context(|| format!("reading {}/report.json", run_dir.display()))?;
     let report_sha = hex::encode(Sha256::digest(&raw));
     let r: Value = serde_json::from_slice(&raw)?;
@@ -108,7 +123,7 @@ fn verify_inner(run_dir: &Path, ws: Option<&str>, timeout: Duration) -> anyhow::
     let a: Attestation = serde_json::from_str(&std::fs::read_to_string(run_dir.join("attestation.json"))?)?;
     let (payload_now, sha_now) = build_payload(run_dir)?;
     let mut checks = vec![
-        ("report file matches attested hash".to_string(), sha_now == a.report_sha256, sha_now.clone()),
+        ("run file matches attested hash".to_string(), sha_now == a.report_sha256, sha_now.clone()),
         ("payload rebuilt from report matches".to_string(), payload_now == a.payload, payload_now),
     ];
     let mut rpc = connect(ws.unwrap_or(&a.network), timeout)?;
@@ -138,5 +153,21 @@ pub fn verify(run_dir: &Path, ws: Option<&str>, timeout: Duration) -> ExitCode {
             eprintln!("error: {e:#}");
             ExitCode::from(2)
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::build_payload;
+    use std::path::Path;
+
+    // A real canary run's result.json (run 959e58764a17). frontend/tests/reports.test.ts asserts the
+    // dashboard rebuilds this exact remark, so the page and the CLI anchor the same bytes.
+    #[test]
+    fn run_payload_from_result_json() {
+        let dir = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../tests/fixtures/run");
+        let (payload, sha) = build_payload(&dir).unwrap();
+        assert_eq!(sha, "d06ca94c27db9c831dbb13b51b990962511834c89482cf510007cefd5544f36f");
+        assert_eq!(payload, "canary-run/1 d06ca94c27db9c831dbb13b51b990962511834c89482cf510007cefd5544f36f 959e58764a17 u=1 c=0 t=1 h=0");
     }
 }

@@ -12,7 +12,31 @@ export type Result = {
   halted: boolean;
   panic: string | null;
   files: string[];
+  /** sha256 of every other file in the run; the on-chain record anchors result.json, so it covers them all */
+  sha256?: Record<string, string | null>;
 };
+
+/** The CLI's `canary attest` record for a run (attest.rs), signed on the V3 testnet. */
+export type RunAttestation = {
+  network: string; chain: string | null; genesis_hash: string | null; payload: string; payload_hex: string;
+  report_sha256: string; signer: string; tx_hash: string; block_hash: string; block_number: number | null;
+};
+
+export async function sha256Hex(text: string) {
+  const d = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(text));
+  return [...new Uint8Array(d)].map((b) => b.toString(16).padStart(2, "0")).join("");
+}
+
+/** The remark `canary attest` writes for a run directory with result.json (same format as attest.rs). */
+export async function runPayload(resultText: string) {
+  const r = JSON.parse(resultText) as Result;
+  const code = (v: number | null) => (v == null ? "-" : String(v));
+  const sha = await sha256Hex(resultText);
+  return { sha, payload: `canary-run/1 ${sha} ${r.run_id ?? "-"} u=${code(r.exit.upgrade)} c=${code(r.exit.compare)} t=${code(r.exit.test)} h=${r.halted ? 1 : 0}` };
+}
+
+export const V3_WS = "wss://test-node-v3.portaldot.dev";
+export const explorerBlock = (blockHash: string, ws = V3_WS) => `https://polkadot.js.org/apps/?rpc=${encodeURIComponent(ws)}#/explorer/query/${blockHash}`;
 export type Snap = { block_number: number; accounts: number; sum_free: string; sum_reserved: string; total_issuance: string; delta: string; supply_conservation: string };
 export type Upgrade = {
   spec_before: number | null; spec_after: number | null; tx_hash: string | null; liveness: string; verdict: string; wasm_sha256: string;

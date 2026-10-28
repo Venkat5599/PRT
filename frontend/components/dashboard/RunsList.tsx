@@ -46,7 +46,7 @@ export function RunsList() {
   return (
     <div className="cx-page">
       <section className="cx-card">
-        <header className="cx-card-h"><h2>Runs</h2><span>{rows ? `${rows.length} started from this site` : ""}</span><a className="cx-btn sm" href="#new">New run</a></header>
+        <header className="cx-card-h"><h2>Runs</h2><span>{rows ? `${rows.length} started from this site` : ""}</span></header>
         {err && <p className="cx-err pad">{err}</p>}
         {rows && rows.length === 0 && <p className="muted pad">No runs yet. <a href="#new">Start one</a>.</p>}
         {rows && rows.length > 0 && (

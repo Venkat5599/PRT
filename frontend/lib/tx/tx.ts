@@ -420,6 +420,15 @@ export async function attest(ws: string, reportBytes: Uint8Array, signer: Signer
     block_hash: out.block_hash, block_number: header ? parseInt(header.number, 16) : null,
   };
 }
+/** Sign any canary payload as a system.remark (used to record a run made elsewhere). */
+export async function remark(ws: string, payload: string, signer: Signer) {
+  const a = await api(ws);
+  const tx = a.tx.system.remark(stringToHex(payload));
+  const out = await submit(a, tx, await funderHandle(signer), 120_000);
+  if (out.status !== "success") throw new Error(`remark not included: ${out.status} ${out.dispatch_error ?? ""}`);
+  const header = await send(ws, "chain_getHeader", [out.block_hash]).catch(() => null);
+  return { tx_hash: tx.hash.toHex(), block_hash: out.block_hash as string, block_number: header ? parseInt(header.number, 16) : null };
+}
 export async function verify(att: Attestation, reportBytes: Uint8Array, ws?: string) {
   const { payload, report_sha256 } = await attestPayload(reportBytes);
   const checks: { what: string; ok: boolean; detail: string }[] = [

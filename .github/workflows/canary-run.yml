@@ -178,10 +178,26 @@ jobs:
               "halted": os.environ.get("HALTED") == "true",
               "panic": open(panic).read().strip() or None if os.path.exists(panic) else None,
               "files": sorted(f for f in os.listdir(out) if f.endswith((".json", ".txt"))),
+              # the on-chain record anchors this file, so it carries the hash of every other one
+              "sha256": {f: sha(f) for f in sorted(os.listdir(out)) if f.endswith((".json", ".txt")) and f != "result.json"},
           }, open(os.path.join(out, "result.json"), "w"), indent=2)
           EOF
           cat "$OUT/result.json"
           rm -f "$OUT/candidate.wasm"
+
+      # Anchor the result on the public V3 testnet with the CLI's own `canary attest`: a system.remark
+      # holding the sha256 of result.json, signed by the run key (a repository secret). Anyone can
+      # look the block up on an explorer and recompute the hash from the downloaded files.
+      - name: Record the result on the V3 testnet
+        if: always()
+        env:
+          CANARY_SIGNER_URI: ${{ secrets.CANARY_ATTEST_SEED }}
+        run: |
+          if [ -z "$CANARY_SIGNER_URI" ] || [ ! -f "$OUT/result.json" ]; then echo "no run key or no result: not recorded"; exit 0; fi
+          ./target/release/canary attest --run "$OUT" --ws wss://test-node-v3.portaldot.dev --signer env --timeout 120 > "$OUT/attest.txt" 2>&1 \
+            || { cat "$OUT/attest.txt"; mv "$OUT/attest.txt" "$OUT/attest-error.txt"; exit 0; }
+          cat "$OUT/attest.txt"
+          ./target/release/canary verify --run "$OUT" | tee -a "$OUT/attest.txt"
 
       - uses: actions/upload-artifact@v7
         if: always()
