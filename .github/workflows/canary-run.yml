@@ -97,6 +97,16 @@ jobs:
           sleep 8
           ./target/release/canary doctor --ws ws://127.0.0.1:9944 --ws ws://127.0.0.1:9945
 
+      # A migration can only break state that exists. Like scripts/migration-demo.sh, give both
+      # chains accounts with reserved deposits (on-chain identities) before either is upgraded.
+      - name: Write existing state on both chains
+        run: |
+          for p in 9944 9945; do
+            ./target/release/canary test --baseline ws://127.0.0.1:$p --candidate ws://127.0.0.1:$p --only identity.deposit --out "runs/state-$p" > "$OUT/state-$p.txt" 2>&1 \
+              || { cat "$OUT/state-$p.txt"; echo "could not write state on :$p"; exit 1; }
+          done
+          echo "identities with reserved deposits written on both chains"
+
       - name: Upgrade the baseline to the clean runtime
         run: ./target/release/canary upgrade --ws ws://127.0.0.1:9944 --wasm runtimes/out/clean.compact.wasm --out "$OUT/baseline-upgrade.json"
 
