@@ -160,7 +160,7 @@ pub struct Hazard {
 
 /// Constants that cannot change on a live BABE chain. The Substrate source itself warns
 /// that changing slot or epoch duration "will brick block production".
-const BRICKING: &[(&str, &str)] = &[
+pub const BRICKING: &[(&str, &str)] = &[
     ("Babe.constant.EpochDuration", "BABE epoch duration cannot change on a running chain; block production halts"),
     ("Babe.constant.ExpectedBlockTime", "BABE slot duration cannot change on a running chain; block production halts"),
     ("Timestamp.constant.MinimumPeriod", "timestamp period is tied to the BABE slot; a change breaks slot/timestamp checks"),

@@ -96,7 +96,11 @@ export type Comparison = {
   metadata_identical: boolean;
   unversioned_change: boolean;
   upgrade_hazards: { path: string; reason: string }[];
+  /** risk.rs: what in `changes` breaks something, worst first, with the rows each finding rests on */
+  risks: Risk[];
 };
+export type Severity = "critical" | "breaking" | "migration" | "behaviour" | "client";
+export type Risk = { rule: string; severity: Severity; title: string; why: string; evidence: Change[] };
 
 const num = (h: string) => parseInt(h, 16);
 

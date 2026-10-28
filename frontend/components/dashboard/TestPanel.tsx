@@ -1,27 +1,33 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import { Loader2, Play, Download, PenLine } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { V3, formatUnits, short, walletStore, type Connected } from "@/lib/wallet";
-import { RunDetail, Tick, download, fmt, verdict, vcls, type RunData } from "./Panels";
+import { RunDetail, verdict, verdictTone, type RunData } from "./Panels";
+import { Panel, KV, Status, Mark, Mono, ErrorText, fmt, download } from "./kit";
 import type { Signer, ChainInfo, Attestation, SuiteEntry } from "@/lib/tx/tx";
+import { cn } from "@/lib/utils";
 
-// `canary test` and `canary attest` from the page: the workflow suite runs as real signed
-// extrinsics on both endpoints, each finding is classified exactly like the CLI does, and the
-// report can be anchored with system.remark and verified on-chain. On a local dev chain the
-// public dev accounts sign; on any other chain the visitor's Substrate wallet signs and pays.
+// `canary test` and `canary attest` against your own nodes: real signed extrinsics on both
+// endpoints, classified like the CLI, anchored with system.remark. Dev chains sign with public dev
+// accounts; any other chain needs your Substrate wallet.
 const txm = () => import("@/lib/tx/tx");
 const DEV_A = "ws://127.0.0.1:9944";
 const DEV_B = "ws://127.0.0.1:9945";
 const PRESETS = [
-  { name: "Local dev chains", hint: ":9944 → :9945", b: DEV_A, c: DEV_B },
-  { name: "Local control", hint: ":9944 → :9944", b: DEV_A, c: DEV_A },
-  { name: "V3 testnet control", hint: "your wallet signs", b: V3.ws, c: V3.ws },
+  { name: "Local :9944 → :9945", b: DEV_A, c: DEV_B },
+  { name: "Local control", b: DEV_A, c: DEV_A },
+  { name: "V3 control", b: V3.ws, c: V3.ws },
 ];
 const LAST = "canary.lastRun";
 
 type Lane = { ws: string; info?: ChainInfo; balance?: bigint; err?: string; busy: boolean };
 type Report = RunData & { manifest: RunData["manifest"] & { run_id: string } };
-export type Saved = { text: string; att?: Attestation };
+type Saved = { text: string; att?: Attestation };
 
 async function contractFile(path: string) {
   if (path !== "tests/contracts/counter.wasm") throw new Error(`unknown workflow file ${path}`);
@@ -31,15 +37,14 @@ async function contractFile(path: string) {
 const amount = (v: bigint, info?: ChainInfo) => (info ? `${formatUnits(v, info.decimals, 2)} ${info.symbol}` : v.toString());
 const isLocal = (ws: string) => /^ws:\/\/(127\.0\.0\.1|localhost)(:|\/|$)/.test(ws);
 
-/** Who can sign on these endpoints, or why nobody can. */
 function signerFor(lanes: Lane[], wallet: Connected | null, useWallet: boolean): { signer?: Signer; label: string; reason?: string } {
   const infos = lanes.map((l) => l.info);
   if (infos.some((i) => !i)) return { label: "", reason: "checking the endpoints" };
   const dev = infos.every((i) => i!.dev);
   const sub = wallet?.wallet.kind === "substrate" ? wallet : null;
-  if (dev && !(useWallet && sub)) return { signer: { kind: "dev", name: "charlie" }, label: "//Charlie, public dev account" };
-  if (!dev && infos.some((i) => i!.dev)) return { label: "", reason: "one endpoint is a local dev chain and the other is not: one signer must pay on both" };
-  if (!sub) return { label: "", reason: wallet ? "an EVM wallet cannot sign Substrate extrinsics: connect Portaldot, Talisman, SubWallet or Polkadot.js" : "connect a Substrate wallet to sign on this chain" };
+  if (dev && !(useWallet && sub)) return { signer: { kind: "dev", name: "charlie" }, label: "//Charlie (dev)" };
+  if (!dev && infos.some((i) => i!.dev)) return { label: "", reason: "mixing a local dev chain with a live chain: one signer must pay on both" };
+  if (!sub) return { label: "", reason: wallet ? "an EVM wallet cannot sign Substrate extrinsics" : "connect a Substrate wallet" };
   return { signer: { kind: "wallet", extension: sub.wallet.id, address: sub.address }, label: `${sub.wallet.name} ${short(sub.address)}` };
 }
 
@@ -70,8 +75,6 @@ export function TestPanel() {
   useEffect(() => { logBox.current?.scrollTo(0, logBox.current.scrollHeight); }, [log]);
 
   const selected = useMemo(() => (suite ?? []).filter((s) => pick.has(s.workflow.id)), [suite, pick]);
-  // Workflows run one after another and each sweeps its accounts back, so the signer needs the
-  // largest single funding (times two when both sides are the same chain), plus fees.
   const need = useMemo(() => {
     const most = selected.reduce((m, s) => { const f = (s.workflow.fund ?? []).reduce((a, x) => a + BigInt(x.amount), 0n); return f > m ? f : m; }, 0n);
     return b === c ? most * 2n : most;
@@ -82,19 +85,17 @@ export function TestPanel() {
     const eps = [b.trim(), c.trim()];
     setLanes(eps.map((ws) => ({ ws, busy: true })));
     const t = await txm();
-    const read = async (ws: string, i: number) => {
+    await Promise.all(eps.map(async (ws, i) => {
       try {
         const info = await t.chainInfo(ws);
         setLanes((l) => l.map((x, k) => (k === i ? { ...x, info, busy: false } : x)));
       } catch (e) {
-        setLanes((l) => l.map((x, k) => (k === i ? { ...x, busy: false, err: isLocal(ws) ? `${(e as Error).message}: start a dev node on this port, and allow local network access if the browser asks` : (e as Error).message } : x)));
+        setLanes((l) => l.map((x, k) => (k === i ? { ...x, busy: false, err: isLocal(ws) ? "no dev node on this port (or local network access was blocked)" : (e as Error).message } : x)));
       }
-    };
-    await Promise.all(eps.map(read));
+    }));
   }
   useEffect(() => { const t = setTimeout(check, 350); return () => clearTimeout(t); }, [b, c]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Balance of whoever will sign, on each endpoint.
   const signerKey = JSON.stringify(who.signer ?? null);
   useEffect(() => {
     if (!who.signer || lanes.length !== 2 || lanes.some((l) => !l.info)) return;
@@ -110,12 +111,12 @@ export function TestPanel() {
     return () => { live = false; };
   }, [signerKey, lanes.length, lanes.map((l) => l.ws + !!l.info).join()]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const short_ = lanes.find((l) => l.balance !== undefined && l.balance < need);
-  const blocked = !suite ? "loading the workflow suite"
+  const low = lanes.find((l) => l.balance !== undefined && l.balance < need);
+  const blocked = !suite ? "loading the suite"
     : !selected.length ? "pick at least one workflow"
     : lanes.some((l) => l.err) ? lanes.find((l) => l.err)!.err
     : who.reason ? who.reason
-    : short_ ? `${who.label} holds ${amount(short_.balance!, short_.info)} on ${short_.info?.chain}; this run needs ${amount(need, short_.info)} at a time${short_.info?.chain?.includes("V3") ? " (tPOT from the Portaldot Discord faucet)" : ""}`
+    : low ? `signer holds ${amount(low.balance!, low.info)} on ${low.info?.chain}, needs ${amount(need, low.info)}`
     : null;
 
   async function start() {
@@ -149,84 +150,87 @@ export function TestPanel() {
   const devBoth = lanes.length === 2 && lanes.every((l) => l.info?.dev);
 
   return (
-    <section className="frame panel" id="test-panel" aria-label="On your node">
-
-      <div className="live-form pairs">
-        <div className="pair-group" role="group" aria-label="Endpoints">
+    <div className="space-y-6">
+      <Panel>
+        <div className="mb-4 flex flex-wrap gap-2">
           {PRESETS.map((p) => (
-            <button key={p.name} type="button" className="pair" aria-pressed={b === p.b && c === p.c} disabled={busy} onClick={() => { setB(p.b); setC(p.c); }}>
-              <b>{p.name}</b><small>{p.hint}</small>
-            </button>
+            <Button key={p.name} size="sm" variant={b === p.b && c === p.c ? "secondary" : "ghost"} disabled={busy} onClick={() => { setB(p.b); setC(p.c); }}>{p.name}</Button>
           ))}
         </div>
-      </div>
-      <div className="live-form test-eps">
-        <label className="ep"><span>Baseline</span><input value={b} onChange={(e) => setB(e.target.value)} disabled={busy} spellCheck={false} /></label>
-        <label className="ep"><span>Candidate</span><input value={c} onChange={(e) => setC(e.target.value)} disabled={busy} spellCheck={false} /></label>
-      </div>
+        <div className="grid gap-4 md:grid-cols-2">
+          {[["Baseline", b, setB], ["Candidate", c, setC]].map(([label, val, set], i) => {
+            const l = lanes[i];
+            return (
+              <div key={label as string} className="space-y-1.5">
+                <Label className="text-xs text-muted-foreground">{label as string}</Label>
+                <Input value={val as string} onChange={(e) => (set as (v: string) => void)(e.target.value)} disabled={busy} spellCheck={false} className="font-mono text-sm" aria-invalid={!!l?.err} />
+                <p className={cn("flex items-center gap-1.5 truncate text-xs", l?.err ? "text-destructive" : "text-muted-foreground")}>
+                  {l && <Mark state={l.busy ? "run" : l.info ? "ok" : "bad"} />}
+                  {l ? (l.busy ? "connecting…" : l.err ?? `${l.info!.chain} · ${l.info!.spec}${l.balance !== undefined && who.signer ? ` · ${amount(l.balance, l.info)}` : ""}`) : ""}
+                </p>
+              </div>
+            );
+          })}
+        </div>
+      </Panel>
 
-      <ol className="layer-list lanes">
-        {lanes.map((l, i) => (
-          <li key={i}>
-            <Tick ok={!!l.info} wait={l.busy} />
-            <b>{i === 0 ? "baseline" : "candidate"}</b>
-            <span>{l.busy ? "connecting…" : l.err ?? `${l.info!.chain} · ${l.info!.spec}${l.info!.dev ? " · dev chain" : ""}${l.balance !== undefined && who.signer ? ` · signer holds ${amount(l.balance, l.info)}` : ""}`}</span>
-          </li>
-        ))}
-      </ol>
+      <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_320px]">
+        <Panel flush title="Workflows" description={suite ? `${selected.length} of ${suite.length}` : undefined}>
+          <ul className="divide-y">
+            {(suite ?? []).map((s) => (
+              <li key={s.workflow.id}>
+                <label className="flex cursor-pointer items-start gap-3 px-5 py-3 hover:bg-muted/40">
+                  <input type="checkbox" className="mt-0.5 size-4 accent-primary" checked={pick.has(s.workflow.id)} disabled={busy} onChange={() => toggle(s.workflow.id)} />
+                  <span className="min-w-0">
+                    <span className="flex items-center gap-2"><Mono>{s.workflow.id}</Mono>{s.workflow.importance === "core" && <Status tone="info">core</Status>}</span>
+                    <span className="mt-0.5 block truncate text-xs text-muted-foreground">{s.workflow.steps.map((x) => x.call).join(" · ")}</span>
+                  </span>
+                </label>
+              </li>
+            ))}
+          </ul>
+        </Panel>
 
-      <div className="wf-pick">
-        {(suite ?? []).map((s) => (
-          <label key={s.workflow.id} className="wf-opt">
-            <input type="checkbox" checked={pick.has(s.workflow.id)} disabled={busy} onChange={() => toggle(s.workflow.id)} />
-            <span><code>{s.workflow.id}</code>{s.workflow.importance === "core" && <i className="kind-pill">core</i>}<small>{s.workflow.steps.map((x) => x.call).join(" · ")}</small></span>
-          </label>
-        ))}
+        <Panel flush title="Run" className="lg:sticky lg:top-20">
+          <KV rows={[
+            ["Signer", <span key="s" className="flex flex-wrap items-center gap-2">{who.label || "–"}{devBoth && wallet?.wallet.kind === "substrate" && <Button variant="link" size="sm" className="h-auto p-0" disabled={busy} onClick={() => setUseWallet((u) => !u)}>{useWallet ? "use dev account" : "use my wallet"}</Button>}</span>],
+            ["Funding", selected.length && lanes[0]?.info ? `${amount(need, lanes[0].info)} at a time` : "–"],
+          ]} />
+          <div className="space-y-3 border-t px-5 py-4">
+            <Input value={injected} onChange={(e) => setInjected(e.target.value)} disabled={busy} placeholder="Change under test (optional)" spellCheck={false} />
+            <Button className="w-full" disabled={busy || !!blocked} onClick={start}>{busy ? <Loader2 className="animate-spin" /> : <Play />}{busy ? `Running ${Math.max(0, Math.round((now - started) / 1000))}s` : "Run workflows"}</Button>
+            {blocked && !busy && <p className="text-xs text-muted-foreground">{blocked}</p>}
+          </div>
+        </Panel>
       </div>
-
-      <div className="live-form test-go">
-        <label className="ep"><span>Change under test, recorded in the report (optional)</span>
-          <input value={injected} onChange={(e) => setInjected(e.target.value)} disabled={busy} placeholder="ed100x: ExistentialDeposit 1 → 100 POT" spellCheck={false} />
-        </label>
-        <button type="button" className="btn btn-blue run-btn" disabled={busy || !!blocked} onClick={start}>
-          {busy ? `Running… ${Math.max(0, Math.round((now - started) / 1000))}s` : "Run workflows"}
-        </button>
-      </div>
-      <dl className="facts test-facts">
-        <div><dt>signer</dt><dd>{who.label || "–"}{devBoth && wallet?.wallet.kind === "substrate" && (
-          <button type="button" className="more" disabled={busy} onClick={() => setUseWallet((u) => !u)}>{useWallet ? "use the dev account" : "sign with my wallet"}</button>)}</dd></div>
-        <div><dt>funding</dt><dd>{selected.length && lanes[0]?.info ? `${amount(need, lanes[0].info)} at a time, swept back after each workflow; fees and deposits are spent` : "–"}</dd></div>
-        {blocked && !busy && <div><dt>status</dt><dd className="bad">{blocked}</dd></div>}
-      </dl>
 
       {(busy || log.length > 0) && (
-        <div className="sub-card">
-          <div className="sub-head"><b>Live run</b><span className={`state-pill ${busy ? "" : err ? "bad" : "ok"}`}>{busy ? "running" : err ? "stopped" : "finished"}</span></div>
-          <div className="tbl"><table className="mini"><thead><tr><th>workflow</th><th>verdict</th><th>severity</th><th>finding hash</th></tr></thead>
-            <tbody>{Object.entries(rows).map(([id, r]) => (
-              <tr key={id}><td><code>{id}</code></td>
-                {r === "running" ? <td colSpan={3} className="muted">{busy ? "queued" : "not run"}</td> : <><td><span className={`v-pill ${vcls(r.verdict)}`}>{r.verdict.toLowerCase()}</span></td><td>{r.severity}</td><td><code>{r.hash.slice(0, 16)}</code></td></>}
-              </tr>))}</tbody></table></div>
-          <pre className="run-log" ref={logBox}>{log.join("\n")}</pre>
-          {err && <p className="sub-note bad">{err}</p>}
-        </div>
+        <Panel flush title="Live" action={<Status tone={busy ? "info" : err ? "bad" : "good"}>{busy ? "Running" : err ? "Stopped" : "Finished"}</Status>}>
+          <Table>
+            <TableHeader><TableRow><TableHead className="pl-5">Workflow</TableHead><TableHead>Verdict</TableHead><TableHead>Severity</TableHead><TableHead className="pr-5">Hash</TableHead></TableRow></TableHeader>
+            <TableBody>{Object.entries(rows).map(([id, r]) => (
+              <TableRow key={id}><TableCell className="pl-5 font-mono text-xs">{id}</TableCell>
+                {r === "running" ? <TableCell colSpan={3} className="text-muted-foreground">{busy ? "queued" : "not run"}</TableCell>
+                  : <><TableCell><Status tone={verdictTone(r.verdict)} className="capitalize">{r.verdict.toLowerCase()}</Status></TableCell><TableCell>{r.severity}</TableCell><TableCell className="pr-5 font-mono text-xs">{r.hash.slice(0, 14)}</TableCell></>}
+              </TableRow>))}</TableBody>
+          </Table>
+          <pre ref={logBox} className="max-h-56 overflow-auto border-t bg-muted/40 px-5 py-3 font-mono text-[11.5px] leading-relaxed text-muted-foreground">{log.join("\n")}</pre>
+          {err && <div className="border-t px-5 py-3"><ErrorText>{err}</ErrorText></div>}
+        </Panel>
       )}
 
       {data && v && !busy && (
-        <div className="sub-card">
-          <div className="sub-head"><b>Your run {data.manifest.run_id}</b>
-            <strong className={`v-pill ${v.cls}`}>{v.text}</strong>
-            <button type="button" className="more" onClick={() => download("report.json", run!.text)}>Download report.json</button>
-          </div>
+        <Panel flush title={<span className="flex items-center gap-2">Run <Mono className="text-muted-foreground">{data.manifest.run_id}</Mono></span>}
+          action={<div className="flex items-center gap-2"><Status tone={v.tone}>{v.text}</Status><Button size="sm" variant="outline" onClick={() => download("report.json", run!.text)}><Download />report.json</Button></div>}>
           <RunDetail id={`web-${data.manifest.run_id}`} d={data} attest={<AttestRun saved={run!} wallet={wallet} onSaved={(s) => { setRun(s); try { localStorage.setItem(LAST, JSON.stringify(s)); } catch {} }} />} />
-        </div>
+        </Panel>
       )}
-    </section>
+    </div>
   );
 }
 
-/** Anchor a report made on this page with system.remark, then verify it from the chain. */
-export function AttestRun({ saved, wallet, onSaved }: { saved: Saved; wallet: Connected | null; onSaved: (s: Saved) => void }) {
+/** Anchor a report made here with system.remark, then verify it from the chain. */
+function AttestRun({ saved, wallet, onSaved }: { saved: Saved; wallet: Connected | null; onSaved: (s: Saved) => void }) {
   const first = (JSON.parse(saved.text) as Report).manifest.baseline.endpoint ?? DEV_A;
   const [ws, setWs] = useState(saved.att?.network ?? first);
   const [busy, setBusy] = useState<"sign" | "verify" | null>(null);
@@ -244,11 +248,10 @@ export function AttestRun({ saved, wallet, onSaved }: { saved: Saved; wallet: Co
       const t = await txm();
       const info = await t.chainInfo(ws);
       const sub = wallet?.wallet.kind === "substrate" ? wallet : null;
-      // A connected Substrate wallet signs wherever it is connected; a dev chain falls back to //Alice.
       const signer: Signer | null = sub ? { kind: "wallet", extension: sub.wallet.id, address: sub.address } : info.dev ? { kind: "dev", name: "alice" } : null;
-      if (!signer) throw new Error(`${info.chain} is not a local dev chain: connect a Substrate wallet to sign the remark`);
+      if (!signer) throw new Error("connect a Substrate wallet to sign on this chain");
       const bal = await t.freeBalance(ws, t.signerAddress(signer));
-      if (bal === 0n) throw new Error(`${t.signerAddress(signer)} holds no ${info.symbol} on ${info.chain}${info.chain.includes("V3") ? ": get tPOT from the Portaldot Discord faucet" : ""}`);
+      if (bal === 0n) throw new Error(`${short(t.signerAddress(signer))} holds no ${info.symbol} on ${info.chain}`);
       const att = await t.attest(ws, bytes(), signer);
       onSaved({ ...saved, att });
       await verifyNow(att);
@@ -258,31 +261,17 @@ export function AttestRun({ saved, wallet, onSaved }: { saved: Saved; wallet: Co
 
   const att = saved.att;
   const ok = checks?.every((c) => c.ok);
-  const sub = wallet?.wallet.kind === "substrate" ? wallet : null;
-  const signs = sub ? `${sub.wallet.name} ${short(sub.address)}` : ws === V3.ws ? "connect a Substrate wallet" : "//Alice on a dev chain";
   return (
-    <div className="sub-card">
-      <div className="sub-head"><b>Anchor this report on-chain</b>
-        <span className={`state-pill ${busy ? "" : checks ? (ok ? "ok" : "bad") : ""}`}>{busy === "sign" ? "signing" : busy === "verify" ? "verifying" : checks ? (ok ? "verified on-chain" : "failed") : att ? "anchored" : "not anchored"}</span>
+    <div className="space-y-3 rounded-lg border p-4">
+      <div className="flex flex-wrap items-center gap-2">
+        <span className="mr-auto text-sm font-medium">On-chain anchor</span>
+        <Button size="sm" variant={ws === first ? "secondary" : "ghost"} disabled={!!busy} onClick={() => setWs(first)}>Baseline chain</Button>
+        <Button size="sm" variant={ws === V3.ws ? "secondary" : "ghost"} disabled={!!busy} onClick={() => setWs(V3.ws)}>V3 testnet</Button>
+        <Button size="sm" disabled={!!busy} onClick={sign}>{busy === "sign" ? <Loader2 className="animate-spin" /> : <PenLine />}{att ? "Anchor again" : "Anchor"}</Button>
       </div>
-      <div className="live-form test-eps">
-        <div className="pair-group" role="group" aria-label="Network">
-          <button type="button" className="pair" aria-pressed={ws === first} disabled={!!busy} onClick={() => setWs(first)}><b>Baseline chain</b><small>{first.replace(/^\w+:\/\//, "")}</small></button>
-          <button type="button" className="pair" aria-pressed={ws === V3.ws} disabled={!!busy} onClick={() => setWs(V3.ws)}><b>V3 testnet</b><small>your wallet signs</small></button>
-        </div>
-        <p className="sub-note">signer: {signs}</p>
-        <button type="button" className="btn btn-blue run-btn" disabled={!!busy} onClick={sign}>{busy === "sign" ? "Signing…" : att ? "Anchor again" : "Attest"}</button>
-      </div>
-      {att && (
-        <dl className="facts">
-          <div><dt>payload</dt><dd><code>{att.payload}</code></dd></div>
-          <div><dt>block</dt><dd>#{fmt(att.block_number)} on {att.chain} · {att.block_hash.slice(0, 18)}…</dd></div>
-          <div><dt>extrinsic</dt><dd><code>{att.tx_hash.slice(0, 18)}…</code> · signed by {att.signer.length > 20 ? short(att.signer) : `//${att.signer[0].toUpperCase()}${att.signer.slice(1)}`}</dd></div>
-          <div><dt>files</dt><dd><button type="button" className="more" onClick={() => download("attestation.json", att)}>Download attestation.json</button></dd></div>
-        </dl>
-      )}
-      {err && <p className="sub-note bad">{err}</p>}
-      {checks && <ol className="layer-list compact">{checks.map((c) => <li key={c.what}><Tick ok={c.ok} /><b>{c.what}</b><span>{c.detail}</span></li>)}</ol>}
+      {att && <p className="text-xs text-muted-foreground">Block #{fmt(att.block_number)} on {att.chain} · <Mono>{att.tx_hash.slice(0, 14)}…</Mono> · {checks ? (ok ? <span className="text-success">verified</span> : <span className="text-destructive">failed</span>) : busy === "verify" ? "verifying…" : ""}</p>}
+      {err && <ErrorText>{err}</ErrorText>}
+      {checks && <ul className="space-y-1 text-sm">{checks.map((c) => <li key={c.what} className="flex items-center gap-2"><Mark state={c.ok ? "ok" : "bad"} />{c.what}</li>)}</ul>}
     </div>
   );
 }

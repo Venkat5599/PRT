@@ -58,8 +58,20 @@ pub fn run(baseline: &str, candidate: &str, timeout: Duration, as_json: bool) ->
             }
             println!("         applying this candidate with setCode would halt the chain");
         }
+        if !c.risks.is_empty() {
+            println!();
+            for r in &c.risks {
+                let sev = format!("{:?}", r.severity).to_uppercase();
+                println!("{sev:<10} {}  [{}]", r.title, r.rule);
+                println!("           {}", r.why);
+                for e in r.evidence.iter().take(5) {
+                    println!("           {} {} -> {}", e.path, e.baseline.as_deref().unwrap_or("(none)"), e.candidate.as_deref().unwrap_or("(none)"));
+                }
+                if r.evidence.len() > 5 { println!("           … {} more", r.evidence.len() - 5); }
+            }
+        }
         println!();
-        println!("{} change(s)", c.changes.len());
+        println!("{} change(s), {} risk(s)", c.changes.len(), c.risks.len());
     }
     if c.upgrade_hazards.is_empty() { ExitCode::SUCCESS } else { ExitCode::from(1) }
 }

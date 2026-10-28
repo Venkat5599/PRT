@@ -8,6 +8,7 @@ use serde::Serialize;
 use serde_json::{json, Value};
 
 use crate::diff::{self, Change, ChangeKind, Hazard};
+use crate::risk::{self, Risk};
 use crate::{apis, metadata, metadata_v13::MetadataV13, metadata_v14};
 
 #[derive(Debug, Clone, Serialize)]
@@ -60,6 +61,8 @@ pub struct Comparison {
     pub metadata_identical: bool,
     pub unversioned_change: bool,
     pub upgrade_hazards: Vec<Hazard>,
+    /// What in `changes` breaks something, by severity, with the rows each finding rests on.
+    pub risks: Vec<Risk>,
 }
 
 fn version_changes(a: &Side, b: &Side) -> Vec<Change> {
@@ -77,7 +80,24 @@ fn version_changes(a: &Side, b: &Side) -> Vec<Change> {
     push("runtime.spec_name", json!(a.spec_name), json!(b.spec_name));
     push("runtime.spec_version", json!(a.spec_version), json!(b.spec_version));
     push("runtime.transaction_version", json!(a.transaction_version), json!(b.transaction_version));
-    push("runtime.apis", json!(a.apis), json!(b.apis));
+    // One row per runtime API ("Name@version" on each side), so an added, removed or re-versioned
+    // API is its own finding.
+    let map = |s: &Side| -> std::collections::BTreeMap<String, String> {
+        s.apis.iter().map(|x| match x.rsplit_once('@') { Some((n, v)) => (n.to_string(), v.to_string()), None => (x.clone(), String::new()) }).collect()
+    };
+    let (ma, mb) = (map(a), map(b));
+    for (n, va) in &ma {
+        match mb.get(n) {
+            None => out.push(Change { kind: ChangeKind::Removed, path: format!("runtime.api.{n}"), baseline: Some(va.clone()), candidate: None }),
+            Some(vb) if vb != va => out.push(Change { kind: ChangeKind::Modified, path: format!("runtime.api.{n}"), baseline: Some(va.clone()), candidate: Some(vb.clone()) }),
+            _ => {}
+        }
+    }
+    for (n, vb) in &mb {
+        if !ma.contains_key(n) {
+            out.push(Change { kind: ChangeKind::Added, path: format!("runtime.api.{n}"), baseline: None, candidate: Some(vb.clone()) });
+        }
+    }
     out
 }
 
@@ -92,6 +112,7 @@ pub fn compare(a: &Runtime, b: &Runtime) -> Comparison {
     let mut changes = version_changes(&a.side, &b.side);
     changes.extend(structural);
     let upgrade_hazards = diff::hazards(&changes);
+    let risks = risk::assess(&a.side, &b.side, &changes);
     Comparison {
         metadata_identical: a.side.metadata.sha256 == b.side.metadata.sha256,
         baseline: a.side.clone(),
@@ -99,5 +120,6 @@ pub fn compare(a: &Runtime, b: &Runtime) -> Comparison {
         changes,
         unversioned_change,
         upgrade_hazards,
+        risks,
     }
 }

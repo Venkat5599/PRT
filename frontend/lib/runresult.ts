@@ -48,6 +48,8 @@ export type Comparison = {
   candidate: { spec_name: string | null; spec_version: number | null; pallets: number };
   changes: { kind: "added" | "removed" | "modified"; path: string; baseline: string | null; candidate: string | null }[];
   metadata_identical: boolean; unversioned_change: boolean; upgrade_hazards: { path: string; reason: string }[];
+  /** absent in runs made before the risk rules existed */
+  risks?: import("./canary").Risk[];
 };
 export type TestSummary = { workflows: number; pass: number; difference: number; inconclusive: number; regression: number; statement: string };
 
@@ -70,6 +72,8 @@ export function verdictOf(f: Files): Verdict {
   const hz = cmp?.upgrade_hazards.length ?? 0;
   if (s?.regression) return { level: "reg", title: `${s.regression} workflow regression${s.regression > 1 ? "s" : ""}`, detail: s.statement };
   if (hz) return { level: "reg", title: `${hz} upgrade hazard${hz > 1 ? "s" : ""}`, detail: cmp!.upgrade_hazards.map((h) => h.path).join(", ") };
+  const severe = (cmp?.risks ?? []).filter((x) => x.severity === "critical" || x.severity === "breaking");
+  if (severe.length) return { level: "reg", title: `${severe.length} breaking change${severe.length > 1 ? "s" : ""}`, detail: severe.map((x) => x.title).join(" · ") };
   if (s?.inconclusive) return { level: "diff", title: `${s.inconclusive} workflow${s.inconclusive > 1 ? "s" : ""} inconclusive`, detail: s.statement };
   if (s?.difference) return { level: "diff", title: `${s.difference} behaviour difference${s.difference > 1 ? "s" : ""}, nothing broke`, detail: s.statement };
   if (!s) return { level: "error", title: "Workflows did not run", detail: f["test.txt"]?.text.trim().split("\n").pop() ?? null };

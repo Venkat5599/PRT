@@ -236,6 +236,21 @@ HAZARD   Timestamp.constant.MinimumPeriod: timestamp period is tied to the BABE 
 
 This is about the local dev chain, not mainnet: mainnet runs 60 s blocks like the source. "Spec version went up" is not proof an upgrade worked.
 
+### Compatibility risks
+
+`canary compare` (and the dashboard's Compare and run pages, through the same wasm build) judges every diff with the rules in `backend/crates/canary-chain/src/risk.rs`. Each risk carries a severity, the reason, and the before/after rows it rests on, grouped per pallet:
+
+| Severity | Rule | Fires when |
+|---|---|---|
+| Critical | `spec-name`, `spec-version` | setCode would refuse the runtime (different `spec_name`, `spec_version` not increased) |
+| Critical | `consensus-constant` | BABE epoch/slot or the timestamp period changes |
+| Breaking | `call-encoding` | a pallet index, call index or call signature changes, a call or pallet is removed, or signed extensions change, without a `transaction_version` bump |
+| Needs migration | `storage-type`, `storage-removed` | a storage item changes type or disappears |
+| Behaviour change | `constant` | a constant changes value |
+| Client update | `event`, `error`, `runtime-api`, `call-encoding` | events or errors are removed or renumbered, a runtime API is removed or re-versioned, or call encoding changes with a `transaction_version` bump |
+
+Additions alone carry no risk. Mainnet → V3 gives 969 changes and 111 risks (3 critical); Mainnet → Mainnet gives 0 and 0.
+
 ### Compatibility note found along the way
 
 Current `@polkadot/api` decodes `DispatchError::Module` as `{ index: u8, error: [u8; 4] }`; Portaldot's 2021 runtime emits `{ index: u8, error: u8 }`, so `System.Events` fails to decode for any failed extrinsic. Canary's driver pins the legacy type and treats an undecodable block as **INCONCLUSIVE**, never as success.
@@ -277,6 +292,7 @@ bash scripts/migration-demo.sh  # an upgrade whose migration destroys funds, cau
 - [x] `reproduce` with stable finding hash
 - [x] Candidate runtimes built from source + real-upgrade mode (`system.setCode`) with liveness check
 - [x] Upgrade hazards in `compare` (BABE slot/epoch changes)
+- [x] Compatibility risks in `compare`: severity, reason and before/after evidence per finding
 - [x] State diff across `setCode`: per-account balances and the supply invariant, before vs after (`canary upgrade`)
 - [x] On-chain attestation via `system.remark` (`canary attest` / `canary verify`) on the dev chain
 - [x] GitHub Action ([`action.yml`](action.yml)) and CI against a real Portaldot dev node

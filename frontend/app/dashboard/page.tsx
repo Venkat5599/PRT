@@ -1,10 +1,5 @@
 import type { Metadata } from "next";
-import DashboardBehaviors from "@/components/DashboardBehaviors";
 import Shell from "@/components/dashboard/Shell";
-import Live from "@/components/Live";
-import "./theme.css";
-import "./console.css";
-import "./skin.css";
 
 export const metadata: Metadata = {
   title: "Dashboard · Portal Canary",
@@ -14,10 +9,9 @@ export const metadata: Metadata = {
 export default function Dashboard() {
   return (
     <>
-      <main className="dash-page pcd">
-        <Shell compare={<Live standalone />} />
+      <main>
+        <Shell />
       </main>
-      <DashboardBehaviors />
     </>
   );
 }
