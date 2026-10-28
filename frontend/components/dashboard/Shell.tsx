@@ -2,77 +2,122 @@
 
 import { useEffect, useState, type ReactNode } from "react";
 import WalletButton from "@/components/WalletButton";
-import { CliPanel, DoctorPanel, InvariantsPanel, RegistryPanel, RunsPanel } from "./Panels";
+import { Node } from "@/lib/canary";
+import { DoctorPanel, InvariantsPanel, RegistryPanel } from "./Panels";
 import { TestPanel } from "./TestPanel";
+import { NewRun } from "./NewRun";
+import { RunView } from "./RunView";
+import { RunsList } from "./RunsList";
 
-// Dashboard layout: a sidebar of every feature, one panel at a time, selected by
-// the URL hash so each panel can be linked. Compare is server-rendered markup
-// (shared with the landing page), so it stays mounted and is only hidden.
-const ITEMS = [
-  { id: "compare", label: "Compare", hint: "Diff two live runtimes", icon: <path d="M5 5h6v14H5zM13 5h6v14h-6z" /> },
-  { id: "test", label: "Test", hint: "Run workflows, attest", icon: <><path d="M9 4h6M10 4v5l-5 9a1.5 1.5 0 0 0 1.3 2h11.4a1.5 1.5 0 0 0 1.3-2l-5-9V4" /><path d="M7.5 14h9" /></> },
-  { id: "doctor", label: "Doctor", hint: "Check one endpoint", icon: <><circle cx="12" cy="12" r="8.5" /><path d="M12 7.5V12l3 2" /></> },
-  { id: "runs", label: "Test runs", hint: "Recorded upgrades", icon: <><path d="M4 8h5l2-4 3 9 2-5h4" /><path d="M4 17h5l2-2 2 2h7" /></> },
-  { id: "registry", label: "Registry", hint: "Verdicts on V3 testnet", icon: <><path d="M6 4h12v16H6z" /><path d="M9 9h6M9 13h6M9 17h3" /></> },
-  { id: "invariants", label: "Invariants", hint: "Mainnet supply", icon: <path d="M5 9h14M5 15h14" /> },
-  { id: "cli", label: "CLI", hint: "Commands and CI", icon: <path d="M5 7l5 5-5 5M12 17h7" /> },
-] as const;
-type Id = (typeof ITEMS)[number]["id"];
+// The console: start a run, follow it, read its verdict; tools to inspect live chains beside it.
+// Routing is the URL hash (#new, #run/<id>, #runs, #compare ...) so every view can be linked.
+// Compare is server-rendered markup driven by lib/live.ts, so it stays mounted and is only hidden.
+type Route = { view: string; arg?: string };
+const NAV: { group: string; items: { id: string; label: string; icon: ReactNode }[] }[] = [
+  { group: "Test", items: [
+    { id: "runs", label: "Runs", icon: <path d="M4 6h16M4 12h16M4 18h10" /> },
+    { id: "node", label: "On your node", icon: <><rect x="4" y="5" width="16" height="6" rx="1.5" /><rect x="4" y="13" width="16" height="6" rx="1.5" /><path d="M8 8h.01M8 16h.01" /></> },
+  ] },
+  { group: "Inspect", items: [
+    { id: "compare", label: "Compare", icon: <path d="M5 5h6v14H5zM13 5h6v14h-6z" /> },
+    { id: "doctor", label: "Doctor", icon: <><circle cx="12" cy="12" r="8.5" /><path d="M12 7.5V12l3 2" /></> },
+    { id: "invariants", label: "Invariants", icon: <path d="M5 9h14M5 15h14" /> },
+    { id: "registry", label: "Registry", icon: <><path d="M6 4h12v16H6z" /><path d="M9 9h6M9 13h6M9 17h3" /></> },
+  ] },
+];
+const TITLES: Record<string, string> = { new: "New run", run: "Run", runs: "Runs", node: "On your node", compare: "Compare", doctor: "Doctor", invariants: "Invariants", registry: "Registry" };
+
+function read(): Route {
+  const [view, arg] = location.hash.replace(/^#\/?/, "").split("/");
+  return TITLES[view] ? { view, arg } : { view: "new" };
+}
+
+/** Head block of each public chain, read live every 12 s. */
+function ChainStatus() {
+  const [heads, setHeads] = useState<Record<string, number | "down" | undefined>>({});
+  useEffect(() => {
+    const chains = [["Mainnet", "wss://mainnet.portaldot.io"], ["V3 testnet", "wss://test-node-v3.portaldot.dev"]];
+    let live = true;
+    const poll = () => chains.forEach(async ([name, url]) => {
+      const n = new Node(url, { timeout: 10000 });
+      try {
+        const h = await n.call<{ number: string }>("chain_getHeader");
+        if (live) setHeads((x) => ({ ...x, [name]: parseInt(h.number, 16) }));
+      } catch { if (live) setHeads((x) => ({ ...x, [name]: "down" })); } finally { n.close(); }
+    });
+    poll();
+    const t = setInterval(poll, 12000);
+    return () => { live = false; clearInterval(t); };
+  }, []);
+  return (
+    <ul className="cx-chains">
+      {["Mainnet", "V3 testnet"].map((c) => {
+        const v = heads[c];
+        return <li key={c}><i className={v === "down" ? "down" : v ? "up" : ""} /><span>{c}</span><code>{v === "down" ? "unreachable" : v ? `#${v.toLocaleString("en")}` : "…"}</code></li>;
+      })}
+    </ul>
+  );
+}
 
 export default function Shell({ compare }: { compare: ReactNode }) {
-  const [active, setActive] = useState<Id>("compare");
-  const [seen, setSeen] = useState<Set<Id>>(new Set(["compare"]));
+  const [route, setRoute] = useState<Route>({ view: "new" });
+  const [seen, setSeen] = useState<Set<string>>(new Set());
   const [open, setOpen] = useState(false);
 
   useEffect(() => {
-    const read = () => {
-      const h = location.hash.slice(1) as Id;
-      if (ITEMS.some((i) => i.id === h)) { setActive(h); setSeen((s) => new Set(s).add(h)); }
-      setOpen(false);
-    };
-    read();
-    addEventListener("hashchange", read);
-    return () => removeEventListener("hashchange", read);
+    const go = () => { const r = read(); setRoute(r); setSeen((s) => new Set(s).add(r.view)); setOpen(false); window.scrollTo(0, 0); };
+    go();
+    addEventListener("hashchange", go);
+    return () => removeEventListener("hashchange", go);
   }, []);
 
-  const current = ITEMS.find((i) => i.id === active)!;
+  const v = route.view;
+  // Panels mount the first time they are opened, then stay mounted (their live state survives).
+  const keep = (id: string, el: ReactNode) => (seen.has(id) || v === id ? <div hidden={v !== id}>{el}</div> : null);
   return (
-    <div className="dash-shell">
-      <nav className={open ? "side open" : "side"} aria-label="Dashboard">
-        <a className="side-brand" href="/" aria-label="Portal Canary home">
+    <div className={open ? "cx menu-open" : "cx"}>
+      <aside className="cx-side" aria-label="Console">
+        <a className="cx-brand" href="/">
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/assets/images/header/logo.png" width={28} height={28} alt="" />
+          <img src="/assets/images/header/logo.png" width={24} height={24} alt="" />
           <span>Portal Canary</span>
         </a>
-        <p className="side-title">Dashboard</p>
-        {ITEMS.map((i) => (
-          <a key={i.id} href={`#${i.id}`} aria-current={active === i.id ? "page" : undefined} className="side-item">
-            <svg viewBox="0 0 24 24" aria-hidden="true">{i.icon}</svg>
-            <span><b>{i.label}</b><small>{i.hint}</small></span>
-          </a>
+        <a className={`cx-new${v === "new" ? " on" : ""}`} href="#new">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14" /></svg>New run
+        </a>
+        {NAV.map((g) => (
+          <nav key={g.group} className="cx-group" aria-label={g.group}>
+            <p>{g.group}</p>
+            {g.items.map((i) => (
+              <a key={i.id} href={`#${i.id}`} aria-current={v === i.id || (i.id === "runs" && v === "run") ? "page" : undefined}>
+                <svg viewBox="0 0 24 24" aria-hidden="true">{i.icon}</svg>{i.label}
+              </a>
+            ))}
+          </nav>
         ))}
-        <p className="side-foot"><i aria-hidden="true" />Live against Portaldot mainnet and the V3 testnet. Nothing to install.</p>
-      </nav>
-      <div className="dash-main">
-        <header className="dash-top">
-          <button type="button" className="dash-menu" aria-label="Menu" aria-expanded={open} onClick={() => setOpen((o) => !o)}>
+        <div className="cx-side-foot"><ChainStatus /></div>
+      </aside>
+      <button type="button" className="cx-scrim" aria-label="Close menu" onClick={() => setOpen(false)} />
+      <div className="cx-main">
+        <header className="cx-top">
+          <button type="button" className="cx-menu" aria-label="Menu" aria-expanded={open} onClick={() => setOpen((o) => !o)}>
             <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M3 6h14M3 10h14M3 14h14" /></svg>
           </button>
-          <div className="dash-title"><h1>{current.label}</h1><span>{current.hint}</span></div>
-          <div className="dash-actions">
-            <a className="dash-gh" href="https://github.com/Venkat5599/PRT">GitHub <svg className="arr" viewBox="0 0 12 12" aria-hidden="true"><path d="M3.5 8.5l5-5M4.5 3.5h4v4" /></svg></a>
+          <h1>{v === "run" && route.arg ? <><a href="#runs">Runs</a><span>/</span><code>{route.arg}</code></> : TITLES[v]}</h1>
+          <div className="cx-top-actions">
+            <a className="cx-ghost" href="https://github.com/Venkat5599/PRT" target="_blank" rel="noreferrer">GitHub</a>
             <WalletButton />
           </div>
         </header>
-        <div className="dash-body">
-          <div hidden={active !== "compare"}>{compare}</div>
-          {/* Other panels mount the first time they are opened, then stay mounted. */}
-          {seen.has("test") && <div hidden={active !== "test"}><TestPanel /></div>}
-          {seen.has("doctor") && <div hidden={active !== "doctor"}><DoctorPanel /></div>}
-          {seen.has("runs") && <div hidden={active !== "runs"}><RunsPanel /></div>}
-          {seen.has("registry") && <div hidden={active !== "registry"}><RegistryPanel /></div>}
-          {seen.has("invariants") && <div hidden={active !== "invariants"}><InvariantsPanel /></div>}
-          {seen.has("cli") && <div hidden={active !== "cli"}><CliPanel /></div>}
+        <div className="cx-body">
+          {v === "new" && <NewRun />}
+          {v === "run" && route.arg && <RunView key={route.arg} id={route.arg} />}
+          {keep("runs", <RunsList />)}
+          {keep("node", <TestPanel />)}
+          <div hidden={v !== "compare"} className="cx-compare">{compare}</div>
+          {keep("doctor", <DoctorPanel />)}
+          {keep("invariants", <InvariantsPanel />)}
+          {keep("registry", <RegistryPanel />)}
         </div>
       </div>
     </div>

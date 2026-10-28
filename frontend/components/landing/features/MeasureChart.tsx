@@ -5,10 +5,14 @@ import type { Bind, Kids } from "@/components/landing/bind";
 import { swap } from "@/components/landing/bind";
 import { useVisibleOnce } from "../fx";
 import MeasureChartView from "./MeasureChartView";
+import { liveCompare, byCategory, CATEGORIES } from "../data";
 
-// "Measure the blast radius": 2.5s after the chart comes into view, a highlight starts hopping
-// between the four bar groups every 1.5s; the legend slides in and the picked group bounces.
+// "Measure the blast radius": mainnet vs the V3 testnet, read from both nodes and diffed in the page.
+// Each group is one item category (calls, events, storage, constants); its three bars are the items
+// added, removed and changed, scaled on a log axis. Once the numbers land the highlight walks the groups.
 const GROUPS = 4;
+const KINDS = ["added", "removed", "modified"] as const;
+const NAMES = { call: "Calls", event: "Events", storage: "Storage items", constant: "Constants" };
 
 export default function MeasureChart() {
   const root = useRef<HTMLDivElement | null>(null);
@@ -19,8 +23,9 @@ export default function MeasureChart() {
   useVisibleOnce(root, () => {
     const timers: number[] = [];
     let interval: number | undefined;
+    let n = -1, live = true;
     const pick = () => {
-      const i = Math.floor(Math.random() * GROUPS);
+      const i = (n = (n + 1) % GROUPS);
       setActive(i);
       const item = chart.current?.children[i] as HTMLElement | undefined;
       const h = hover.current;
@@ -29,7 +34,17 @@ export default function MeasureChart() {
       h.style.transform = `translateX(${item.offsetLeft}px)`;
       h.style.height = `${item.offsetHeight + 16}px`;
     };
-    timers.push(window.setTimeout(() => {
+    liveCompare().then((c) => {
+      const items = [...(chart.current?.children ?? [])] as HTMLElement[];
+      if (!live || items.length < GROUPS) return;
+      const cat = byCategory(c);
+      const max = Math.max(1, ...CATEGORIES.flatMap((k) => KINDS.map((x) => cat[k][x])));
+      CATEGORIES.forEach((k, g) => {
+        const bars = [...items[g].children].filter((el) => (el as HTMLElement).style.getPropertyValue("--bar-index") !== "") as HTMLElement[];
+        bars.forEach((bar, j) => { const v = cat[k][KINDS[j]]; bar.style.height = `${v ? 4 + Math.round(63 * Math.log1p(v) / Math.log1p(max)) : 2}px`; });
+        items[g].title = `${NAMES[k]}: +${cat[k].added} added, −${cat[k].removed} removed, ~${cat[k].modified} changed (mainnet → V3)`;
+        items[g].setAttribute("aria-label", items[g].title);
+      });
       const h = hover.current;
       if (!h) return;
       h.classList.add("transition-opacity");
@@ -39,8 +54,8 @@ export default function MeasureChart() {
         h.classList.add("transition-all");
         interval = window.setInterval(pick, 1500);
       }, 100));
-    }, 2500));
-    return () => { timers.forEach(clearTimeout); clearInterval(interval); };
+    }).catch(() => { /* nodes unreachable: the chart stays empty rather than inventing bars */ });
+    return () => { live = false; timers.forEach(clearTimeout); clearInterval(interval); };
   });
 
   const b: Bind = (key, i, base) => {

@@ -188,7 +188,7 @@ export default function FeatureDashboardView({ b, k }: { b: Bind; k: Kids }) {
                     <div className={"flex items-center gap-12"}>
                       <img alt={""} decoding={"async"} height={"22"} loading={"lazy"} src={"/assets/images-original/features/dashboard/validation/check-2.png"} style={{} as React.CSSProperties} width={"22"} className={"lazy-image opacity-0"} />
                       <div className={"text-14/22 font-400 text-body-light-loud"}>
-                        {"Liveness ok: #9 to #12 under the new runtime"}
+                        {"Blocks kept coming under the new runtime"}
                       </div>
                     </div>
                     <div className={"flex items-center gap-12"}>
@@ -328,10 +328,10 @@ export default function FeatureDashboardView({ b, k }: { b: Bind; k: Kids }) {
                       </div>
                       <div className={"flex flex-col"}>
                         <div className={"text-16/26 font-500 tracking-[-0.16px] text-body-light-loud"}>
-                          {"All checks passed!"}
+                          {"1 workflow regression"}
                         </div>
                         <div className={"text-14/22 font-400 text-body-light-muted"}>
-                          {"5 out of 5 workflows have passed"}
+                          {"3 out of 4 workflows have passed"}
                         </div>
                       </div>
                     </div>

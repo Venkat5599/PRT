@@ -1,0 +1,122 @@
+[
+ {
+  "name": "clean",
+  "spec": 1003,
+  "sha256": "9bc1ae0b7d76970a616d3a0b3f105569470dcaf243a7007974f574572c77a1f7",
+  "bytes": 2452877,
+  "changes": [
+   {
+    "before": "pub const MILLISECS_PER_BLOCK: Moment = 60_000;",
+    "after": "pub const MILLISECS_PER_BLOCK: Moment = 6_000;"
+   }
+  ]
+ },
+ {
+  "name": "ed100x",
+  "spec": 1004,
+  "sha256": "b34a069c2c0cbc6ec8e59ffaa838b264cbe153dd1c05e3971b0c2d89dedba09f",
+  "bytes": 2452968,
+  "changes": [
+   {
+    "before": "pub const ExistentialDeposit: Balance = 1 * DOLLARS;",
+    "after": "pub const ExistentialDeposit: Balance = 100 * DOLLARS;"
+   }
+  ]
+ },
+ {
+  "name": "fee10x",
+  "spec": 1005,
+  "sha256": "3618d820334b07492c20b934d37500c2b99ac630403c8f21aa1ebadc5c0801c2",
+  "bytes": 2452879,
+  "changes": [
+   {
+    "before": "pub const TransactionByteFee: Balance = 10 * MILLICENTS;",
+    "after": "pub const TransactionByteFee: Balance = 100 * MILLICENTS;"
+   }
+  ]
+ },
+ {
+  "name": "halve-reserved",
+  "spec": 1006,
+  "sha256": "33104bea2dc69cc2837baa00474fa03316157d24d82522abecca17aa3c2eafba",
+  "bytes": 2456463,
+  "changes": [
+   {
+    "before": "(),",
+    "after": "HalveReserved,"
+   },
+   {
+    "before": null,
+    "after": "/// INJECTED (Portal Canary demo): halves every reserved balance on upgrade"
+   },
+   {
+    "before": null,
+    "after": "/// without touching TotalIssuance, so supply is silently destroyed."
+   },
+   {
+    "before": null,
+    "after": "pub struct HalveReserved;"
+   },
+   {
+    "before": null,
+    "after": "impl frame_support::traits::OnRuntimeUpgrade for HalveReserved {"
+   },
+   {
+    "before": null,
+    "after": "fn on_runtime_upgrade() -> Weight {"
+   },
+   {
+    "before": null,
+    "after": "let held: Vec<AccountId> = frame_system::Account::<Runtime>::iter()"
+   },
+   {
+    "before": null,
+    "after": ".filter(|(_, a)| a.data.reserved > 0)"
+   },
+   {
+    "before": null,
+    "after": ".map(|(who, _)| who)"
+   },
+   {
+    "before": null,
+    "after": ".collect();"
+   },
+   {
+    "before": null,
+    "after": "for who in held.iter() {"
+   },
+   {
+    "before": null,
+    "after": "frame_system::Account::<Runtime>::mutate(who, |a| a.data.reserved /= 2);"
+   },
+   {
+    "before": null,
+    "after": "}"
+   },
+   {
+    "before": null,
+    "after": "RuntimeBlockWeights::get().max_block"
+   },
+   {
+    "before": null,
+    "after": "}"
+   },
+   {
+    "before": null,
+    "after": "}"
+   }
+  ]
+ },
+ {
+  "name": "source-60s",
+  "spec": 1003,
+  "sha256": "701f535bab411503f49b46997e3d31eec21b78f70a823c247c7c648afcd514c8",
+  "bytes": 2453111,
+  "changes": [
+   {
+    "before": "pub const MILLISECS_PER_BLOCK: Moment = 6_000;",
+    "after": "pub const MILLISECS_PER_BLOCK: Moment = 60_000;"
+   }
+  ]
+ }
+]

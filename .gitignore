@@ -1,6 +1,7 @@
 *.env
 .env*
 node_modules/
-runs/
+/runs/
+/backend/runs/
 target/
 Plans/

@@ -117,11 +117,7 @@ export function DoctorPanel() {
   const summary = { substrate: reports.filter((r) => r.kind === "substrate").map((r) => r.json), evm: reports.filter((r) => r.kind === "evm").map((r) => r.json), healthy: healthy === reports.length };
 
   return (
-    <section className="frame panel" aria-labelledby="doc-title">
-      <header className="live-head">
-        <h2 id="doc-title">Is this node <em>healthy?</em></h2>
-        <p className="lead">The browser version of <code>canary doctor</code>: every endpoint is checked layer by layer (network, connection, chain, runtime, metadata, APIs) and fingerprinted. Exit 2 if any is unhealthy.</p>
-      </header>
+    <section className="frame panel" aria-label="Doctor">
       <div className="live-form pairs">
         <div className="pair-group" role="group" aria-label="Endpoints to check">
           {DOCTOR_TARGETS.map((t) => (
@@ -289,45 +285,6 @@ export function RunDetail({ id, d, attest }: { id: string; d: RunData; attest?: 
   );
 }
 
-export function RunsPanel() {
-  const [data, setData] = useState<Record<string, RunData | "error">>({});
-  const [open, setOpen] = useState<string | null>(null);
-  useEffect(() => {
-    for (const r of RUNS) {
-      fetch(`/reports/${r.id}/report.json`).then((x) => x.json()).then((d) => setData((m) => ({ ...m, [r.id]: d })), () => setData((m) => ({ ...m, [r.id]: "error" })));
-    }
-  }, []);
-  return (
-    <section className="frame panel" aria-labelledby="runs-title">
-      <header className="live-head">
-        <h2 id="runs-title">Four upgrades, <em>recorded.</em></h2>
-        <p className="lead">Each candidate is pushed through <code>system.setCode</code> on a local Portaldot dev node. The migration bug is caught by <code>canary upgrade</code>, which diffs every account and the supply invariant across the upgrade; the rest are <code>canary test</code> workflow runs. Open a run to see every expectation, recompute its finding hashes and verify its anchor on the V3 testnet.</p>
-      </header>
-      <ul className="run-list">
-        {RUNS.map((r) => {
-          const d = data[r.id];
-          const ok = d && d !== "error" ? d : null;
-          const v = ok ? verdict(ok.summary) : null;
-          const isOpen = open === r.id;
-          return (
-            <li key={r.id} className={isOpen ? "is-open" : ""}>
-              <div className="rl-main"><b>{r.name}</b><span>{r.hint}</span></div>
-              <div className="rl-verdict">
-                {v && ok ? <><strong className={v.cls}>{v.text}</strong><span>{ok.manifest.detail ?? `${ok.summary.workflows} workflows`} · spec {ok.manifest.baseline.spec_version} → {ok.manifest.candidate.spec_version} · exit {v.exit}</span></> : <span>{d === "error" ? "report unavailable" : "loading…"}</span>}
-              </div>
-              <div className="rl-links">
-                {ok && <button type="button" className="rl-open" aria-expanded={isOpen} onClick={() => setOpen(isOpen ? null : r.id)}>{isOpen ? "Close" : "Open"}</button>}
-                <a href={`/reports/${r.id}/${r.report}`}>{r.report === "output.txt" ? "Log" : "Report"}</a><a href={`/reports/${r.id}/report.json`}>JSON</a>
-              </div>
-              {isOpen && ok && <RunDetail id={r.id} d={ok} />}
-            </li>
-          );
-        })}
-      </ul>
-    </section>
-  );
-}
-
 /* ---------- on-chain registry (PortaldotV3 EVM) + V3 remark anchors ---------- */
 type Row = OnChain & { run?: (typeof RUNS)[number]; matches: boolean; tx?: string; remark?: boolean | "error" };
 
@@ -376,11 +333,7 @@ export function RegistryPanel() {
   const anchored = rows?.filter((r) => r.run).length ?? 0;
   const remarks = rows?.filter((r) => r.remark === true).length ?? 0;
   return (
-    <section className="frame panel" aria-labelledby="reg-title">
-      <header className="live-head">
-        <h2 id="reg-title">Every verdict, <em>on-chain.</em></h2>
-        <p className="lead">Each report is anchored twice on the PortaldotV3 testnet: its sha256 and verdict counts in the <code>CanaryRegistry</code> contract on the EVM side, and the same hash in a <code>system.remark</code> on the Substrate side. This panel reads both live and checks them against the reports this site serves.</p>
-      </header>
+    <section className="frame panel" aria-label="Registry">
       <div className="live-form pairs">
         <p className="verdict-sub">Contract <code>{REGISTRY}</code> · PortaldotV3 · chain id {V3.chainId}</p>
         <button type="button" className="btn btn-blue run-btn" disabled={busy} onClick={load}>{busy ? "Reading…" : "Read again"}</button>
@@ -443,11 +396,7 @@ export function InvariantsPanel() {
   const u = (n: bigint) => (out ? `${formatUnits(n, out.decimals)} ${out.symbol}` : "");
   const exit = out ? { PASS: 0, FAIL: 1, INCONCLUSIVE: 2 }[out.verdict] : 2;
   return (
-    <section className="frame panel" aria-labelledby="inv-title">
-      <header className="live-head">
-        <h2 id="inv-title">Every planck, <em>accounted for.</em></h2>
-        <p className="lead">Supply conservation, live: the free and reserved balance of every account at the latest finalized block must add up to <code>Balances.TotalIssuance</code>. The same check <code>canary upgrade</code> runs before and after every runtime upgrade.</p>
-      </header>
+    <section className="frame panel" aria-label="Invariants">
       <div className="live-form pairs">
         <div className="pair-group" role="group" aria-label="Network">
           {INV_TARGETS.map((t) => (
@@ -478,42 +427,6 @@ export function InvariantsPanel() {
           <div><dt>total issuance</dt><dd>{u(out.total_issuance)}</dd></div>
         </dl>
       )}
-    </section>
-  );
-}
-
-/* ---------- CLI ---------- */
-const COMMANDS: [string, string][] = [
-  ["Build", "cargo build --release"],
-  ["Diagnose an endpoint", "canary doctor --ws wss://test-node-v3.portaldot.dev"],
-  ["Diff two runtimes", "canary compare --baseline wss://mainnet.portaldot.io --candidate wss://test-node-v3.portaldot.dev"],
-  ["Check supply", "canary invariants --ws wss://mainnet.portaldot.io"],
-  ["Test an upgrade", "canary test --baseline ws://127.0.0.1:9944 --candidate ws://127.0.0.1:9945"],
-  ["Reproduce a finding", "canary reproduce balances.transfer.basic --run runs/<id>"],
-  ["In GitHub Actions", "uses: Venkat5599/PRT@main"],
-];
-
-function Copy({ text }: { text: string }) {
-  const [label, setLabel] = useState("copy");
-  return (
-    <button type="button" className="copy" onClick={async () => {
-      try { await navigator.clipboard.writeText(text); setLabel("copied"); } catch { setLabel("select + copy"); }
-      setTimeout(() => setLabel("copy"), 1600);
-    }}><code>{text}</code><span>{label}</span></button>
-  );
-}
-
-export function CliPanel() {
-  return (
-    <section className="frame panel" aria-labelledby="cli-title">
-      <header className="live-head">
-        <h2 id="cli-title">The same engine, <em>in your terminal.</em></h2>
-        <p className="lead">Everything on this dashboard runs from the <code>canary</code> CLI too, with exit codes CI can gate on: 0 pass, 1 regression, 2 inconclusive.</p>
-      </header>
-      <ul className="cmd-list">
-        {COMMANDS.map(([k, c]) => <li key={k}><span>{k}</span><Copy text={c} /></li>)}
-      </ul>
-      <a className="frame-link" href="https://github.com/Venkat5599/PRT">GET THE SOURCE <svg className="arr" viewBox="0 0 12 12" aria-hidden="true"><path d="M3.5 8.5l5-5M4.5 3.5h4v4" /></svg></a>
     </section>
   );
 }

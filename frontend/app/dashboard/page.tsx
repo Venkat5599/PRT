@@ -3,10 +3,11 @@ import DashboardBehaviors from "@/components/DashboardBehaviors";
 import Shell from "@/components/dashboard/Shell";
 import Live from "@/components/Live";
 import "./theme.css";
+import "./console.css";
 
 export const metadata: Metadata = {
   title: "Dashboard · Portal Canary",
-  description: "Compare any two Portaldot runtimes, check an endpoint's health, read recorded upgrade tests and the mainnet supply invariant, live in your browser.",
+  description: "Upgrade a fresh Portaldot chain to your candidate runtime, test it, and get a verdict. Compare live runtimes, check nodes and the mainnet supply.",
 };
 
 export default function Dashboard() {

@@ -21,7 +21,7 @@ const LAST = "canary.lastRun";
 
 type Lane = { ws: string; info?: ChainInfo; balance?: bigint; err?: string; busy: boolean };
 type Report = RunData & { manifest: RunData["manifest"] & { run_id: string } };
-type Saved = { text: string; att?: Attestation };
+export type Saved = { text: string; att?: Attestation };
 
 async function contractFile(path: string) {
   if (path !== "tests/contracts/counter.wasm") throw new Error(`unknown workflow file ${path}`);
@@ -149,11 +149,7 @@ export function TestPanel() {
   const devBoth = lanes.length === 2 && lanes.every((l) => l.info?.dev);
 
   return (
-    <section className="frame panel" aria-labelledby="test-title">
-      <header className="live-head">
-        <h2 id="test-title">Run the suite, <em>sign the verdict.</em></h2>
-        <p className="lead">The browser version of <code>canary test</code> and <code>canary attest</code>: every workflow runs as real signed extrinsics on both endpoints, is classified like the CLI does, and the report can be anchored on-chain and verified.</p>
-      </header>
+    <section className="frame panel" id="test-panel" aria-label="On your node">
 
       <div className="live-form pairs">
         <div className="pair-group" role="group" aria-label="Endpoints">
@@ -230,7 +226,7 @@ export function TestPanel() {
 }
 
 /** Anchor a report made on this page with system.remark, then verify it from the chain. */
-function AttestRun({ saved, wallet, onSaved }: { saved: Saved; wallet: Connected | null; onSaved: (s: Saved) => void }) {
+export function AttestRun({ saved, wallet, onSaved }: { saved: Saved; wallet: Connected | null; onSaved: (s: Saved) => void }) {
   const first = (JSON.parse(saved.text) as Report).manifest.baseline.endpoint ?? DEV_A;
   const [ws, setWs] = useState(saved.att?.network ?? first);
   const [busy, setBusy] = useState<"sign" | "verify" | null>(null);
