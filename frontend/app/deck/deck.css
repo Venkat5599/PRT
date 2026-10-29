@@ -1,0 +1,58 @@
+/* Pitch deck at /deck: the landing's palette and type, one 1280×720 stage per slide, scaled to
+   the viewport; prints one slide per page. Scoped to .deck so nothing leaks elsewhere. */
+@font-face { src: url(/assets/fonts/inter/400.woff2); font-display: swap; font-family: Inter; font-weight: 400; }
+@font-face { src: url(/assets/fonts/inter/500.woff2); font-display: swap; font-family: Inter; font-weight: 500; }
+@font-face { src: url(/assets/fonts/inter/600.woff2); font-display: swap; font-family: Inter; font-weight: 600; }
+@font-face { src: url(/assets/fonts/display/500.woff2); font-display: swap; font-family: "Inter Tight"; font-weight: 500; }
+@font-face { src: url(/assets/fonts/geist-mono/400.woff2); font-display: swap; font-family: "Geist Mono"; font-weight: 400; }
+
+html, body { margin: 0; background: #0b0b0b; }
+.deck { --bg: #111111; --card: #161616; --line: #262626; --line-2: #353535; --ink: #ededed; --mute: #8f8f8f; --blue: #0036ff; --blue-hi: #4d74ff; --red: #ff5a52; --green: #3ccf8e;
+  font-family: Inter, ui-sans-serif, system-ui, sans-serif; color: var(--ink); -webkit-font-smoothing: antialiased; }
+.deck .frame { width: 100vw; aspect-ratio: 16 / 9; max-height: 100vh; display: grid; place-items: center; overflow: hidden; scroll-snap-align: start; }
+.deck .wrap { height: 100vh; overflow-y: auto; scroll-snap-type: y mandatory; }
+.deck .slide { width: 1280px; height: 720px; flex: none; position: relative; background: var(--bg); border: 1px solid var(--line); box-sizing: border-box; padding: 64px 72px; transform-origin: center; display: flex; flex-direction: column; overflow: hidden; }
+.deck .slide::after { content: ""; position: absolute; inset: auto 0 0 0; height: 3px; background: linear-gradient(90deg, var(--blue), transparent 60%); }
+.deck .kicker { font-family: "Geist Mono", ui-monospace, monospace; font-size: 14px; letter-spacing: .08em; text-transform: uppercase; color: var(--mute); margin: 0 0 18px; }
+.deck .kicker b { color: var(--blue-hi); font-weight: 400; }
+.deck h1, .deck h2 { font-family: "Inter Tight", Inter, sans-serif; font-weight: 500; letter-spacing: -0.03em; margin: 0; }
+.deck h1 { font-size: 84px; line-height: 1; }
+.deck h2 { font-size: 46px; line-height: 1.08; max-width: 1040px; }
+.deck p, .deck li { font-size: 21px; line-height: 1.45; color: #c9c9c9; margin: 0; }
+.deck .lead { font-size: 26px; line-height: 1.4; color: var(--ink); max-width: 980px; }
+.deck .mute { color: var(--mute); }
+.deck .mono { font-family: "Geist Mono", ui-monospace, monospace; font-size: .86em; }
+.deck .num { font-family: "Inter Tight", Inter, sans-serif; font-weight: 500; letter-spacing: -0.03em; }
+.deck .foot { position: absolute; left: 72px; right: 72px; bottom: 26px; display: flex; justify-content: space-between; font-family: "Geist Mono", monospace; font-size: 12.5px; color: #6a6a6a; }
+.deck .grid { display: grid; gap: 18px; }
+.deck .card { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 22px 24px; }
+.deck .card h3 { font-family: "Inter Tight", Inter, sans-serif; font-weight: 500; font-size: 24px; letter-spacing: -0.02em; margin: 0 0 8px; color: var(--ink); }
+.deck .card p { font-size: 19px; line-height: 1.45; }
+.deck .body { flex: 1; min-height: 0; display: flex; flex-direction: column; justify-content: center; padding-bottom: 24px; }
+.deck .ok { color: var(--green); }
+.deck .bad { color: var(--red); }
+.deck .shot { border: 1px solid var(--line-2); border-radius: 12px; overflow: hidden; background: #0d0d0d; }
+.deck .shot img { display: block; width: 100%; height: 100%; object-fit: cover; object-position: top left; }
+.deck .stat { display: flex; flex-direction: column; gap: 4px; }
+.deck .stat .num { font-size: 44px; line-height: 1; color: var(--ink); }
+.deck .stat span:last-child { font-size: 15px; color: var(--mute); line-height: 1.35; }
+.deck ul.clean { list-style: none; padding: 0; margin: 0; display: grid; gap: 14px; }
+.deck ul.clean li { padding-left: 22px; position: relative; }
+.deck ul.clean li::before { content: ""; position: absolute; left: 0; top: .62em; width: 8px; height: 8px; border-radius: 2px; background: var(--blue); }
+.deck a { color: var(--ink); text-decoration: underline; text-underline-offset: 3px; text-decoration-color: var(--line-2); }
+.deck .hint { position: fixed; right: 16px; bottom: 12px; font: 12px "Geist Mono", monospace; color: #555; }
+.deck .step { display: flex; flex-direction: column; gap: 8px; }
+.deck .step .n { font-family: "Geist Mono", monospace; font-size: 13px; color: var(--blue-hi); }
+.deck table { border-collapse: collapse; width: 100%; font-size: 16px; }
+.deck td { border-top: 1px solid var(--line); padding: 13px 12px 13px 0; font-size: 18px; color: #c9c9c9; vertical-align: top; }
+.deck td:first-child { color: var(--mute); white-space: nowrap; width: 1%; padding-right: 28px; }
+
+@media print {
+  @page { size: 1280px 720px; margin: 0; }
+  html, body { background: var(--bg, #111); }
+  .deck .wrap { height: auto; overflow: visible; }
+  .deck .frame { width: 1280px; height: 720px; max-height: none; aspect-ratio: auto; break-after: page; }
+  .deck .frame:last-child { break-after: auto; }
+  .deck .slide { transform: none !important; border: 0; }
+  .deck .hint { display: none; }
+}

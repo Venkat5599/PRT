@@ -488,6 +488,7 @@ The site is a Next.js app on Vercel with one server secret, `CANARY_GH_TOKEN`. T
 | The built runtimes, their patches and hashes | [`backend/runtimes/out`](backend/runtimes/out) |
 | V3 endpoint checks and earlier V3 records | [`docs/V3_READINESS.md`](docs/V3_READINESS.md) |
 | Design notes | [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md), [`docs/PLAN.md`](docs/PLAN.md) |
+| Pitch deck | [portal-canary-app.vercel.app/deck](https://portal-canary-app.vercel.app/deck), PDF copy [`docs/Portal-Canary-Venkat.pdf`](docs/Portal-Canary-Venkat.pdf) |
 
 ## Tests
 

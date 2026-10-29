@@ -46,7 +46,8 @@ const PRESETS = [
 ];
 const LAST = "canary.lastRun";
 // Live chains (anything but a local dev chain): each test account gets at most 5 tokens, so a
-// V3 → V3 run needs at most 10. Workflows whose own steps move more stay dev-chain only.
+// V3 → V3 run of the three workflows that fit needs 30 up front. Workflows whose own steps move
+// more stay dev-chain only.
 const LIVE_CAP_UNITS = 5n;
 
 type Lane = { ws: string; info?: ChainInfo; balance?: bigint; err?: string; busy: boolean };
@@ -103,14 +104,16 @@ export function TestPanel() {
   const cap = live ? LIVE_CAP_UNITS * 10n ** BigInt(lanes[0].info!.decimals) : undefined;
   const tooBig = (s: SuiteEntry) => cap != null && largestMoveOf(s) > cap;
   const selected = useMemo(() => (suite ?? []).filter((s) => pick.has(s.workflow.id) && !tooBig(s)), [suite, pick, cap]); // eslint-disable-line react-hooks/exhaustive-deps
-  const need = useMemo(() => {
-    const most = selected.reduce((m, s) => {
-      const f = (s.workflow.fund ?? []).reduce((a, x) => a + (cap != null && BigInt(x.amount) > cap ? cap : BigInt(x.amount)), 0n);
-      return f > m ? f : m;
-    }, 0n);
-    return b === c ? most * 2n : most;
+  // A dev account funds one workflow at a time; a wallet funds every workflow up front in one
+  // transaction per chain (lib/tx prefund), so it must hold the whole run's funding at once.
+  const [most, upfront] = useMemo(() => {
+    const per = selected.map((s) => (s.workflow.fund ?? []).reduce((a, x) => a + (cap != null && BigInt(x.amount) > cap ? cap : BigInt(x.amount)), 0n));
+    const sides = b === c ? 2n : 1n;
+    return [per.reduce((m, f) => (f > m ? f : m), 0n) * sides, per.reduce((a, f) => a + f, 0n) * sides];
   }, [selected, b, c, cap]);
   const who = signerFor(lanes.length === 2 ? lanes : [{ ws: b, busy: true }], wallet, useWallet);
+  const batched = who.signer?.kind === "wallet";
+  const need = batched ? upfront : most;
 
   async function check() {
     const eps = [b.trim(), c.trim()];
@@ -227,7 +230,7 @@ export function TestPanel() {
         <Panel flush title="Run" className="lg:sticky lg:top-20">
           <KV rows={[
             ["Signer", <span key="s" className="flex flex-wrap items-center gap-2">{who.label || "–"}{devBoth && wallet?.wallet.kind === "substrate" && <Button variant="link" size="sm" className="h-auto p-0" disabled={busy} onClick={() => setUseWallet((u) => !u)}>{useWallet ? "use dev account" : "use my wallet"}</Button>}</span>],
-            ["Funding", selected.length && lanes[0]?.info ? `${amount(need, lanes[0].info)} at a time` : "–"],
+            ["Funding", selected.length && lanes[0]?.info ? (batched ? `${amount(need, lanes[0].info)} up front, swept back` : `${amount(need, lanes[0].info)} at a time`) : "–"],
           ]} />
           <div className="space-y-3 border-t px-5 py-4">
             <Input value={injected} onChange={(e) => setInjected(e.target.value)} disabled={busy} placeholder="Change under test (optional)" spellCheck={false} />
