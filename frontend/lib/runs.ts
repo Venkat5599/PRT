@@ -5,7 +5,7 @@
 // in the server environment (CANARY_GH_TOKEN); the browser never sees it.
 import { unzipSync, strFromU8 } from "fflate";
 
-export const REPO = process.env.CANARY_REPO ?? "Venkat5599/PRT";
+export const REPO = process.env.CANARY_REPO ?? "Venkat5599/portalcanary";
 const WORKFLOW = "canary-run.yml";
 const API = "https://api.github.com";
 export const PRESETS = ["clean", "ed100x", "fee10x", "halve-reserved", "source-60s"] as const;

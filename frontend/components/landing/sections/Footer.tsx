@@ -12,7 +12,7 @@ export default function Footer() {
               {"Portal Canary"}
             </span>
           </a>
-          <a aria-label={"System status: All systems are operational"} data-footer-status={""} href={"https://github.com/Venkat5599/PRT"} className={"footer-status-pill"} target={"_blank"} rel={"noopener"}>
+          <a aria-label={"System status: All systems are operational"} data-footer-status={""} href={"https://github.com/Venkat5599/portalcanary"} className={"footer-status-pill"} target={"_blank"} rel={"noopener"}>
             <span data-footer-status-indicator={""} style={{"--status-dot": "#14A362", "--status-ring": "rgba(18, 163, 98, 0.12)", "--status-glow": "rgba(20, 163, 98, 1)"} as React.CSSProperties} className={"footer-status-indicator"}>
               <span className={"footer-status-dot"}></span>
             </span>
@@ -29,7 +29,7 @@ export default function Footer() {
             </h2>
             <ul className={"footer-section-links"}>
               <li>
-                <a href={"https://github.com/Venkat5599/PRT#readme"} className={"footer-link"} target={"_blank"} rel={"noopener"}>
+                <a href={"https://github.com/Venkat5599/portalcanary#readme"} className={"footer-link"} target={"_blank"} rel={"noopener"}>
                   {"Canary CLI"}
                 </a>
               </li>
@@ -51,12 +51,12 @@ export default function Footer() {
             </h2>
             <ul className={"footer-section-links"}>
               <li>
-                <a href={"https://github.com/Venkat5599/PRT#readme"} className={"footer-link"} target={"_blank"} rel={"noopener"}>
+                <a href={"https://github.com/Venkat5599/portalcanary#readme"} className={"footer-link"} target={"_blank"} rel={"noopener"}>
                   {"README"}
                 </a>
               </li>
               <li>
-                <a href={"https://github.com/Venkat5599/PRT/blob/main/docs/V3_READINESS.md"} className={"footer-link"} target={"_blank"} rel={"noopener"}>
+                <a href={"https://github.com/Venkat5599/portalcanary/blob/main/docs/V3_READINESS.md"} className={"footer-link"} target={"_blank"} rel={"noopener"}>
                   {"V3 readiness"}
                 </a>
               </li>
@@ -66,7 +66,7 @@ export default function Footer() {
                 </a>
               </li>
               <li>
-                <a href={"https://github.com/Venkat5599/PRT/blob/main/docs/PLAN.md"} className={"footer-link"} target={"_blank"} rel={"noopener"}>
+                <a href={"https://github.com/Venkat5599/portalcanary/blob/main/docs/PLAN.md"} className={"footer-link"} target={"_blank"} rel={"noopener"}>
                   {"Plan"}
                 </a>
               </li>
@@ -93,12 +93,12 @@ export default function Footer() {
                 </a>
               </li>
               <li>
-                <a href={"https://github.com/Venkat5599/PRT/tree/main/examples/mainnet-vs-v3"} className={"footer-link"} target={"_blank"} rel={"noopener"}>
+                <a href={"https://github.com/Venkat5599/portalcanary/tree/main/examples/mainnet-vs-v3"} className={"footer-link"} target={"_blank"} rel={"noopener"}>
                   {"Mainnet vs V3"}
                 </a>
               </li>
               <li>
-                <a href={"https://github.com/Venkat5599/PRT/tree/main/backend/tests/workflows"} className={"footer-link"} target={"_blank"} rel={"noopener"}>
+                <a href={"https://github.com/Venkat5599/portalcanary/tree/main/backend/tests/workflows"} className={"footer-link"} target={"_blank"} rel={"noopener"}>
                   {"Workflow corpus"}
                 </a>
               </li>
@@ -110,17 +110,17 @@ export default function Footer() {
             </h2>
             <ul className={"footer-section-links"}>
               <li>
-                <a href={"https://github.com/Venkat5599/PRT/issues"} className={"footer-link"} target={"_blank"} rel={"noopener"}>
+                <a href={"https://github.com/Venkat5599/portalcanary/issues"} className={"footer-link"} target={"_blank"} rel={"noopener"}>
                   {"Open an issue"}
                 </a>
               </li>
               <li>
-                <a href={"https://github.com/Venkat5599/PRT#license"} className={"footer-link"} target={"_blank"} rel={"noopener"}>
+                <a href={"https://github.com/Venkat5599/portalcanary#license"} className={"footer-link"} target={"_blank"} rel={"noopener"}>
                   {"License"}
                 </a>
               </li>
               <li>
-                <a href={"https://github.com/Venkat5599/PRT"} className={"footer-link"} target={"_blank"} rel={"noopener"}>
+                <a href={"https://github.com/Venkat5599/portalcanary"} className={"footer-link"} target={"_blank"} rel={"noopener"}>
                   {"Repository"}
                 </a>
               </li>

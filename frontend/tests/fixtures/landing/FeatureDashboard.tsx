@@ -270,7 +270,7 @@ export default function FeatureDashboard() {
                             <path d={"M1 5H37M37 5L33 9M37 5L33 1"} stroke={"#A4A4A4"} strokeLinecap={"round"} strokeLinejoin={"round"} strokeOpacity={"0.32"} strokeWidth={"1.5"} style={{"stroke": "color(display-p3 0.6444 0.6444 0.6444)", "strokeOpacity": "0.32"} as React.CSSProperties}></path>
                           </svg>
                         </div>
-                        <a href={"https://github.com/Venkat5599/PRT"} className={"text-12/18 font-400 features-dashbord-content-smoke-content-active"} target={"_blank"} rel={"noopener"}>
+                        <a href={"https://github.com/Venkat5599/portalcanary"} className={"text-12/18 font-400 features-dashbord-content-smoke-content-active"} target={"_blank"} rel={"noopener"}>
                           {"setCode upgrade"}
                         </a>
                       </div>
@@ -289,7 +289,7 @@ export default function FeatureDashboard() {
                             <path d={"M1 5H37M37 5L33 9M37 5L33 1"} stroke={"#A4A4A4"} strokeLinecap={"round"} strokeLinejoin={"round"} strokeOpacity={"0.32"} strokeWidth={"1.5"} style={{"stroke": "color(display-p3 0.6444 0.6444 0.6444)", "strokeOpacity": "0.32"} as React.CSSProperties}></path>
                           </svg>
                         </div>
-                        <a href={"https://github.com/Venkat5599/PRT"} className={"text-12/18 font-400 features-dashbord-content-smoke-content-active"} target={"_blank"} rel={"noopener"}>
+                        <a href={"https://github.com/Venkat5599/portalcanary"} className={"text-12/18 font-400 features-dashbord-content-smoke-content-active"} target={"_blank"} rel={"noopener"}>
                           {"setCode upgrade"}
                         </a>
                       </div>

@@ -17,7 +17,7 @@ export default function Faq() {
         <div className={"text-12/22 text-body-light-muted"}>
           {"More questions? Read the"}
         </div>
-        <a href={"https://github.com/Venkat5599/PRT#readme"} className={"px-5 rounded-6 bg-body-light-bg-ghost transition-all hover:bg-body-light-bg-muted"} target={"_blank"} rel={"noopener"}>
+        <a href={"https://github.com/Venkat5599/portalcanary#readme"} className={"px-5 rounded-6 bg-body-light-bg-ghost transition-all hover:bg-body-light-bg-muted"} target={"_blank"} rel={"noopener"}>
           <div className={"text-14/22 font-500 tracking-[-0.14px] text-body-light-loud"}>
             {"README"}
           </div>

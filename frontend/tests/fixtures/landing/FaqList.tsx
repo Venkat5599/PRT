@@ -199,7 +199,7 @@ export default function FaqList() {
             <div className={"text-body-normal text-body-light-muted transition-all opacity-0 blur-[1px]"}>
               <p>
                 {"Absolutely. Canary ships a GitHub Action, and its own CI runs against a real Portaldot dev node. Start from the "}
-                <a className={"underline"} href={"https://github.com/Venkat5599/PRT/blob/main/action.yml"} target={"_blank"} rel={"noopener"}>
+                <a className={"underline"} href={"https://github.com/Venkat5599/portalcanary/blob/main/action.yml"} target={"_blank"} rel={"noopener"}>
                   {"action.yml in the repository."}
                 </a>
               </p>

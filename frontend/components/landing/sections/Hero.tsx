@@ -75,7 +75,7 @@ export default function Hero() {
               </span>
             </button>
           </a>
-          <a href={"https://github.com/Venkat5599/PRT#readme"} target={"_blank"} rel={"noopener"}>
+          <a href={"https://github.com/Venkat5599/portalcanary#readme"} target={"_blank"} rel={"noopener"}>
             <button aria-label={"Read docs"} className={"rounded-full relative button block transition-all duration-[200ms] active:duration-[50ms] button-dark px-16 py-12 flex-1 sm:py-7 pl-14"}>
               <span className={"flex items-center gap-4 justify-center text-label-normal text-body-dark-label"}>
                 {"Read docs"}

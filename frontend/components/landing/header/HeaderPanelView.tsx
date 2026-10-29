@@ -9,7 +9,7 @@ export default function HeaderPanelView({ b, k }: { b: Bind; k: Kids }) {
           <div aria-hidden={"true"} className={"absolute -top-2 left-0 h-16 w-full"}></div>
           <div className={"rounded-16 p-6 relative backdrop-blur-16 shadow-products-dropdown-dark"}>
             <div>
-              <a href={"https://github.com/Venkat5599/PRT#readme"} className={"group/item flex items-start gap-12 rounded-12 px-12 py-10 hover:bg-white/5 hover:outline hover:outline-1 hover:outline-white/8"} target={"_blank"} rel={"noopener"}>
+              <a href={"https://github.com/Venkat5599/portalcanary#readme"} className={"group/item flex items-start gap-12 rounded-12 px-12 py-10 hover:bg-white/5 hover:outline hover:outline-1 hover:outline-white/8"} target={"_blank"} rel={"noopener"}>
                 <div className={"grid h-36 w-36 place-items-center flex-shrink-0"}>
                   <img src={"/assets/images-original/nav/cli.png"} srcSet={"/assets/images-original/nav/cli.png 1x, /assets/images-original/nav/cli@2x.png 2x, /assets/images-original/nav/cli@3x.png 3x"} alt={""} aria-hidden={"true"} decoding={"async"} height={"36"} width={"36"} className={"h-36 w-36"} />
                 </div>
@@ -62,7 +62,7 @@ export default function HeaderPanelView({ b, k }: { b: Bind; k: Kids }) {
           <div aria-hidden={"true"} className={"absolute -top-2 left-0 h-16 w-full"}></div>
           <div className={"rounded-16 p-6 relative border border-[var(--body-stroke-lighter)] bg-[#FFFFFFE0] backdrop-blur-12 shadow-[0px_1px_2px_0px_#00000014,_0px_4px_16px_0px_#00000014,_0px_16px_56px_0px_#00000014]"}>
             <div>
-              <a href={"https://github.com/Venkat5599/PRT#readme"} className={"group/item flex items-start gap-12 rounded-12 px-12 py-10 hover:bg-[#00000005] hover:outline hover:outline-1 hover:outline-[#0000000A]"} target={"_blank"} rel={"noopener"}>
+              <a href={"https://github.com/Venkat5599/portalcanary#readme"} className={"group/item flex items-start gap-12 rounded-12 px-12 py-10 hover:bg-[#00000005] hover:outline hover:outline-1 hover:outline-[#0000000A]"} target={"_blank"} rel={"noopener"}>
                 <div className={"grid h-36 w-36 place-items-center flex-shrink-0"}>
                   <img src={"/assets/images-original/nav/cli-light.png"} srcSet={"/assets/images-original/nav/cli-light.png 1x, /assets/images-original/nav/cli-light@2x.png 2x, /assets/images-original/nav/cli-light@3x.png 3x"} alt={""} aria-hidden={"true"} decoding={"async"} height={"36"} width={"36"} className={"h-36 w-36"} />
                 </div>

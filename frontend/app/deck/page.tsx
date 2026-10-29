@@ -8,7 +8,7 @@ export const metadata: Metadata = {
 };
 
 const SITE = "portal-canary-app.vercel.app";
-const REPO = "github.com/Venkat5599/PRT";
+const REPO = "github.com/Venkat5599/portalcanary";
 const N = 10;
 
 function Slide({ n, kicker, children }: { n: number; kicker?: React.ReactNode; children: React.ReactNode }) {

@@ -28,7 +28,7 @@ export default function HeaderView({ b, k }: { b: Bind; k: Kids }) {
               </button>
               <div aria-hidden={"true"} id={"mobile-products-panel"} role={"menu"} className={"md:hidden overflow-hidden transition-all duration-6 hidden"} {...b("mPanel", 0, "md:hidden overflow-hidden transition-all duration-6 hidden")}>
                 <div className={"flex flex-col"}>
-                  <a href={"https://github.com/Venkat5599/PRT#readme"} className={"mt-6 flex justify-between gap-12 rounded-12 px-12 py-10 hover:bg-white/6 items-start"} target={"_blank"} rel={"noopener"}>
+                  <a href={"https://github.com/Venkat5599/portalcanary#readme"} className={"mt-6 flex justify-between gap-12 rounded-12 px-12 py-10 hover:bg-white/6 items-start"} target={"_blank"} rel={"noopener"}>
                     <img src={"/assets/images-original/nav/cli.png"} srcSet={"/assets/images-original/nav/cli.png 1x, /assets/images-original/nav/cli@2x.png 2x, /assets/images-original/nav/cli@3x.png 3x"} alt={""} aria-hidden={"true"} decoding={"async"} height={"36"} width={"36"} className={"h-36 w-36 flex-shrink-0"} />
                     <div className={"min-w-0 flex-1"}>
                       <div className={"text-14/20 font-600 text-white/90 truncate"}>
@@ -80,7 +80,7 @@ export default function HeaderView({ b, k }: { b: Bind; k: Kids }) {
                 </span>
                 <HeaderPanel {...(b("panel", 0, "") as object)} />
               </div>
-              <a href={"https://github.com/Venkat5599/PRT#readme"} style={{"--delay-on-mobile": "0ms"} as React.CSSProperties} className={"px-20 py-8 md:px-12 delay-[var(--delay-on-mobile)] text-white/72 flex justify-between items-center md-max:font-500 md-max:font-title hover:text-white transition-all rounded-25 duration-200 header-nav-item md-max:-translate-x-32 md-max:blur-[2px] md-max:opacity-0 !delay-[0s]"} target={"_blank"} rel={"noopener"} {...b("link", 0, "px-20 py-8 md:px-12 delay-[var(--delay-on-mobile)] text-white/72 flex justify-between items-center md-max:font-500 md-max:font-title hover:text-white transition-all rounded-25 duration-200 header-nav-item md-max:-translate-x-32 md-max:blur-[2px] md-max:opacity-0 !delay-[0s]")}>
+              <a href={"https://github.com/Venkat5599/portalcanary#readme"} style={{"--delay-on-mobile": "0ms"} as React.CSSProperties} className={"px-20 py-8 md:px-12 delay-[var(--delay-on-mobile)] text-white/72 flex justify-between items-center md-max:font-500 md-max:font-title hover:text-white transition-all rounded-25 duration-200 header-nav-item md-max:-translate-x-32 md-max:blur-[2px] md-max:opacity-0 !delay-[0s]"} target={"_blank"} rel={"noopener"} {...b("link", 0, "px-20 py-8 md:px-12 delay-[var(--delay-on-mobile)] text-white/72 flex justify-between items-center md-max:font-500 md-max:font-title hover:text-white transition-all rounded-25 duration-200 header-nav-item md-max:-translate-x-32 md-max:blur-[2px] md-max:opacity-0 !delay-[0s]")}>
                 {"Docs"}
                 <svg fill={"none"} height={"24"} viewBox={"0 0 24 24"} width={"24"} className={"md:hidden"} xmlns={"http://www.w3.org/2000/svg"}>
                   <path fill={"white"} style={{"fill": "white", "fillOpacity": "1"} as React.CSSProperties} clipRule={"evenodd"} d={"M9.29289 7.29289C9.68342 6.90237 10.3166 6.90237 10.7071 7.29289L13.6464 10.2322C14.6228 11.2085 14.6228 12.7915 13.6464 13.7678L10.7071 16.7071C10.3166 17.0976 9.68342 17.0976 9.29289 16.7071C8.90237 16.3166 8.90237 15.6834 9.29289 15.2929L12.2322 12.3536C12.4275 12.1583 12.4275 11.8417 12.2322 11.6464L9.29289 8.70711C8.90237 8.31658 8.90237 7.68342 9.29289 7.29289Z"} fillRule={"evenodd"}></path>
@@ -92,14 +92,14 @@ export default function HeaderView({ b, k }: { b: Bind; k: Kids }) {
                   <path fill={"white"} style={{"fill": "white", "fillOpacity": "1"} as React.CSSProperties} clipRule={"evenodd"} d={"M9.29289 7.29289C9.68342 6.90237 10.3166 6.90237 10.7071 7.29289L13.6464 10.2322C14.6228 11.2085 14.6228 12.7915 13.6464 13.7678L10.7071 16.7071C10.3166 17.0976 9.68342 17.0976 9.29289 16.7071C8.90237 16.3166 8.90237 15.6834 9.29289 15.2929L12.2322 12.3536C12.4275 12.1583 12.4275 11.8417 12.2322 11.6464L9.29289 8.70711C8.90237 8.31658 8.90237 7.68342 9.29289 7.29289Z"} fillRule={"evenodd"}></path>
                 </svg>
               </a>
-              <a href={"https://github.com/Venkat5599/PRT/blob/main/docs/PLAN.md"} style={{"--delay-on-mobile": "100ms"} as React.CSSProperties} className={"px-20 py-8 md:px-12 delay-[var(--delay-on-mobile)] text-white/72 flex justify-between items-center md-max:font-500 md-max:font-title hover:text-white transition-all rounded-25 duration-200 header-nav-item md-max:-translate-x-32 md-max:blur-[2px] md-max:opacity-0 !delay-[0s]"} target={"_blank"} rel={"noopener"} {...b("link", 2, "px-20 py-8 md:px-12 delay-[var(--delay-on-mobile)] text-white/72 flex justify-between items-center md-max:font-500 md-max:font-title hover:text-white transition-all rounded-25 duration-200 header-nav-item md-max:-translate-x-32 md-max:blur-[2px] md-max:opacity-0 !delay-[0s]")}>
+              <a href={"https://github.com/Venkat5599/portalcanary/blob/main/docs/PLAN.md"} style={{"--delay-on-mobile": "100ms"} as React.CSSProperties} className={"px-20 py-8 md:px-12 delay-[var(--delay-on-mobile)] text-white/72 flex justify-between items-center md-max:font-500 md-max:font-title hover:text-white transition-all rounded-25 duration-200 header-nav-item md-max:-translate-x-32 md-max:blur-[2px] md-max:opacity-0 !delay-[0s]"} target={"_blank"} rel={"noopener"} {...b("link", 2, "px-20 py-8 md:px-12 delay-[var(--delay-on-mobile)] text-white/72 flex justify-between items-center md-max:font-500 md-max:font-title hover:text-white transition-all rounded-25 duration-200 header-nav-item md-max:-translate-x-32 md-max:blur-[2px] md-max:opacity-0 !delay-[0s]")}>
                 {"Plan"}
                 <svg fill={"none"} height={"24"} viewBox={"0 0 24 24"} width={"24"} className={"md:hidden"} xmlns={"http://www.w3.org/2000/svg"}>
                   <path fill={"white"} style={{"fill": "white", "fillOpacity": "1"} as React.CSSProperties} clipRule={"evenodd"} d={"M9.29289 7.29289C9.68342 6.90237 10.3166 6.90237 10.7071 7.29289L13.6464 10.2322C14.6228 11.2085 14.6228 12.7915 13.6464 13.7678L10.7071 16.7071C10.3166 17.0976 9.68342 17.0976 9.29289 16.7071C8.90237 16.3166 8.90237 15.6834 9.29289 15.2929L12.2322 12.3536C12.4275 12.1583 12.4275 11.8417 12.2322 11.6464L9.29289 8.70711C8.90237 8.31658 8.90237 7.68342 9.29289 7.29289Z"} fillRule={"evenodd"}></path>
                 </svg>
               </a>
             </div>
-            <a href={"https://github.com/Venkat5599/PRT"} className={"block w-full md:hidden transition-all delay-[250ms] md-max:translate-y-full md-max:opacity-0"} target={"_blank"} rel={"noopener"} {...b("mGit", 0, "block w-full md:hidden transition-all delay-[250ms] md-max:translate-y-full md-max:opacity-0")}>
+            <a href={"https://github.com/Venkat5599/portalcanary"} className={"block w-full md:hidden transition-all delay-[250ms] md-max:translate-y-full md-max:opacity-0"} target={"_blank"} rel={"noopener"} {...b("mGit", 0, "block w-full md:hidden transition-all delay-[250ms] md-max:translate-y-full md-max:opacity-0")}>
               <button aria-label={"GitHub"} className={"rounded-full relative button block transition-all duration-[200ms] active:duration-[50ms] button-dark p-12 whitespace-nowrap w-full"} {...b("variantBtn", 0, "rounded-full relative button block transition-all duration-[200ms] active:duration-[50ms] button-dark p-12 whitespace-nowrap w-full")}>
                 <span className={"flex items-center gap-4 justify-center text-label-normal text-body-dark-label"}>
                   {"GitHub"}
@@ -123,7 +123,7 @@ export default function HeaderView({ b, k }: { b: Bind; k: Kids }) {
                 </>)}
               </span>
             </button>
-            <a href={"https://github.com/Venkat5599/PRT"} className={"block md-max:hidden"} target={"_blank"} rel={"noopener"}>
+            <a href={"https://github.com/Venkat5599/portalcanary"} className={"block md-max:hidden"} target={"_blank"} rel={"noopener"}>
               <button aria-label={"GitHub"} className={"rounded-full relative button block transition-all duration-[200ms] active:duration-[50ms] button-dark py-7 px-16 whitespace-nowrap"} {...b("variantBtn", 1, "rounded-full relative button block transition-all duration-[200ms] active:duration-[50ms] button-dark py-7 px-16 whitespace-nowrap")}>
                 <span className={"flex items-center gap-4 justify-center text-label-normal text-body-dark-label"}>
                   {"GitHub"}

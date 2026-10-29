@@ -32,7 +32,7 @@ export default function Nav({ base = "", solid = false }: { base?: string; solid
         </div>
         {" "}
         <div className="nav-actions">
-        <a className="nav-gh" href="https://github.com/Venkat5599/PRT">
+        <a className="nav-gh" href="https://github.com/Venkat5599/portalcanary">
           {"GitHub "}
           <svg className="arr" viewBox="0 0 12 12" aria-hidden="true">
             <path d="M3.5 8.5l5-5M4.5 3.5h4v4"></path>

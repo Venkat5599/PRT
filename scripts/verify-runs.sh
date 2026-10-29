@@ -7,7 +7,7 @@
 #
 #   cd backend && cargo build --release && cd .. && bash scripts/verify-runs.sh
 set -uo pipefail
-REPO="${REPO:-Venkat5599/PRT}"
+REPO="${REPO:-Venkat5599/portalcanary}"
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 CANARY="${CANARY:-$ROOT/backend/target/release/canary}"
 [ -x "$CANARY" ] || { echo "build the CLI first: cd backend && cargo build --release"; exit 2; }

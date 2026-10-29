@@ -137,7 +137,7 @@ export default function Shell() {
               {v === "run" && route.arg ? <><a href="#runs" className="text-muted-foreground hover:text-foreground">Runs</a><span className="text-muted-foreground">/</span><code className="truncate font-mono">{route.arg}</code></> : TITLES[v]}
             </h1>
             <div className="ml-auto flex items-center gap-2">
-              <Button variant="ghost" size="sm" asChild className="hidden sm:inline-flex"><a href="https://github.com/Venkat5599/PRT" target="_blank" rel="noreferrer"><ExternalLink />GitHub</a></Button>
+              <Button variant="ghost" size="sm" asChild className="hidden sm:inline-flex"><a href="https://github.com/Venkat5599/portalcanary" target="_blank" rel="noreferrer"><ExternalLink />GitHub</a></Button>
               <Wallet />
             </div>
           </header>

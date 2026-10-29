@@ -4,7 +4,7 @@
 
 ### Test a Portaldot runtime upgrade on a copy of today's mainnet, before it touches mainnet.
 
-[![CI](https://img.shields.io/github/actions/workflow/status/Venkat5599/PRT/ci.yml?branch=main&label=CI)](https://github.com/Venkat5599/PRT/actions/workflows/ci.yml)
+[![CI](https://img.shields.io/github/actions/workflow/status/Venkat5599/portalcanary/ci.yml?branch=main&label=CI)](https://github.com/Venkat5599/portalcanary/actions/workflows/ci.yml)
 ![Tests](https://img.shields.io/badge/tests-115%20passing-2ecc71)
 [![Live](https://img.shields.io/badge/live-portal--canary--app.vercel.app-2563eb)](https://portal-canary-app.vercel.app/dashboard)
 [![License](https://img.shields.io/badge/license-Apache--2.0-yellow)](LICENSE)
@@ -34,7 +34,7 @@ Read on 29 Oct 2026 at mainnet #2,747,431 and V3 #238,232.
 | Dashboard | live | [portal-canary-app.vercel.app/dashboard](https://portal-canary-app.vercel.app/dashboard); 38 browser checks pass against the production URL |
 | Runs on mainnet state | live | run `bbbf22879a6a` forked mainnet #2,747,424 (4,716 accounts) and caught `halve-reserved` destroying 286.305 POT |
 | On-chain records (V3 testnet) | 6 recorded, 6 verified | [`scripts/verify-runs.sh`](scripts/verify-runs.sh) output [below](#verify-every-claim-in-one-command); latest record in V3 block #238,224 |
-| Kept run files | 17 runs | every run's files as `<id>.zip` on the [`runs` release](https://github.com/Venkat5599/PRT/releases/tag/runs) |
+| Kept run files | 17 runs | every run's files as `<id>.zip` on the [`runs` release](https://github.com/Venkat5599/portalcanary/releases/tag/runs) |
 | Daily check | scheduled, 08:00 IST | [`daily-check.yml`](.github/workflows/daily-check.yml); its first run found a real bug (two records clashing on a nonce), opened issue #1, and closed it after the fix |
 | Compare engine | live | mainnet → V3: 969 changes, 111 risks (3 critical); mainnet → mainnet: 0 and 0 |
 | `CanaryRegistry` (V3 EVM) | deployed | 2,614 bytes of code at `0x62Eacc58CE0FA37F06F24074AFb7B3F22Df708FF`; the dashboard's Registry view reads it live |
@@ -102,7 +102,7 @@ curl -X POST https://portal-canary-app.vercel.app/api/runs \
 {"id":"bbbf22879a6a"}
 ```
 
-About five minutes later, [`/dashboard#run/bbbf22879a6a`](https://portal-canary-app.vercel.app/dashboard#run/bbbf22879a6a) has the verdict. These are the run's own `upgrade.txt` and `attest.txt`, copied from its [kept zip](https://github.com/Venkat5599/PRT/releases/download/runs/bbbf22879a6a.zip):
+About five minutes later, [`/dashboard#run/bbbf22879a6a`](https://portal-canary-app.vercel.app/dashboard#run/bbbf22879a6a) has the verdict. These are the run's own `upgrade.txt` and `attest.txt`, copied from its [kept zip](https://github.com/Venkat5599/portalcanary/releases/download/runs/bbbf22879a6a.zip):
 
 ```text
 before     spec_version 1002
@@ -481,7 +481,7 @@ The site is a Next.js app on Vercel with one server secret, `CANARY_GH_TOKEN`. T
 
 | Record | Where |
 |---|---|
-| Every dashboard run's files | [`runs` release](https://github.com/Venkat5599/PRT/releases/tag/runs), one zip per run id |
+| Every dashboard run's files | [`runs` release](https://github.com/Venkat5599/portalcanary/releases/tag/runs), one zip per run id |
 | Mainnet vs V3 comparison | [`examples/mainnet-vs-v3`](examples/mainnet-vs-v3) |
 | Upgrade runs on dev chains (ed100x, fee10x, halve-reserved) | [`examples/upgrade-ed100x`](examples/upgrade-ed100x), [`examples/upgrade-fee10x`](examples/upgrade-fee10x), [`examples/upgrade-halve-reserved`](examples/upgrade-halve-reserved) |
 | Determinism control | [`examples/self-compare`](examples/self-compare) |

@@ -82,7 +82,7 @@ export default function Simpler() {
                   </span>
                 </button>
               </a>
-              <a href={"https://github.com/Venkat5599/PRT#available-now-canary-doctor"} target={"_blank"} rel={"noopener"}>
+              <a href={"https://github.com/Venkat5599/portalcanary#available-now-canary-doctor"} target={"_blank"} rel={"noopener"}>
                 <button aria-label={"Read the CLI docs"} className={"rounded-full relative button block transition-all duration-[200ms] active:duration-[50ms] button-light h-40 min-w-158 px-16 py-9"}>
                   <span className={"flex items-center gap-4 justify-center text-label-normal text-body-light-loud"}>
                     {"Read the CLI docs"}

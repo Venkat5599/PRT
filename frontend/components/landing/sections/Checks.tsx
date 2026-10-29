@@ -410,7 +410,7 @@ export default function Checks() {
               <p className={"text-body-normal lg:mb-24 text-body-light-muted"}>
                 {"Real setCode upgrades on a dev chain."}
               </p>
-              <a href={"https://github.com/Venkat5599/PRT/blob/main/scripts/upgrade-demo.sh"} className={"hidden lg:block"} target={"_blank"} rel={"noopener"}>
+              <a href={"https://github.com/Venkat5599/portalcanary/blob/main/scripts/upgrade-demo.sh"} className={"hidden lg:block"} target={"_blank"} rel={"noopener"}>
                 <button aria-label={"Run the demo"} className={"rounded-full relative button block transition-all duration-[200ms] active:duration-[50ms] button-gray p-13 w-full"}>
                   <span className={"flex items-center gap-4 justify-center text-label-normal text-body-dark-label"}>
                     {"Run the demo"}
@@ -419,7 +419,7 @@ export default function Checks() {
               </a>
             </div>
             <div className={"p-36 lg:w-2/3"}>
-              <a href={"https://github.com/Venkat5599/PRT/blob/main/scripts/upgrade-demo.sh"} className={"block lg:hidden"} target={"_blank"} rel={"noopener"}>
+              <a href={"https://github.com/Venkat5599/portalcanary/blob/main/scripts/upgrade-demo.sh"} className={"block lg:hidden"} target={"_blank"} rel={"noopener"}>
                 <button aria-label={"Run the demo"} className={"rounded-full relative button block transition-all duration-[200ms] active:duration-[50ms] button-gray p-13 w-full"}>
                   <span className={"flex items-center gap-4 justify-center text-label-normal text-body-dark-label"}>
                     {"Run the demo"}
