@@ -221,8 +221,14 @@ jobs:
           CANARY_SIGNER_URI: ${{ secrets.CANARY_ATTEST_SEED }}
         run: |
           if [ -z "$CANARY_SIGNER_URI" ] || [ ! -f "$OUT/result.json" ]; then echo "no run key or no result: not recorded"; exit 0; fi
-          ./target/release/canary attest --run "$OUT" --ws wss://test-node-v3.portaldot.dev --signer env --timeout 120 > "$OUT/attest.txt" 2>&1 \
-            || { cat "$OUT/attest.txt"; mv "$OUT/attest.txt" "$OUT/attest-error.txt"; exit 0; }
+          # Runs finishing together sign with the same key: a nonce clash (1014) is retried after a
+          # short random wait, by which time the other record is in the pool and the nonce moved on.
+          for try in 1 2 3 4; do
+            ./target/release/canary attest --run "$OUT" --ws wss://test-node-v3.portaldot.dev --signer env --timeout 120 > "$OUT/attest.txt" 2>&1 && break
+            grep -qE "1014|Priority is too low|1010: Invalid Transaction: Transaction is outdated|AlreadyImported|already imported" "$OUT/attest.txt" && [ $try -lt 4 ] || break
+            echo "nonce clash, retry $try"; sleep $((10 + RANDOM % 20))
+          done
+          [ -f "$OUT/attestation.json" ] || { cat "$OUT/attest.txt"; mv "$OUT/attest.txt" "$OUT/attest-error.txt"; exit 0; }
           cat "$OUT/attest.txt"
           ./target/release/canary verify --run "$OUT" | tee -a "$OUT/attest.txt"
 
