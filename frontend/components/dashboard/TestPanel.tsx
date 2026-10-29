@@ -10,6 +10,26 @@ import { V3, formatUnits, short, walletStore, type Connected } from "@/lib/walle
 import { RunDetail, verdict, verdictTone, type RunData } from "./Panels";
 import { Panel, KV, Status, Mark, Mono, ErrorText, fmt, download } from "./kit";
 import type { Signer, ChainInfo, Attestation, SuiteEntry } from "@/lib/tx/tx";
+
+/** Mirrors lib/tx largestMove without loading the tx module up front. */
+function largestMoveOf(s: SuiteEntry): bigint {
+  return largestMoveWf(s.workflow);
+}
+function largestMoveWf(wf: SuiteEntry["workflow"]): bigint {
+  // A step written to exceed the balance (expected to fail) needs no funds of its own.
+  const funds = (wf.fund ?? []).reduce((a, f) => a + BigInt(f.amount), 0n);
+  const failing = new Set((wf.expect as { dispatch?: { step: number; status: string } }[]).filter((e) => e.dispatch?.status === "failed").map((e) => e.dispatch!.step));
+  let max = 0n;
+  wf.steps.forEach((s, i) => {
+    for (const [k, v] of Object.entries((s.args ?? {}) as Record<string, unknown>)) {
+      if ((k !== "value" && k !== "endowment") || typeof v !== "string" || !/^\d+$/.test(v)) continue;
+      const n = BigInt(v);
+      if (failing.has(i) && n > funds) continue;
+      if (n > max) max = n;
+    }
+  });
+  return max;
+}
 import { cn } from "@/lib/utils";
 
 // `canary test` and `canary attest` against your own nodes: real signed extrinsics on both
@@ -24,6 +44,9 @@ const PRESETS = [
   { name: "V3 control", b: V3.ws, c: V3.ws },
 ];
 const LAST = "canary.lastRun";
+// Live chains (anything but a local dev chain): each test account gets at most 5 tokens, so a
+// V3 → V3 run needs at most 10. Workflows whose own steps move more stay dev-chain only.
+const LIVE_CAP_UNITS = 5n;
 
 type Lane = { ws: string; info?: ChainInfo; balance?: bigint; err?: string; busy: boolean };
 type Report = RunData & { manifest: RunData["manifest"] & { run_id: string } };
@@ -74,11 +97,17 @@ export function TestPanel() {
   useEffect(() => { if (!busy) return; const t = setInterval(() => setNow(Date.now()), 1000); return () => clearInterval(t); }, [busy]);
   useEffect(() => { logBox.current?.scrollTo(0, logBox.current.scrollHeight); }, [log]);
 
-  const selected = useMemo(() => (suite ?? []).filter((s) => pick.has(s.workflow.id)), [suite, pick]);
+  const live = lanes.length === 2 && lanes.every((l) => l.info) && !lanes.every((l) => l.info!.dev);
+  const cap = live ? LIVE_CAP_UNITS * 10n ** BigInt(lanes[0].info!.decimals) : undefined;
+  const tooBig = (s: SuiteEntry) => cap != null && largestMoveOf(s) > cap;
+  const selected = useMemo(() => (suite ?? []).filter((s) => pick.has(s.workflow.id) && !tooBig(s)), [suite, pick, cap]); // eslint-disable-line react-hooks/exhaustive-deps
   const need = useMemo(() => {
-    const most = selected.reduce((m, s) => { const f = (s.workflow.fund ?? []).reduce((a, x) => a + BigInt(x.amount), 0n); return f > m ? f : m; }, 0n);
+    const most = selected.reduce((m, s) => {
+      const f = (s.workflow.fund ?? []).reduce((a, x) => a + (cap != null && BigInt(x.amount) > cap ? cap : BigInt(x.amount)), 0n);
+      return f > m ? f : m;
+    }, 0n);
     return b === c ? most * 2n : most;
-  }, [selected, b, c]);
+  }, [selected, b, c, cap]);
   const who = signerFor(lanes.length === 2 ? lanes : [{ ws: b, busy: true }], wallet, useWallet);
 
   async function check() {
@@ -128,7 +157,7 @@ export function TestPanel() {
       const t = await txm();
       push(`signer ${who.label}`);
       const report = await t.runTest({
-        baseline: b.trim(), candidate: c.trim(), suite: selected, funder: who.signer, injected: injected.trim() || null,
+        baseline: b.trim(), candidate: c.trim(), suite: selected, funder: who.signer, injected: injected.trim() || null, fundCap: cap,
         fetchFile: contractFile, log: push,
         onResult: (r: { finding: { workflow: string; verdict: string; severity: string; finding_hash: string } }) =>
           setRows((x) => ({ ...x, [r.finding.workflow]: { verdict: r.finding.verdict, severity: r.finding.severity, hash: r.finding.finding_hash } })),
@@ -175,14 +204,14 @@ export function TestPanel() {
       </Panel>
 
       <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_320px]">
-        <Panel flush title="Workflows" description={suite ? `${selected.length} of ${suite.length}` : undefined}>
+        <Panel flush title="Workflows" description={suite ? `${selected.length} of ${suite.length}${cap != null ? ` · ${LIVE_CAP_UNITS} ${lanes[0].info!.symbol} per account` : ""}` : undefined}>
           <ul className="divide-y">
             {(suite ?? []).map((s) => (
               <li key={s.workflow.id}>
-                <label className="flex cursor-pointer items-start gap-3 px-5 py-3 hover:bg-muted/40">
-                  <input type="checkbox" className="mt-0.5 size-4 accent-primary" checked={pick.has(s.workflow.id)} disabled={busy} onChange={() => toggle(s.workflow.id)} />
+                <label className={cn("flex items-start gap-3 px-5 py-3", tooBig(s) ? "opacity-50" : "cursor-pointer hover:bg-muted/40")}>
+                  <input type="checkbox" className="mt-0.5 size-4 accent-primary" checked={pick.has(s.workflow.id) && !tooBig(s)} disabled={busy || tooBig(s)} onChange={() => toggle(s.workflow.id)} />
                   <span className="min-w-0">
-                    <span className="flex items-center gap-2"><Mono>{s.workflow.id}</Mono>{s.workflow.importance === "core" && <Status tone="info">core</Status>}</span>
+                    <span className="flex items-center gap-2"><Mono>{s.workflow.id}</Mono>{s.workflow.importance === "core" && <Status tone="info">core</Status>}{tooBig(s) && <Status tone="muted">dev chains only</Status>}</span>
                     <span className="mt-0.5 block truncate text-xs text-muted-foreground">{s.workflow.steps.map((x) => x.call).join(" · ")}</span>
                   </span>
                 </label>

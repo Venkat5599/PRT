@@ -302,7 +302,26 @@ async function evaluate(e: Workflow["expect"][number], steps: StepOutcome[], del
 
 export type Funder = { signer: Signer };
 export type Progress = (msg: string) => void;
-type Ctx = { runId: string; secret: string; funder: Signer; timeoutMs: number; fetchFile: (p: string) => Promise<string>; log: Progress };
+type Ctx = { runId: string; secret: string; funder: Signer; timeoutMs: number; fetchFile: (p: string) => Promise<string>; log: Progress; fundCap?: bigint };
+
+/** On a live chain each test account is funded with at most `cap`; these are what a workflow then holds. */
+const funded = (wf: Workflow, cap?: bigint) => (wf.fund ?? []).map((f) => ({ ...f, amount: cap != null && BigInt(f.amount) > cap ? cap.toString() : f.amount }));
+/** The largest balance a workflow's own steps move (transfer value, contract endowment). */
+export function largestMove(wf: Workflow): bigint {
+  // A step written to exceed the balance (expected to fail) needs no funds of its own.
+  const funds = (wf.fund ?? []).reduce((a, f) => a + BigInt(f.amount), 0n);
+  const failing = new Set((wf.expect as { dispatch?: { step: number; status: string } }[]).filter((e) => e.dispatch?.status === "failed").map((e) => e.dispatch!.step));
+  let max = 0n;
+  wf.steps.forEach((s, i) => {
+    for (const [k, v] of Object.entries((s.args ?? {}) as Record<string, unknown>)) {
+      if ((k !== "value" && k !== "endowment") || typeof v !== "string" || !/^\d+$/.test(v)) continue;
+      const n = BigInt(v);
+      if (failing.has(i) && n > funds) continue;
+      if (n > max) max = n;
+    }
+  });
+  return max;
+}
 
 async function funderHandle(f: Signer) {
   return f.kind === "dev" ? { pair: devPair(f.name) } : { wallet: { address: f.address, signer: await walletSigner(f.extension) } };
@@ -322,7 +341,8 @@ async function runSide(wf: Workflow, side: "baseline" | "candidate", ws: string,
     };
     const funder = await funderHandle(ctx.funder);
     ctx.log(`${wf.id} · ${side}: funding ${accounts.join(", ")}`);
-    const fundSteps: Step[] = (wf.fund ?? []).map((f) => ({ call: "Balances.transfer", signer: "$funder", args: { dest: f.account, value: f.amount } }));
+    const fund = funded(wf, ctx.fundCap);
+    const fundSteps: Step[] = fund.map((f) => ({ call: "Balances.transfer", signer: "$funder", args: { dest: f.account, value: f.amount } }));
     const setup = await runSteps(ws, fundSteps, resolver, funder, ctx.timeoutMs);
     const bad = setup.find((r) => r.status !== "success");
     if (bad) throw new Error(`setup step ${bad.index} ${bad.status}: ${bad.dispatch_error ?? ""}`);
@@ -333,7 +353,7 @@ async function runSide(wf: Workflow, side: "baseline" | "candidate", ws: string,
     for (;;) {
       const best = await send(ws, "chain_getBlockHash", []);
       const bal = await readBalances(ws, ids, best);
-      const short = (wf.fund ?? []).find((f) => (bal[f.account]?.[0] ?? 0n) < BigInt(f.amount));
+      const short = fund.find((f) => (bal[f.account]?.[0] ?? 0n) < BigInt(f.amount));
       if (!short) break;
       if (Date.now() > deadline) throw new Error(`funding of ${short.account} not visible at the best block after ${ctx.timeoutMs / 1000}s`);
       await new Promise((r) => setTimeout(r, 500));
@@ -377,10 +397,12 @@ export type SuiteEntry = { workflow: Workflow; path: string; sha256: string };
 export type TestArgs = {
   baseline: string; candidate: string; suite: SuiteEntry[]; funder: Signer; injected?: string | null;
   timeoutMs?: number; fetchFile: (p: string) => Promise<string>; log?: Progress; onResult?: (r: any) => void;
+  /** live chains: fund each test account with at most this much */
+  fundCap?: bigint;
 };
 export async function runTest(a: TestArgs) {
   const runId = String(Math.floor(Date.now() / 1000));
-  const ctx: Ctx = { runId, secret: mnemonicGenerate(12), funder: a.funder, timeoutMs: a.timeoutMs ?? 90_000, fetchFile: a.fetchFile, log: a.log ?? (() => {}) };
+  const ctx: Ctx = { runId, secret: mnemonicGenerate(12), funder: a.funder, timeoutMs: a.timeoutMs ?? 90_000, fetchFile: a.fetchFile, log: a.log ?? (() => {}), fundCap: a.fundCap };
   ctx.log("identifying runtimes");
   const manifest = {
     run_id: runId, canary_version: CANARY_VERSION, started_unix: Number(runId), suite_path: "tests/workflows",

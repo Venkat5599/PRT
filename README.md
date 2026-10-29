@@ -4,7 +4,7 @@
 
 `try-runtime` tells you the migration ran. Portal Canary tells you whether your app still works, shows the exact state that diverged, and gives you one command to reproduce it.
 
-**Live:** https://portal-canary-app.vercel.app (live compare, the workflow suite with on-chain attestation, recorded runs and their full reports)
+**Live:** https://portal-canary-app.vercel.app. Start a real upgrade run from the [dashboard](https://portal-canary-app.vercel.app/dashboard), compare any two nodes, and check each run's on-chain record from the page.
 
 > Status: early development for the Portaldot Hacker House 2026 (Node Operations & Tooling track). See [`docs/PLAN.md`](docs/PLAN.md) for the full design and [`docs/V3_READINESS.md`](docs/V3_READINESS.md) for live V3 endpoint checks.
 
@@ -133,18 +133,21 @@ The public dev node and mainnet report the same `spec_version` 1002 but are diff
 
 ### In the browser
 
-The landing page ([portal-canary-app.vercel.app](https://portal-canary-app.vercel.app)) runs the same comparison live. The page opens a WebSocket to each node and calls `canary-chain`'s decoder and diff, compiled to WebAssembly (`backend/crates/canary-wasm`, about 300 KB). No server is involved and nothing needs installing. [`/dashboard`](https://portal-canary-app.vercel.app/dashboard) holds the full change list, an endpoint doctor, the recorded runs, the on-chain registry and the mainnet invariant.
+The dashboard's **Compare** view ([portal-canary-app.vercel.app/dashboard#compare](https://portal-canary-app.vercel.app/dashboard#compare)) runs the same comparison live, between any two nodes, with the risks judged as in [Compatibility risks](#compatibility-risks). The page opens a WebSocket to each node and calls `canary-chain`'s decoder and diff, compiled to WebAssembly (`backend/crates/canary-wasm`, about 300 KB). No server is involved and nothing needs installing. The landing page reads its numbers the same way.
 
-Its **Test** panel is `canary test` and `canary attest` in the browser (`frontend/lib/tx`). It runs the workflow suite as real signed extrinsics on both endpoints, classifies each finding like `verdict.rs`, anchors the report with `system.remark` and verifies the anchor from the chain. On a local dev chain (`ws://127.0.0.1:9944`) the public dev accounts sign, so nothing is needed; the hosted page reaches a local node once the browser's local-network permission prompt is accepted. On any other chain, including the V3 testnet, a connected Substrate wallet (Portaldot, Talisman, SubWallet, Polkadot.js) signs and pays. The panel reads the wallet's balance first and refuses to start a run the wallet cannot fund. Per-run accounts are swept back after each workflow, so a run costs only fees and deposits. `canary verify --run <dir>` accepts the `report.json` and `attestation.json` the page downloads.
+The dashboard's **On your node** view is `canary test` and `canary attest` in the browser (`frontend/lib/tx`). It runs the workflow suite as real signed extrinsics on both endpoints, classifies each finding like `verdict.rs`, anchors the report with `system.remark` and verifies the anchor from the chain. On a local dev chain (`ws://127.0.0.1:9944`) the public dev accounts sign, so nothing is needed; the hosted page reaches a local node once the browser's local-network permission prompt is accepted. On any other chain, including the V3 testnet, a connected Substrate wallet (Portaldot, Talisman, SubWallet, Polkadot.js) signs and pays. The panel reads the wallet's balance first and refuses to start a run the wallet cannot fund. Per-run accounts are swept back after each workflow, so a run costs only fees and deposits. On a live chain each test account is funded with at most 5 tokens, so V3 → V3 needs at most 10 tPOT; the two workflows that move more than that themselves (`balances.keep_alive`, `contracts.counter`) run on dev chains only. `canary verify --run <dir>` accepts the `report.json` and `attestation.json` the page downloads.
 
-The site is a Next.js app in `frontend/` (`bun run dev` / `bun run build`). `bun run test` checks four things, and CI runs the same tests:
+The site is a Next.js app in `frontend/` (`bun run dev` / `bun run build`). `bun run test` checks five things, and CI runs the same tests:
 
 - every landing component still server-renders the markup of the original static page;
 - every served report's finding hashes, verdicts and attestation payloads rebuild exactly;
 - the browser's runtime-API table matches `apis.rs`;
-- the packaged workflow suite matches `backend/tests` (`bun run suite` repackages it).
+- the packaged workflow suite matches `backend/tests` (`bun run suite` repackages it);
+- the run record the page rebuilds is byte-for-byte the one `canary attest` writes.
 
-Rebuild the engine with `scripts/build-wasm.sh`. `bun scripts/engine-live.test.ts` runs the browser module against mainnet and V3 and checks it against the CLI result (948 changes, 3 hazards, and 0 for the control).
+`npx playwright test` drives the production build in Chromium, on desktop and phone sizes. It covers every dashboard view, Compare against the real mainnet and V3 nodes (the control returns 0 changes; mainnet → V3 is judged with evidence), refused input, the supply invariant, the doctor, the runs list and a run's on-chain record re-verified in the browser. CI runs it as `dashboard-e2e`.
+
+Rebuild the engine with `scripts/build-wasm.sh`. `bun scripts/engine-live.test.ts` runs the browser module against mainnet and V3 and checks it against the CLI result (same changes and hazards, and 0 for the control).
 
 ## Available now: `canary test` and `canary reproduce`
 
@@ -254,6 +257,25 @@ Additions alone carry no risk. Mainnet → V3 gives 969 changes and 111 risks (3
 ### Compatibility note found along the way
 
 Current `@polkadot/api` decodes `DispatchError::Module` as `{ index: u8, error: [u8; 4] }`; Portaldot's 2021 runtime emits `{ index: u8, error: u8 }`, so `System.Events` fails to decode for any failed extrinsic. Canary's driver pins the legacy type and treats an undecodable block as **INCONCLUSIVE**, never as success.
+
+## Runs from the dashboard
+
+**New run** takes a candidate runtime: one of the runtimes built in this repo, an uploaded `.wasm`, or a URL. **Start run** dispatches [`.github/workflows/canary-run.yml`](.github/workflows/canary-run.yml), which:
+
+1. starts a fresh Portaldot dev chain and writes existing state into it (accounts with reserved deposits), so a migration has something to break;
+2. upgrades it to the candidate with `system.setCode` (`canary upgrade`): balances and the supply invariant before vs after, and whether blocks keep coming;
+3. compares the two runtimes (`canary compare`) and runs the workflow suite (`canary test`);
+4. writes `result.json` (exit codes plus the sha256 of every other file), then records it on the V3 testnet with `canary attest` and checks the record with `canary verify`;
+5. keeps the files as `<run id>.zip` on the repository's [`runs` release](https://github.com/Venkat5599/PRT/releases/tag/runs) (and as a 30-day artifact).
+
+The run page follows the steps live, then shows the verdict, the compatibility risks and the evidence. Its **On-chain record** card re-checks in the browser that every file matches `result.json`, that `result.json` matches the recorded remark, and that the remark is in the block; it links the block in an explorer.
+
+Two secrets are involved:
+
+| Secret | Where | Used for |
+|---|---|---|
+| `CANARY_GH_TOKEN` | Vercel (server only) | starting `canary-run.yml` and reading its results. A fine-grained token with Actions and Contents read/write on this repository is enough. |
+| `CANARY_ATTEST_SEED` | GitHub Actions | the key that signs each run's record on V3. It needs a little tPOT: one record costs about 0.022 tPOT. If it runs out, the run page says why the run was not recorded. |
 
 ## Build
 

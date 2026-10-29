@@ -30,7 +30,8 @@ concurrency:
   group: canary-run-${{ inputs.run_id }}
 
 permissions:
-  contents: read
+  # write: the run's files are kept as an asset of the `runs` release (artifacts expire)
+  contents: write
 
 jobs:
   run:
@@ -198,6 +199,22 @@ jobs:
             || { cat "$OUT/attest.txt"; mv "$OUT/attest.txt" "$OUT/attest-error.txt"; exit 0; }
           cat "$OUT/attest.txt"
           ./target/release/canary verify --run "$OUT" | tee -a "$OUT/attest.txt"
+
+      # Artifacts expire after 30 days; the dashboard reads a run's files from here first, so a
+      # run page keeps working for as long as the repository exists.
+      - name: Keep the result
+        if: always()
+        working-directory: ${{ github.workspace }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RUN_ID: ${{ inputs.run_id }}
+          CANDIDATE: ${{ inputs.candidate }}
+        run: |
+          [ -f out/result.json ] || { echo "no result.json: nothing to keep"; exit 0; }
+          (cd out && zip -qr "../$RUN_ID.zip" .)
+          gh release view runs >/dev/null 2>&1 || gh release create runs --prerelease --title "Dashboard runs" --notes "Files written by each canary run started from the dashboard, one zip per run id."
+          gh release upload runs "$RUN_ID.zip#$CANDIDATE" --clobber
+          echo "kept as https://github.com/${{ github.repository }}/releases/download/runs/$RUN_ID.zip"
 
       - uses: actions/upload-artifact@v7
         if: always()

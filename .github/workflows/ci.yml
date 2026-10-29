@@ -47,6 +47,33 @@ jobs:
       - name: build
         run: cd frontend && bun run build
 
+  dashboard-e2e:
+    # The production build in Chromium (desktop and phone): every view, Compare against the real
+    # mainnet and V3 nodes, refused input, the supply invariant, runs and their on-chain record.
+    runs-on: ubuntu-22.04
+    needs: frontend
+    permissions:
+      contents: read
+      actions: read
+    steps:
+      - uses: actions/checkout@v5
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.4.4
+      - run: cd frontend && bun install --frozen-lockfile
+      - run: cd frontend && bun run build
+      - run: cd frontend && npx playwright install --with-deps chromium
+      - name: browser tests
+        env:
+          CANARY_GH_TOKEN: ${{ github.token }}
+        run: cd frontend && npx playwright test
+      - uses: actions/upload-artifact@v7
+        if: failure()
+        with:
+          name: playwright-traces
+          path: frontend/test-results
+          retention-days: 7
+
   integration:
     # Real Portaldot dev node: doctor, live-mainnet compare, and a determinism
     # control (baseline == candidate) that must come back all PASS.

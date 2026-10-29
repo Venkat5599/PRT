@@ -65,7 +65,7 @@ export function Stats({ items }: { items: { label: string; value: ReactNode; ton
   return (
     <div className="grid grid-cols-2 gap-px overflow-hidden rounded-xl border bg-border sm:grid-cols-4">
       {items.map((s) => (
-        <div key={s.label} className="bg-card px-5 py-4">
+        <div key={s.label} data-stat={s.label} className="bg-card px-5 py-4">
           <div className="text-xs text-muted-foreground">{s.label}</div>
           <div className={cn("mt-1 font-heading text-2xl font-medium tracking-tight", s.tone && toneText[s.tone])}>{s.value}</div>
         </div>

@@ -92,3 +92,16 @@ test("run remark rebuilt in the page matches the CLI", async () => {
   expect(sha).toBe("d06ca94c27db9c831dbb13b51b990962511834c89482cf510007cefd5544f36f");
   expect(payload).toBe("canary-run/1 d06ca94c27db9c831dbb13b51b990962511834c89482cf510007cefd5544f36f 959e58764a17 u=1 c=0 t=1 h=0");
 });
+
+// "On your node" on a live chain funds each account with at most 5 tokens; workflows that move
+// more than that themselves are dev-chain only. transfer.insufficient exceeds the balance on purpose.
+test("live-chain cap keeps only workflows that fit in 5 tokens per account", async () => {
+  const { largestMove } = await import("../lib/tx/tx");
+  const suite: { workflow: Parameters<typeof largestMove>[0] }[] = JSON.parse(readFileSync(join(import.meta.dir, "../public/engine/workflows.json"), "utf8"));
+  const cap = 5n * 10n ** 14n;
+  const fits = Object.fromEntries(suite.map((s) => [s.workflow.id, largestMove(s.workflow) <= cap]));
+  expect(fits).toEqual({
+    "balances.keep_alive": false, "balances.transfer.basic": true, "balances.transfer.insufficient": true,
+    "contracts.counter": false, "identity.deposit": true,
+  });
+});

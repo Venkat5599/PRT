@@ -1,5 +1,7 @@
-// Generated from the landing markup by landing-port/gen.py. Do not edit by hand:
-// change the source or the generator and regenerate.
+// Generated from the landing markup by landing-port/gen.py, then edited: the change and API counts
+// are read live (LiveStat) instead of being frozen numbers.
+
+import LiveStat from "../LiveStat";
 
 export default function Checks() {
   return (
@@ -63,9 +65,9 @@ export default function Checks() {
                 </svg>
                 <div className={"text-body-normal [&_b]:text-label-normal text-body-light-muted [&_b]:text-body-light-loud"}>
                   <b>
-                    {"5 layers"}
+                    {"Layer by layer,"}
                   </b>
-                  {" from DNS to runtime"}
+                  {" from DNS to runtime APIs"}
                 </div>
               </div>
               <div className={"flex gap-12 text-body-light-ghost"}>
@@ -74,7 +76,7 @@ export default function Checks() {
                 </svg>
                 <div className={"text-body-normal [&_b]:text-label-normal text-body-light-muted [&_b]:text-body-light-loud"}>
                   <b>
-                    {"13 vs 26"}
+                    <LiveStat kind="apis" />
                   </b>
                   {" runtime APIs mapped"}
                 </div>
@@ -180,7 +182,7 @@ export default function Checks() {
           <div className={"p-36 pt-0"}>
             <div className={"flex gap-9 items-end mb-24"}>
               <div className={"text-title-h3 text-title-no-mobile text-white/88"}>
-                {"948"}
+                <LiveStat kind="changes" />
               </div>
               <div className={"text-body-normal mb-8 text-body-light-ghost"}>
                 {"/ changes"}
@@ -219,7 +221,7 @@ export default function Checks() {
                 </svg>
                 <div className={"text-body-normal [&_b]:text-label-normal text-[#999999] [&_b]:text-white/88"}>
                   <b>
-                    {"948"}
+                    <LiveStat kind="changes" />
                   </b>
                   {" changes, mainnet vs V3"}
                 </div>

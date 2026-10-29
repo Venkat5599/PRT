@@ -1,4 +1,5 @@
 // Server markup of the original static landing for this component, captured before the React port.
+// FaqList: the mainnet-vs-V3 answer no longer quotes a frozen change count; it links the live compare.
 // tests/landing.test.tsx asserts the React component still renders exactly this.
 export default function FaqList() {
   return (
@@ -114,8 +115,8 @@ export default function FaqList() {
                 </li>
                 {"\n        "}
                 <li className={"m-0 p-0"}>
-                  <a className={"underline"} href={"https://github.com/Venkat5599/PRT/tree/main/examples/mainnet-vs-v3"} target={"_blank"} rel={"noopener"}>
-                    {"Mainnet vs V3: 948 changes, 3 hazards"}
+                  <a className={"underline"} href={"/dashboard#compare"}>
+                    {"Mainnet vs V3, compared live"}
                   </a>
                 </li>
                 {"\n      "}

@@ -1,7 +1,7 @@
 import { ImageResponse } from "next/og";
 
 // Social preview for links shared in Discord, X, email: the real result, not a logo.
-export const alt = "Portal Canary: mainnet vs PortaldotV3, 948 runtime changes, 3 would halt the chain";
+export const alt = "Portal Canary: runtime upgrade testing for Portaldot";
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
 
@@ -27,9 +27,9 @@ export default function Image() {
           <div style={{ display: "flex" }}>Know what&nbsp;<span style={{ color: "#bdbdbd" }}>breaks.</span></div>
         </div>
         <div style={{ display: "flex", gap: 72, borderTop: "1px solid #262626", paddingTop: 36 }}>
-          {stat("948", "changes, mainnet to V3")}
-          {stat("3", "would halt the chain", "#ffffff")}
-          {stat("0 planck", "mainnet supply delta", "#8a8a8a")}
+          {stat("Upgrade", "on a fresh chain")}
+          {stat("Compare", "any two runtimes", "#ffffff")}
+          {stat("Prove", "on-chain, per run", "#8a8a8a")}
         </div>
       </div>
     ),
