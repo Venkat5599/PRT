@@ -91,8 +91,8 @@ export default function Deck() {
             <div style={{ display: "grid", gap: 20, alignContent: "start" }}>
               <h2 style={{ fontSize: 36 }}>You don&apos;t have to trust the page.</h2>
               <p>Each run writes one result file holding the sha256 of every other file. That hash is written to the V3 testnet. The run page checks all three links itself: the files, the result, the block.</p>
-              <div className="stat"><span className="num">6 of 6</span><span>recorded runs verify against V3, re-checked by a script that needs no key or account</span></div>
-              <p className="mono mute" style={{ fontSize: 15 }}>V3 blocks #234,189 · #234,821 · #237,902 · #237,959 · #237,962 · #238,224</p>
+              <div className="stat"><span className="num">10 of 10</span><span>recorded runs verify against V3 (29 Oct 2026), re-checked by a script that needs no key or account</span></div>
+              <p className="mono mute" style={{ fontSize: 15 }}>V3 blocks #234,189 · #237,962 · #238,224 · #239,489 · #240,062 …</p>
             </div>
             <div className="shot"><img src="/deck/run-proof.webp" alt="On-chain record card: verified" /></div>
           </div>
@@ -117,7 +117,7 @@ export default function Deck() {
           <table style={{ marginTop: 32 }}>
             <tbody>
               <tr><td>Dashboard</td><td><a href={`https://${SITE}/dashboard`}>{SITE}/dashboard</a>: new runs, run pages, Compare, Doctor, Supply, Registry, On your node</td></tr>
-              <tr><td>Runs</td><td>17 kept, 6 recorded on V3 and all 6 verified; 5 on real mainnet state</td></tr>
+              <tr><td>Runs</td><td>21 kept, 10 recorded on V3 and all 10 verified, 9 on real mainnet state (29 Oct 2026)</td></tr>
               <tr><td>Registry contract</td><td className="mono">0x62Eacc58CE0FA37F06F24074AFb7B3F22Df708FF · V3 EVM, chain 420420777 · 4 verdicts stored</td></tr>
               <tr><td>On your node</td><td>the workflow suite from your own browser against your own node; one wallet approval funds the whole run</td></tr>
               <tr><td>Engine</td><td>Rust: V13 + V14 decoder, diff, risk rules; the same code runs in the browser as WebAssembly</td></tr>
