@@ -274,7 +274,7 @@ Two secrets are involved:
 
 | Secret | Where | Used for |
 |---|---|---|
-| `CANARY_GH_TOKEN` | Vercel (server only) | starting `canary-run.yml` and reading its results. A fine-grained token with Actions and Contents read/write on this repository is enough. |
+| `CANARY_GH_TOKEN` | Vercel (server only) | starting `canary-run.yml` and reading its results. A fine-grained token on this repository with Actions read/write and Contents read is enough. |
 | `CANARY_ATTEST_SEED` | GitHub Actions | the key that signs each run's record on V3. It needs a little tPOT: one record costs about 0.022 tPOT. If it runs out, the run page says why the run was not recorded. |
 
 ## Build
