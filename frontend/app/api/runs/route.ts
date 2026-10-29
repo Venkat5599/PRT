@@ -27,11 +27,13 @@ export async function POST(req: Request) {
     const active = (await listRuns(20)).filter((r) => r.status !== "completed").length;
     if (active >= MAX_ACTIVE) throw new HttpError(429, `${active} runs are in progress; start yours when one finishes`);
     const id = [...crypto.getRandomValues(new Uint8Array(6))].map((b) => b.toString(16).padStart(2, "0")).join("");
-    let candidate = "", wasm_url = "", label = "";
+    let candidate = "", wasm_url = "", label = "", state = "dev";
+    const pickState = (v: unknown) => { if (v == null || v === "") return "dev"; if (v === "dev" || v === "mainnet") return v; throw new HttpError(400, "state must be dev or mainnet"); };
     if ((req.headers.get("content-type") ?? "").startsWith("multipart/form-data")) {
       const form = await req.formData();
       const file = form.get("wasm");
       label = String(form.get("label") ?? "").slice(0, 200);
+      state = pickState(form.get("state"));
       if (!(file instanceof File)) throw new HttpError(400, "attach a runtime file");
       if (file.size > 4_000_000) throw new HttpError(413, "runtime files up to 4 MB: upload the .compact.wasm build");
       const bytes = new Uint8Array(await file.arrayBuffer());
@@ -40,8 +42,9 @@ export async function POST(req: Request) {
       candidate = "url";
       label ||= file.name;
     } else {
-      const body = (await req.json()) as { candidate?: string; wasm_url?: string; label?: string };
+      const body = (await req.json()) as { candidate?: string; wasm_url?: string; label?: string; state?: string };
       label = String(body.label ?? "").slice(0, 200);
+      state = pickState(body.state);
       if (body.wasm_url) {
         if (!/^https:\/\/\S+$/.test(body.wasm_url)) throw new HttpError(400, "the runtime URL must be https");
         candidate = "url"; wasm_url = body.wasm_url;
@@ -49,7 +52,7 @@ export async function POST(req: Request) {
         candidate = body.candidate!;
       } else throw new HttpError(400, `pick one of ${PRESETS.join(", ")}, a URL or a file`);
     }
-    await dispatch({ run_id: id, candidate, wasm_url, label });
+    await dispatch({ run_id: id, candidate, wasm_url, label, state });
     return NextResponse.json({ id }, { status: 202 });
   } catch (e) { return fail(e); }
 }

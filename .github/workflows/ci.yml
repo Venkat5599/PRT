@@ -105,6 +105,23 @@ jobs:
         continue-on-error: true # mainnet reachability is outside our control
       - name: determinism control
         run: ./target/release/canary test --baseline ws://127.0.0.1:9944 --candidate ws://127.0.0.1:9944 --out runs/ci
+      - name: mainnet fork (real state, local authority)
+        run: |
+          NODE=./portaldot-testnet-ubuntu/portaldot_dev
+          $NODE build-spec --dev --raw 2>/dev/null > dev.json
+          (cd driver && bun src/fork.ts --dev-spec ../dev.json --out ../fork.json --meta ../fork-meta.json)
+          $NODE --chain fork.json --alice --validator --force-authoring --tmp --no-mdns --reserved-only --ws-port 9946 --rpc-port 9936 --port 30336 > fork.log 2>&1 &
+          for i in $(seq 90); do ./target/release/canary doctor --ws ws://127.0.0.1:9946 >/dev/null 2>&1 && break; sleep 1; done
+          sleep 12
+          # every real account, plus the dev signers, adds up to the forked TotalIssuance
+          ./target/release/canary invariants --ws ws://127.0.0.1:9946 | tee inv.txt
+          grep -q "verdict *PASS" inv.txt
+          # the injected migration must be caught on real deposits
+          set +e
+          ./target/release/canary upgrade --ws ws://127.0.0.1:9946 --wasm runtimes/out/halve-reserved.compact.wasm --timeout 60 | tee up.txt
+          code=${PIPESTATUS[0]}
+          set -e
+          [ "$code" = 1 ] && grep -q "funds destroyed" up.txt
       - uses: actions/upload-artifact@v7
         if: always()
         with:

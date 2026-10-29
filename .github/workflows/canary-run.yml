@@ -1,11 +1,12 @@
 name: canary run
 
-# One Portal Canary run, started from the dashboard (or `gh workflow run`). Two fresh
-# Portaldot dev chains; the baseline is upgraded to the clean build of the public source, the
+# One Portal Canary run, started from the dashboard (or `gh workflow run`). Two Portaldot dev
+# chains, either fresh or forked from mainnet's current state (state=mainnet: every real account,
+# deposit, lock, stake and identity, see backend/driver/src/fork.ts); the baseline is upgraded to the clean build of the public source, the
 # candidate to the runtime under test. Then the CLI checks the upgrade (liveness, every account,
 # supply), diffs the two runtimes, and runs the workflow suite on both. Every result file is
 # uploaded as the artifact canary-run-<run_id>, which the dashboard reads.
-run-name: "canary run ${{ inputs.run_id }} · ${{ inputs.candidate }}"
+run-name: "canary run ${{ inputs.run_id }} · ${{ inputs.candidate }}${{ inputs.state == 'mainnet' && ' · mainnet state' || '' }}"
 
 on:
   workflow_dispatch:
@@ -25,6 +26,10 @@ on:
         description: "What changed in this runtime (recorded in the report)"
         required: false
         default: ""
+      state:
+        description: "Starting state: dev (fresh dev chain) or mainnet (fork of mainnet's current state)"
+        required: false
+        default: dev
 
 concurrency:
   group: canary-run-${{ inputs.run_id }}
@@ -57,8 +62,10 @@ jobs:
           RUN_ID: ${{ inputs.run_id }}
           CANDIDATE: ${{ inputs.candidate }}
           WASM_URL: ${{ inputs.wasm_url }}
+          STATE: ${{ inputs.state }}
         run: |
           mkdir -p "$OUT"
+          case "$STATE" in dev|mainnet) ;; *) echo "state must be dev or mainnet"; exit 1 ;; esac
           [[ "$RUN_ID" =~ ^[0-9a-f]{12}$ ]] || { echo "run_id must be 12 hex characters"; exit 1; }
           case "$CANDIDATE" in
             clean|ed100x|fee10x|halve-reserved|source-60s) ;;
@@ -85,13 +92,27 @@ jobs:
           ls -l "$OUT/candidate.wasm"
           sha256sum "$OUT/candidate.wasm"
 
-      - name: Start two fresh Portaldot dev chains
+      - name: Start two Portaldot dev chains
+        env:
+          STATE: ${{ inputs.state }}
         run: |
           curl -fsSL -o node.tgz https://github.com/portaldotVolunteer/Portaldot-node/raw/main/portaldot-testnet-ubuntu.tar.gz
           tar -xzf node.tgz
           NODE=./portaldot-testnet-ubuntu/portaldot_dev
-          $NODE --dev --tmp --ws-port 9944 --rpc-port 9933 --port 30333 > "$OUT/baseline-node.log" 2>&1 &
-          $NODE --dev --tmp --ws-port 9945 --rpc-port 9934 --port 30334 > "$OUT/candidate-node.log" 2>&1 &
+          if [ "$STATE" = mainnet ]; then
+            # Mainnet's state at its latest finalized block, on the dev chain's consensus. Both
+            # chains start from the same fork; they must not peer with each other.
+            $NODE build-spec --dev --raw 2>/dev/null > dev.json
+            (cd driver && bun src/fork.ts --dev-spec ../dev.json --out ../fork.json --meta "$OUT/fork-meta.json")
+            for lane in 0 1; do
+              $NODE --chain fork.json --alice --validator --force-authoring --tmp --no-mdns --reserved-only \
+                --ws-port $((9944 + lane)) --rpc-port $((9933 + lane)) --port $((30333 + lane)) \
+                > "$OUT/$([ $lane = 0 ] && echo baseline || echo candidate)-node.log" 2>&1 &
+            done
+          else
+            $NODE --dev --tmp --ws-port 9944 --rpc-port 9933 --port 30333 > "$OUT/baseline-node.log" 2>&1 &
+            $NODE --dev --tmp --ws-port 9945 --rpc-port 9934 --port 30334 > "$OUT/candidate-node.log" 2>&1 &
+          fi
           for p in 9944 9945; do
             for i in $(seq 90); do ./target/release/canary doctor --ws ws://127.0.0.1:$p > /dev/null 2>&1 && break; sleep 1; done
           done
@@ -101,6 +122,8 @@ jobs:
       # A migration can only break state that exists. Like scripts/migration-demo.sh, give both
       # chains accounts with reserved deposits (on-chain identities) before either is upgraded.
       - name: Write existing state on both chains
+        # a mainnet fork already holds real deposits; this is for fresh dev chains
+        if: inputs.state != 'mainnet'
         run: |
           for p in 9944 9945; do
             ./target/release/canary test --baseline ws://127.0.0.1:$p --candidate ws://127.0.0.1:$p --only identity.deposit --out "runs/state-$p" > "$OUT/state-$p.txt" 2>&1 \
@@ -157,6 +180,7 @@ jobs:
           CANDIDATE: ${{ inputs.candidate }}
           WASM_URL: ${{ inputs.wasm_url }}
           LABEL: ${{ inputs.label }}
+          STATE: ${{ inputs.state }}
           UPGRADE_EXIT: ${{ steps.upgrade.outputs.exit }}
           HALTED: ${{ steps.upgrade.outputs.halted }}
           COMPARE_EXIT: ${{ steps.compare.outputs.exit }}
@@ -170,6 +194,7 @@ jobs:
               return hashlib.sha256(open(p, "rb").read()).hexdigest() if os.path.exists(p) else None
           num = lambda k: int(os.environ[k]) if os.environ.get(k, "").isdigit() else None
           panic = os.path.join(out, "candidate-panic.txt")
+          fork = os.path.join(out, "fork-meta.json")
           json.dump({
               "run_id": os.environ["RUN_ID"],
               "candidate": {"name": os.environ["CANDIDATE"], "url": os.environ["WASM_URL"] or None, "label": os.environ["LABEL"] or None,
@@ -177,6 +202,7 @@ jobs:
               "baseline": {"name": "clean", "sha256": sha(os.path.abspath("runtimes/out/clean.compact.wasm"))},
               "exit": {"upgrade": num("UPGRADE_EXIT"), "compare": num("COMPARE_EXIT"), "test": num("TEST_EXIT")},
               "halted": os.environ.get("HALTED") == "true",
+              "state": json.load(open(fork)) | {"kind": "mainnet"} if os.environ.get("STATE") == "mainnet" and os.path.exists(fork) else {"kind": os.environ.get("STATE") or "dev"},
               "panic": open(panic).read().strip() or None if os.path.exists(panic) else None,
               "files": sorted(f for f in os.listdir(out) if f.endswith((".json", ".txt"))),
               # the on-chain record anchors this file, so it carries the hash of every other one
@@ -209,11 +235,12 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           RUN_ID: ${{ inputs.run_id }}
           CANDIDATE: ${{ inputs.candidate }}
+          STATE: ${{ inputs.state }}
         run: |
           [ -f out/result.json ] || { echo "no result.json: nothing to keep"; exit 0; }
           (cd out && zip -qr "../$RUN_ID.zip" .)
           gh release view runs >/dev/null 2>&1 || gh release create runs --prerelease --title "Dashboard runs" --notes "Files written by each canary run started from the dashboard, one zip per run id."
-          gh release upload runs "$RUN_ID.zip#$CANDIDATE" --clobber
+          gh release upload runs "$RUN_ID.zip#$CANDIDATE$([ "$STATE" = mainnet ] && echo ' · mainnet state')" --clobber
           echo "kept as https://github.com/${{ github.repository }}/releases/download/runs/$RUN_ID.zip"
 
       - uses: actions/upload-artifact@v7

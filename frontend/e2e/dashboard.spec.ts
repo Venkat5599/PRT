@@ -84,6 +84,14 @@ test("new run: lists the built runtimes and refuses a non-wasm file", async ({ p
   await expect(page.getByRole("button", { name: "Start run" })).toBeEnabled();
 });
 
+test("new run: starts on mainnet state by default, fresh chain on request", async ({ page }) => {
+  await page.goto("/dashboard#new");
+  await expect(page.getByRole("tab", { name: "Mainnet state" })).toHaveAttribute("aria-selected", "true");
+  await expect(page.getByText("mainnet, latest finalized block")).toBeVisible();
+  await page.getByRole("tab", { name: "Fresh chain" }).click();
+  await expect(page.getByText("fresh dev chain + deposits")).toBeVisible();
+});
+
 test("supply: mainnet total issuance equals the sum of all accounts", async ({ page }) => {
   test.setTimeout(240_000);
   await page.goto("/dashboard#invariants");
@@ -113,6 +121,16 @@ test("run page: verdict, risks and the on-chain record re-verified in the browse
   await expect(record.getByText("9 of 9 files match result.json")).toBeVisible();
   await expect(record.getByRole("link", { name: /#234,189/ })).toHaveAttribute("href", /explorer\/query\/0xb8207aa6/);
   await noSideScroll(page);
+});
+
+test("mainnet-state run: page names the forked block, and real accounts lost funds", async ({ page, request }) => {
+  test.skip(!runs, "needs CANARY_GH_TOKEN");
+  const { runs: list } = await (await request.get("/api/runs")).json();
+  const run = list.find((r: { candidate: string; state: string; status: string }) => r.candidate === "halve-reserved" && r.state === "mainnet" && r.status === "completed");
+  test.skip(!run, "no finished mainnet-state halve-reserved run yet");
+  await page.goto(`/dashboard#run/${run.id}`);
+  await expect(page.getByText(/^On mainnet state at block #[\d,]+ · [\d,]+ accounts$/)).toBeVisible({ timeout: 60_000 });
+  await expect(page.getByText("Migration breaks balances")).toBeVisible();
 });
 
 test("landing: live numbers, and no dashboard stylesheet", async ({ page }) => {

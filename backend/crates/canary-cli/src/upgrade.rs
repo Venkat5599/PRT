@@ -32,11 +32,19 @@ const POT_DECIMALS: u32 = 14;
 /// Generic Substrate SS58 prefix, used by Portaldot.
 const SS58_PREFIX: u8 = 42;
 
-fn spec(ws: &str, timeout: Duration) -> anyhow::Result<(Option<u64>, String)> {
+fn spec(ws: &str, timeout: Duration) -> anyhow::Result<(Option<u64>, String, String)> {
     let mut rpc = connect(ws, timeout)?;
     let rv = rpc.call("state_getRuntimeVersion", json!([]))?;
     let chain = rpc.call("system_chain", json!([]))?.as_str().unwrap_or_default().to_string();
-    Ok((rv["specVersion"].as_u64(), chain))
+    let kind = rpc.call("system_chainType", json!([])).ok().and_then(|v| v.as_str().map(str::to_string)).unwrap_or_default();
+    Ok((rv["specVersion"].as_u64(), chain, kind))
+}
+
+/// `setCode` is only ever sent to a chain its node declares as a development or local chain
+/// (chain type), or a dev chain by name. A fork of mainnet built by `fork.ts` keeps the dev spec's
+/// chain type, so it qualifies; a live network never does.
+fn may_set_code(chain: &str, chain_type: &str) -> bool {
+    matches!(chain_type, "Development" | "Local") || matches!(chain, "Development" | "Local Testnet")
 }
 
 fn best_number(ws: &str, timeout: Duration) -> anyhow::Result<u64> {
@@ -225,9 +233,9 @@ fn inner(ws: &str, wasm: &Path, driver: &Driver, timeout: Duration) -> anyhow::R
     if code.len() < 8 {
         bail!("{} is too small to be a runtime", wasm.display());
     }
-    let (before, chain) = spec(ws, timeout)?;
-    if chain != "Development" && chain != "Local Testnet" {
-        bail!("refusing to set code on non-development chain {chain:?}");
+    let (before, chain, chain_type) = spec(ws, timeout)?;
+    if !may_set_code(&chain, &chain_type) {
+        bail!("refusing to set code on non-development chain {chain:?} (chain type {chain_type:?})");
     }
     let wasm_sha256 = hex::encode(Sha256::digest(&code));
     println!("wasm       {} ({} bytes, sha256 {})", wasm.display(), code.len(), wasm_sha256);
@@ -269,7 +277,7 @@ fn inner(ws: &str, wasm: &Path, driver: &Driver, timeout: Duration) -> anyhow::R
     // The new code takes effect from the next block.
     let deadline = Instant::now() + timeout;
     loop {
-        let (now, _) = spec(ws, timeout)?;
+        let (now, _, _) = spec(ws, timeout)?;
         if now != before {
             println!("after      spec_version {}", now.map(|v| v.to_string()).unwrap_or("-".into()));
             report.spec_after = now;
@@ -392,5 +400,15 @@ mod tests {
     #[test]
     fn pre_existing_imbalance_is_inconclusive() {
         assert_eq!(classify(&supply(90, 0, 100), &supply(90, 0, 100), &[]).0, "INCONCLUSIVE");
+    }
+
+    #[test]
+    fn set_code_only_on_dev_or_local_chains() {
+        assert!(may_set_code("Development", "Development"));
+        assert!(may_set_code("Portaldot mainnet fork #2747378", "Development"));
+        assert!(may_set_code("Local Testnet", ""));
+        assert!(!may_set_code("Portaldot", "Live"));
+        assert!(!may_set_code("PortaldotV3 Test", "Live"));
+        assert!(!may_set_code("Portaldot mainnet fork #1", "Live"));
     }
 }

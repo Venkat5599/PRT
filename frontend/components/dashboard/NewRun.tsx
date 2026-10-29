@@ -44,6 +44,7 @@ export function NewRun() {
   const [file, setFile] = useState<File | null>(null);
   const [url, setUrl] = useState("");
   const [label, setLabel] = useState("");
+  const [state, setState] = useState<"mainnet" | "dev">("mainnet");
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
   const [typical, setTypical] = useState<string | null>(null);
@@ -78,12 +79,12 @@ export function NewRun() {
       let res: Response;
       if (mode.kind === "file" && file) {
         const fd = new FormData();
-        fd.set("wasm", file); fd.set("label", label);
+        fd.set("wasm", file); fd.set("label", label); fd.set("state", state);
         res = await fetch("/api/runs", { method: "POST", body: fd });
       } else {
         res = await fetch("/api/runs", {
           method: "POST", headers: { "content-type": "application/json" },
-          body: JSON.stringify(mode.kind === "url" ? { wasm_url: url.trim(), label } : { candidate: (mode as { name: string }).name, label }),
+          body: JSON.stringify(mode.kind === "url" ? { wasm_url: url.trim(), label, state } : { candidate: (mode as { name: string }).name, label, state }),
         });
       }
       const body = await res.json().catch(() => ({ error: `HTTP ${res.status}` }));
@@ -93,12 +94,13 @@ export function NewRun() {
   }
 
   const steps = useMemo<[string, string][]>(() => [
+    ["State", state === "mainnet" ? "mainnet, latest finalized block" : "fresh dev chain + deposits"],
     ["Baseline", clean ? `clean · spec ${clean.spec}` : "clean"],
     ["Candidate", picked ? `${picked.name} · spec ${picked.spec}` : mode.kind === "file" ? (file?.name ?? "your file") : (url.trim() || "your URL")],
     ["Checks", "upgrade · liveness · supply · diff · risks"],
     ["Workflows", workflows.length ? `${workflows.length}, on both chains` : "…"],
     ["Proof", "recorded on the V3 testnet"],
-  ], [clean, picked, mode, file, url, workflows]);
+  ], [clean, picked, mode, file, url, workflows, state]);
 
   const card = "flex min-w-0 flex-col gap-3 rounded-xl border bg-card p-4 text-left transition-colors hover:border-foreground/20";
   const on = "border-primary ring-1 ring-primary hover:border-primary";
@@ -143,6 +145,14 @@ export function NewRun() {
       </div>
 
       <Panel flush title="Run" description={[typical && `typically ${typical}`, active ? `${active} running` : null].filter(Boolean).join(" · ") || undefined} className="lg:sticky lg:top-20">
+        <div className="border-b px-5 py-3">
+          <Tabs value={state} onValueChange={(x) => setState(x as "mainnet" | "dev")}>
+            <TabsList className="grid w-full grid-cols-2">
+              <TabsTrigger value="mainnet">Mainnet state</TabsTrigger>
+              <TabsTrigger value="dev">Fresh chain</TabsTrigger>
+            </TabsList>
+          </Tabs>
+        </div>
         <KV rows={steps} />
         <div className="space-y-3 border-t px-5 py-4">
           <Input value={label} onChange={(e) => setLabel(e.target.value)} placeholder="Label (optional)" maxLength={200} />

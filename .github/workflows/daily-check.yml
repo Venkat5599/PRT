@@ -1,0 +1,109 @@
+name: daily check
+
+# Every day, two canary runs on a fork of mainnet's current state:
+#   clean           the public source, nothing injected: the upgrade must pass
+#   halve-reserved  a migration that destroys reserved funds: it must be caught
+# The second proves the canary still catches what it is for. Both runs appear on the dashboard and
+# are recorded on the V3 testnet like any other. If either expectation fails, or a run could not be
+# recorded, an issue is opened (or updated); it is closed when a later check passes.
+
+on:
+  schedule:
+    - cron: "30 2 * * *" # 08:00 IST
+  workflow_dispatch:
+
+permissions:
+  actions: write
+  contents: read
+  issues: write
+
+concurrency:
+  group: daily-check
+
+jobs:
+  check:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 60
+    env:
+      GH_TOKEN: ${{ github.token }}
+      REPO: ${{ github.repository }}
+    steps:
+      - name: Start both runs
+        id: start
+        run: |
+          for c in clean halve-reserved; do
+            id=$(openssl rand -hex 6)
+            gh workflow run canary-run.yml -R "$REPO" -f run_id="$id" -f candidate="$c" -f state=mainnet -f label="daily check"
+            echo "${c%%-*}=$id" >> "$GITHUB_OUTPUT"
+            echo "$c -> $id"
+          done
+
+      - name: Wait for them
+        env:
+          CLEAN: ${{ steps.start.outputs.clean }}
+          HALVE: ${{ steps.start.outputs.halve }}
+        run: |
+          for i in $(seq 100); do
+            left=0
+            for id in "$CLEAN" "$HALVE"; do
+              s=$(gh run list -R "$REPO" -w canary-run.yml -L 20 --json displayTitle,status --jq ".[] | select(.displayTitle | startswith(\"canary run $id \")) | .status")
+              [ "$s" = completed ] || left=$((left + 1))
+            done
+            [ $left = 0 ] && exit 0
+            sleep 30
+          done
+          echo "runs did not finish in time"; exit 1
+
+      - name: Judge
+        id: judge
+        env:
+          CLEAN: ${{ steps.start.outputs.clean }}
+          HALVE: ${{ steps.start.outputs.halve }}
+        run: |
+          python3 - <<'EOF'
+          import io, json, os, urllib.request, zipfile
+          repo = os.environ["REPO"]
+          def files(rid):
+              try:
+                  z = zipfile.ZipFile(io.BytesIO(urllib.request.urlopen(f"https://github.com/{repo}/releases/download/runs/{rid}.zip", timeout=60).read()))
+                  return {n: z.read(n).decode() for n in z.namelist()}
+              except Exception as e:
+                  return {"_error": str(e)}
+          site = "https://portal-canary-app.vercel.app/dashboard#run/"
+          problems, lines = [], []
+          for name, rid, want in [("clean", os.environ["CLEAN"], "pass"), ("halve-reserved", os.environ["HALVE"], "caught")]:
+              f = files(rid)
+              if "result.json" not in f:
+                  problems.append(f"{name}: no result ({f.get('_error', 'result.json missing')})"); continue
+              r = json.loads(f["result.json"]); e = r["exit"]; st = r.get("state", {})
+              block = st.get("block")
+              if want == "pass":
+                  ok = e["upgrade"] == 0 and not r["halted"] and e["test"] == 0
+              else:
+                  ok = e["upgrade"] == 1 and "funds destroyed" in f.get("upgrade.txt", "")
+              recorded = "attestation.json" in f
+              lines.append(f"- [{name}]({site}{rid}) on mainnet #{block}: upgrade={e['upgrade']} compare={e['compare']} test={e['test']} halted={r['halted']} -> {'as expected' if ok else 'NOT as expected'}; {'recorded on V3' if recorded else 'not recorded: ' + f.get('attest-error.txt', 'no record').strip().splitlines()[-1][:160]}")
+              if not ok: problems.append(f"{name}: expected {want}")
+              if not recorded: problems.append(f"{name}: not recorded on V3")
+          body = "\n".join(lines)
+          out = open(os.environ["GITHUB_OUTPUT"], "a")
+          out.write(f"ok={'true' if not problems else 'false'}\n")
+          out.write("body<<EOF_BODY\n" + body + ("\n\nProblems:\n" + "\n".join(f"- {p}" for p in problems) if problems else "") + "\nEOF_BODY\n")
+          print(body); print("\n".join(problems) or "all as expected")
+          EOF
+
+      - name: Report
+        env:
+          OK: ${{ steps.judge.outputs.ok }}
+          BODY: ${{ steps.judge.outputs.body }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          title="Daily mainnet-state check failing"
+          open=$(gh issue list -R "$REPO" --state open --search "\"$title\" in:title" --json number --jq '.[0].number // empty')
+          if [ "$OK" = true ]; then
+            [ -n "$open" ] && gh issue close "$open" -R "$REPO" -c "Passing again ($(date -u +%F)): $RUN_URL"$'\n\n'"$BODY"
+            exit 0
+          fi
+          msg="$(date -u +%F): $RUN_URL"$'\n\n'"$BODY"
+          if [ -n "$open" ]; then gh issue comment "$open" -R "$REPO" -b "$msg"; else gh issue create -R "$REPO" -t "$title" -b "$msg"; fi
+          exit 1

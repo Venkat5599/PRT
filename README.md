@@ -262,13 +262,21 @@ Current `@polkadot/api` decodes `DispatchError::Module` as `{ index: u8, error: 
 
 **New run** takes a candidate runtime: one of the runtimes built in this repo, an uploaded `.wasm`, or a URL. **Start run** dispatches [`.github/workflows/canary-run.yml`](.github/workflows/canary-run.yml), which:
 
-1. starts a fresh Portaldot dev chain and writes existing state into it (accounts with reserved deposits), so a migration has something to break;
+1. starts two Portaldot dev chains from one of two starting states:
+   - **Mainnet state** (the default): a fork of mainnet at its latest finalized block, built by [`backend/driver/src/fork.ts`](backend/driver/src/fork.ts). Every pallet's storage is copied (all 4,716 accounts, deposits, locks, stakes, vesting, identities) except consensus and block history, which stay the dev spec's so one local authority produces blocks. The dev signers are added to the accounts and to `TotalIssuance`, staking eras are frozen (`ForceNone`), and the two chains are kept from peering. Taking the state takes about 15 seconds, so every run forks current mainnet;
+   - **Fresh chain**: a new dev chain, with accounts holding reserved deposits written into it, so a migration has something to break;
 2. upgrades it to the candidate with `system.setCode` (`canary upgrade`): balances and the supply invariant before vs after, and whether blocks keep coming;
 3. compares the two runtimes (`canary compare`) and runs the workflow suite (`canary test`);
 4. writes `result.json` (exit codes plus the sha256 of every other file), then records it on the V3 testnet with `canary attest` and checks the record with `canary verify`;
 5. keeps the files as `<run id>.zip` on the repository's [`runs` release](https://github.com/Venkat5599/PRT/releases/tag/runs) (and as a 30-day artifact).
 
 The run page follows the steps live, then shows the verdict, the compatibility risks and the evidence. Its **On-chain record** card re-checks in the browser that every file matches `result.json`, that `result.json` matches the recorded remark, and that the remark is in the block; it links the block in an explorer.
+
+On mainnet state, `halve-reserved` halves the deposits of all 9 real accounts that hold one (286.305 POT destroyed, each account listed), while `clean` passes with no account changed.
+
+### Daily check
+
+[`.github/workflows/daily-check.yml`](.github/workflows/daily-check.yml) runs every day at 08:00 IST: `clean` on mainnet state must pass, and `halve-reserved` must be caught. The second run shows the canary still catches what it exists for. Both runs appear on the dashboard and are recorded on V3. If either expectation fails, or a run could not be recorded, the check opens an issue (or comments on the open one), and closes it when a later check passes.
 
 Two secrets are involved:
 
@@ -316,6 +324,8 @@ bash scripts/migration-demo.sh  # an upgrade whose migration destroys funds, cau
 - [x] Upgrade hazards in `compare` (BABE slot/epoch changes)
 - [x] Compatibility risks in `compare`: severity, reason and before/after evidence per finding
 - [x] State diff across `setCode`: per-account balances and the supply invariant, before vs after (`canary upgrade`)
+- [x] Upgrades tested on a fork of mainnet's current state (`fork.ts`), checked in CI
+- [x] Daily check on mainnet state with issue alerts
 - [x] On-chain attestation via `system.remark` (`canary attest` / `canary verify`) on the dev chain
 - [x] GitHub Action ([`action.yml`](action.yml)) and CI against a real Portaldot dev node
 - [x] Attestation on the public V3 testnet: 4 example runs anchored and verified on `wss://test-node-v3.portaldot.dev` (tx hashes in [`docs/V3_READINESS.md`](docs/V3_READINESS.md#v3-testnet-attestations))

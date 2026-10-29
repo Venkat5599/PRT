@@ -105,3 +105,12 @@ test("live-chain cap keeps only workflows that fit in 5 tokens per account", asy
     "contracts.counter": false, "identity.deposit": true,
   });
 });
+
+// A run's starting state travels in its name ("canary run <id> · <candidate> · mainnet state")
+// and in its kept asset's label ("<candidate> · mainnet state").
+test("run titles split into candidate and starting state", async () => {
+  const { splitTitle } = await import("../lib/runs");
+  expect(splitTitle("halve-reserved · mainnet state")).toEqual({ candidate: "halve-reserved", state: "mainnet" });
+  expect(splitTitle("ed100x")).toEqual({ candidate: "ed100x", state: "dev" });
+  expect(splitTitle("url")).toEqual({ candidate: "url", state: "dev" });
+});

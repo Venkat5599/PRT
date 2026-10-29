@@ -10,6 +10,8 @@ export type Result = {
   baseline: { name: string; sha256: string | null };
   exit: { upgrade: number | null; compare: number | null; test: number | null };
   halted: boolean;
+  /** Starting state: a fresh dev chain, or mainnet forked at `block` (backend/driver/src/fork.ts). */
+  state?: { kind: "dev" } | { kind: "mainnet"; block: number; hash: string; accounts: number; spec: string; taken_unix: number };
   panic: string | null;
   files: string[];
   /** sha256 of every other file in the run; the on-chain record anchors result.json, so it covers them all */

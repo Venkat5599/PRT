@@ -16,11 +16,11 @@ import { cn } from "@/lib/utils";
 // One run on GitHub's runners: its steps while it runs, then the verdict and the evidence,
 // all read from the files the CLI wrote.
 type Step = { name: string; status: string; conclusion: string | null; started_at: string | null; completed_at: string | null };
-type Run = { id: string; candidate?: string; status: string; conclusion?: string | null; created_at?: string; updated_at?: string; html_url?: string; steps: Step[]; files: Files | null; error?: string };
+type Run = { id: string; candidate?: string; state?: "dev" | "mainnet"; status: string; conclusion?: string | null; created_at?: string; updated_at?: string; html_url?: string; steps: Step[]; files: Files | null; error?: string };
 
 const OURS: [RegExp, string][] = [
   [/^Check inputs/, "Inputs"], [/^Build the canary CLI/, "Build"], [/^Get the candidate runtime/, "Fetch runtime"],
-  [/^Start two fresh/, "Start chains"], [/^Write existing state/, "Write state"], [/^Upgrade the baseline/, "Baseline upgrade"],
+  [/^Start two/, "Start chains"], [/^Write existing state/, "Write state"], [/^Upgrade the baseline/, "Baseline upgrade"],
   [/^Upgrade the candidate/, "Candidate upgrade"], [/^Compare the two/, "Compare"], [/^Run the workflow suite/, "Workflows"],
   [/^Write the result/, "Result"], [/^Record the result/, "On-chain record"],
 ];
@@ -84,6 +84,11 @@ export function RunView({ id }: { id: string }) {
           </div>
           <h2 className="font-heading text-3xl font-medium tracking-tight">{name}</h2>
           {result?.candidate.label && run?.candidate !== "url" && <p className="text-sm text-muted-foreground">{result.candidate.label}</p>}
+          <p className="text-sm text-muted-foreground">
+            {result?.state?.kind === "mainnet"
+              ? <>On mainnet state at block <a className="underline underline-offset-2" href={`https://polkadot.js.org/apps/?rpc=${encodeURIComponent("wss://mainnet.portaldot.io")}#/explorer/query/${result.state.hash}`} target="_blank" rel="noreferrer">#{result.state.block.toLocaleString("en")}</a> · {result.state.accounts.toLocaleString("en")} accounts</>
+              : result ? "On a fresh dev chain" : run?.state === "mainnet" ? "On mainnet state" : null}
+          </p>
         </div>
         {run?.html_url && <Button variant="outline" size="sm" asChild><a href={run.html_url} target="_blank" rel="noreferrer"><ExternalLink />Log</a></Button>}
       </div>

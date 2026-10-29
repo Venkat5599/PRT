@@ -32,14 +32,16 @@ async function gh(path: string, init: RequestInit = {}): Promise<Response> {
 }
 
 export type RunRow = {
-  id: string; candidate: string; status: string; conclusion: string | null;
+  id: string; candidate: string; state: "dev" | "mainnet"; status: string; conclusion: string | null;
   created_at: string; updated_at: string; html_url: string; gh_id: number;
 };
 type GhRun = { id: number; name?: string; display_title: string; status: string; conclusion: string | null; created_at: string; updated_at: string; html_url: string };
-const NAME = /^canary run ([0-9a-f]{12}) · (.+)$/;
+const NAME = /^canary run ([0-9a-f]{12}) · (.+?)( · mainnet state)?$/;
+/** "ed100x · mainnet state" (a run name or a kept asset's label) → candidate and starting state. */
+export const splitTitle = (t: string) => { const m = /^(.+?)( · mainnet state)?$/.exec(t)!; return { candidate: m[1], state: (m[2] ? "mainnet" : "dev") as "mainnet" | "dev" }; };
 const row = (r: GhRun): RunRow | null => {
   const m = NAME.exec(r.display_title ?? r.name ?? "");
-  return m ? { id: m[1], candidate: m[2], status: r.status, conclusion: r.conclusion, created_at: r.created_at, updated_at: r.updated_at, html_url: r.html_url, gh_id: r.id } : null;
+  return m ? { id: m[1], candidate: m[2], state: m[3] ? "mainnet" : "dev", status: r.status, conclusion: r.conclusion, created_at: r.created_at, updated_at: r.updated_at, html_url: r.html_url, gh_id: r.id } : null;
 };
 
 type Asset = { name: string; label: string | null; created_at: string; updated_at: string; browser_download_url: string };
@@ -57,7 +59,7 @@ export async function listRuns(limit = 30): Promise<RunRow[]> {
   const live = res.status === 404 ? [] : ((await res.json()) as { workflow_runs: GhRun[] }).workflow_runs.map(row).filter((x): x is RunRow => !!x);
   const seen = new Set(live.map((r) => r.id));
   const old: RunRow[] = assets.filter((a) => !seen.has(KEPT.exec(a.name)![1])).map((a) => ({
-    id: KEPT.exec(a.name)![1], candidate: a.label || "run", status: "completed", conclusion: "success",
+    id: KEPT.exec(a.name)![1], ...splitTitle(a.label || "run"), status: "completed", conclusion: "success",
     created_at: a.created_at, updated_at: a.updated_at, html_url: `https://github.com/${REPO}/releases/tag/runs`, gh_id: 0,
   }));
   return [...live, ...old].sort((x, y) => Date.parse(y.created_at) - Date.parse(x.created_at));
@@ -84,7 +86,7 @@ export async function hostUpload(id: string, bytes: Uint8Array): Promise<string>
   return asset.browser_download_url;
 }
 
-export async function dispatch(inputs: { run_id: string; candidate: string; wasm_url?: string; label?: string }) {
+export async function dispatch(inputs: { run_id: string; candidate: string; wasm_url?: string; label?: string; state?: string }) {
   const res = await gh(`/repos/${REPO}/actions/workflows/${WORKFLOW}/dispatches`, {
     method: "POST",
     body: JSON.stringify({ ref: "main", inputs: { wasm_url: "", label: "", ...inputs } }),

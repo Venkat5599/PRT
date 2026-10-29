@@ -9,7 +9,7 @@ import { RunDetail, verdict as recordedVerdict, RECORDED, type RunData } from ".
 import { Panel, Status, Empty, ErrorText, type Tone } from "./kit";
 
 // Runs started from this site (GitHub Actions), then the runs recorded with the CLI.
-type Row = { id: string; candidate: string; status: string; conclusion: string | null; created_at: string; updated_at: string };
+type Row = { id: string; candidate: string; state?: "dev" | "mainnet"; status: string; conclusion: string | null; created_at: string; updated_at: string };
 export const LEVEL: Record<Level, { label: string; tone: Tone }> = {
   pass: { label: "Pass", tone: "good" }, diff: { label: "Difference", tone: "warn" }, reg: { label: "Regression", tone: "bad" },
   crit: { label: "Critical", tone: "bad" }, error: { label: "Error", tone: "muted" },
@@ -56,7 +56,7 @@ export function RunsList() {
               const running = r.status !== "completed";
               return (
                 <TableRow key={r.id} className="cursor-pointer" onClick={() => { location.hash = `run/${r.id}`; }}>
-                  <TableCell className="pl-5 font-medium"><a href={`#run/${r.id}`}>{r.candidate === "url" ? "your runtime" : r.candidate}</a></TableCell>
+                  <TableCell className="pl-5 font-medium"><a href={`#run/${r.id}`}>{r.candidate === "url" ? "your runtime" : r.candidate}</a>{r.state === "mainnet" && <div className="text-xs font-normal text-muted-foreground">mainnet state</div>}</TableCell>
                   <TableCell className="max-w-80 whitespace-normal">
                     {running ? <Status tone="info">{r.status === "queued" ? "Queued" : "Running"}</Status>
                       : v ? <span className="flex flex-wrap items-center gap-2"><Status tone={LEVEL[v.level].tone}>{LEVEL[v.level].label}</Status><span className="text-xs text-muted-foreground">{v.title}</span></span>
