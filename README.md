@@ -10,7 +10,10 @@
 [![License](https://img.shields.io/badge/license-Apache--2.0-yellow)](LICENSE)
 ![Stack](https://img.shields.io/badge/Rust%20·%20WebAssembly%20·%20Next.js%20·%20shadcn%2Fui-14151a)
 
+[![Watch the demo](https://img.shields.io/badge/▶%20watch%20the%20demo-video-c4302b)](https://youtu.be/dV6r8IFqzck)
 [![Open the dashboard](https://img.shields.io/badge/▶%20open%20the%20dashboard-live-111827)](https://portal-canary-app.vercel.app/dashboard)
+[![Pitch deck](https://img.shields.io/badge/pitch%20deck-slides-111827)](https://portal-canary-app.vercel.app/deck)
+[![Testnet](https://img.shields.io/badge/testnet-Portaldot%20V3-111827)](docs/TESTNET.md)
 [![Verify every run](https://img.shields.io/badge/verify%20every%20run-one%20command-111827)](#verify-every-claim-in-one-command)
 [![Honesty table](https://img.shields.io/badge/honesty%20table-what's%20real-111827)](#whats-real-vs-pending--the-honesty-table)
 [![Run it locally](https://img.shields.io/badge/run%20it-locally-111827)](#full-command-reference)
@@ -24,6 +27,28 @@ setCode accepted  ≠  blocks kept coming  ≠  every balance survived
 ```
 
 An upgrade can pass the first two and still destroy money. Portal Canary checks all three.
+
+## Demo video
+
+[![Watch the Portal Canary demo](https://img.youtube.com/vi/dV6r8IFqzck/maxresdefault.jpg)](https://youtu.be/dV6r8IFqzck)
+
+Click the image to watch on YouTube: a run against today's mainnet state, the funds-destroyed verdict, and the on-chain record checked in the browser.
+
+[![Run on mainnet state](docs/screenshots/run-mainnet.webp)](docs/screenshots/run-mainnet.png)
+
+More views in [Screenshots](#screenshots).
+
+## Testnet deployment
+
+| | |
+|---|---|
+| Network | PortaldotV3 Testnet, EVM chain id `420420777` |
+| Substrate WS / EVM RPC | `wss://test-node-v3.portaldot.dev` / `https://test-evm-rpc-v3.portaldot.dev` |
+| Explorer | [node-console.portaldot.dev](https://node-console.portaldot.dev) |
+| `CanaryRegistry` contract | `0x62Eacc58CE0FA37F06F24074AFb7B3F22Df708FF` (deploy tx `0xadb58c0b7ff356a1304e8422b7f606782c91e39460bca2ab9ace133cc8656ed2`) |
+| Run records | `system.remark` per run; latest tx `0xefc2025a569a45ce453d2f2c1446fc1094d40a01610759f7fca0214a2fad79c3` in block #238,224 |
+
+Full details, costs, and commands to check every record: [`docs/TESTNET.md`](docs/TESTNET.md).
 
 ## Live status
 
@@ -63,6 +88,8 @@ candidate .wasm ──► fork mainnet @ finalized block ──► setCode on th
 
 ## Table of contents
 
+- [Demo video](#demo-video)
+- [Testnet deployment](#testnet-deployment)
 - [Live status](#live-status)
 - [See it in one command](#-see-it-in-one-command)
 - [Screenshots](#screenshots)
@@ -486,6 +513,9 @@ The site is a Next.js app on Vercel with one server secret, `CANARY_GH_TOKEN`. T
 | Upgrade runs on dev chains (ed100x, fee10x, halve-reserved) | [`examples/upgrade-ed100x`](examples/upgrade-ed100x), [`examples/upgrade-fee10x`](examples/upgrade-fee10x), [`examples/upgrade-halve-reserved`](examples/upgrade-halve-reserved) |
 | Determinism control | [`examples/self-compare`](examples/self-compare) |
 | The built runtimes, their patches and hashes | [`backend/runtimes/out`](backend/runtimes/out) |
+| Demo video | [youtu.be/dV6r8IFqzck](https://youtu.be/dV6r8IFqzck) |
+| Testnet development: endpoints, records, contract, verification | [`docs/TESTNET.md`](docs/TESTNET.md) |
+| Hackathon submission write-up | [`docs/DORAHACKS.md`](docs/DORAHACKS.md) |
 | V3 endpoint checks and earlier V3 records | [`docs/V3_READINESS.md`](docs/V3_READINESS.md) |
 | Design notes | [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md), [`docs/PLAN.md`](docs/PLAN.md) |
 | Pitch deck | [portal-canary-app.vercel.app/deck](https://portal-canary-app.vercel.app/deck), PDF copy [`docs/Portal-Canary-Venkat.pdf`](docs/Portal-Canary-Venkat.pdf) |
