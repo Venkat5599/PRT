@@ -5,7 +5,7 @@ import { ExternalLink, Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { walletStore, type Connected } from "@/lib/wallet";
-import { verdictOf, file, potOf, dur, type Files, type Result, type Upgrade, type Comparison } from "@/lib/runresult";
+import { verdictOf, file, potOf, dur, type Files, type Result, type Upgrade, type Comparison, explorerBlock } from "@/lib/runresult";
 import { RunDetail, type RunData } from "./Panels";
 import { Proof } from "./Proof";
 import { RiskList, ChangeTable, riskCounts, SEVERITY } from "./Findings";
@@ -86,7 +86,7 @@ export function RunView({ id }: { id: string }) {
           {result?.candidate.label && run?.candidate !== "url" && <p className="text-sm text-muted-foreground">{result.candidate.label}</p>}
           <p className="text-sm text-muted-foreground">
             {result?.state?.kind === "mainnet"
-              ? <>On mainnet state at block <a className="underline underline-offset-2" href={`https://polkadot.js.org/apps/?rpc=${encodeURIComponent("wss://mainnet.portaldot.io")}#/explorer/query/${result.state.hash}`} target="_blank" rel="noreferrer">#{result.state.block.toLocaleString("en")}</a> · {result.state.accounts.toLocaleString("en")} accounts</>
+              ? <>On mainnet state at block <a className="underline underline-offset-2" href={explorerBlock(result.state.hash, "wss://mainnet.portaldot.io")} target="_blank" rel="noreferrer">#{result.state.block.toLocaleString("en")}</a> · {result.state.accounts.toLocaleString("en")} accounts</>
               : result ? "On a fresh dev chain" : run?.state === "mainnet" ? "On mainnet state" : null}
           </p>
         </div>

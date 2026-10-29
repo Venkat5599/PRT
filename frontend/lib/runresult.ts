@@ -38,7 +38,8 @@ export async function runPayload(resultText: string) {
 }
 
 export const V3_WS = "wss://test-node-v3.portaldot.dev";
-export const explorerBlock = (blockHash: string, ws = V3_WS) => `https://polkadot.js.org/apps/?rpc=${encodeURIComponent(ws)}#/explorer/query/${blockHash}`;
+/** Portaldot's own explorer (node-console.portaldot.dev), pointed at the given node. */
+export const explorerBlock = (blockHash: string, ws = V3_WS) => `https://node-console.portaldot.dev/?rpc=${encodeURIComponent(ws)}#/explorer/query/${blockHash}`;
 export type Snap = { block_number: number; accounts: number; sum_free: string; sum_reserved: string; total_issuance: string; delta: string; supply_conservation: string };
 export type Upgrade = {
   spec_before: number | null; spec_after: number | null; tx_hash: string | null; liveness: string; verdict: string; wasm_sha256: string;
