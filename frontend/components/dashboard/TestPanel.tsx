@@ -9,7 +9,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { V3, formatUnits, short, walletStore, type Connected } from "@/lib/wallet";
 import { RunDetail, verdict, verdictTone, type RunData } from "./Panels";
 import { Panel, KV, Status, Mark, Mono, ErrorText, fmt, download } from "./kit";
-import type { Signer, ChainInfo, Attestation, SuiteEntry } from "@/lib/tx/tx";
+import type { Signer, ChainInfo, Attestation, SuiteEntry, Funding } from "@/lib/tx/tx";
+import { explorerBlock } from "@/lib/runresult";
 
 /** Mirrors lib/tx largestMove without loading the tx module up front. */
 function largestMoveOf(s: SuiteEntry): bigint {
@@ -50,7 +51,7 @@ const LIVE_CAP_UNITS = 5n;
 
 type Lane = { ws: string; info?: ChainInfo; balance?: bigint; err?: string; busy: boolean };
 type Report = RunData & { manifest: RunData["manifest"] & { run_id: string } };
-type Saved = { text: string; att?: Attestation };
+type Saved = { text: string; att?: Attestation; funding?: Funding[] };
 
 async function contractFile(path: string) {
   if (path !== "tests/contracts/counter.wasm") throw new Error(`unknown workflow file ${path}`);
@@ -87,6 +88,7 @@ export function TestPanel() {
   const [rows, setRows] = useState<Record<string, { verdict: string; severity: string; hash: string } | "running">>({});
   const [err, setErr] = useState<string | null>(null);
   const [run, setRun] = useState<Saved | null>(null);
+  const [funding, setFunding] = useState<Funding[]>([]);
   const logBox = useRef<HTMLPreElement>(null);
 
   useEffect(() => walletStore.subscribe(setWallet), []);
@@ -150,7 +152,8 @@ export function TestPanel() {
 
   async function start() {
     if (blocked || !who.signer) return;
-    setBusy(true); setErr(null); setLog([]); setStarted(Date.now()); setNow(Date.now());
+    setBusy(true); setErr(null); setLog([]); setFunding([]); setStarted(Date.now()); setNow(Date.now());
+    const paid: Funding[] = [];
     setRows(Object.fromEntries(selected.map((s) => [s.workflow.id, "running" as const])));
     const push = (m: string) => setLog((l) => [...l, `${new Date().toLocaleTimeString("en-GB")}  ${m}`]);
     try {
@@ -159,10 +162,11 @@ export function TestPanel() {
       const report = await t.runTest({
         baseline: b.trim(), candidate: c.trim(), suite: selected, funder: who.signer, injected: injected.trim() || null, fundCap: cap,
         fetchFile: contractFile, log: push,
+        onFunding: (f: Funding) => { paid.push(f); setFunding([...paid]); },
         onResult: (r: { finding: { workflow: string; verdict: string; severity: string; finding_hash: string } }) =>
           setRows((x) => ({ ...x, [r.finding.workflow]: { verdict: r.finding.verdict, severity: r.finding.severity, hash: r.finding.finding_hash } })),
       });
-      const saved = { text: JSON.stringify(report, null, 2) };
+      const saved: Saved = { text: JSON.stringify(report, null, 2), funding: paid.length ? paid : undefined };
       push(`${report.summary.statement} · exit ${t.exitCode(report.summary)}`);
       setRun(saved);
       try { localStorage.setItem(LAST, JSON.stringify(saved)); } catch {}
@@ -243,6 +247,12 @@ export function TestPanel() {
                   : <><TableCell><Status tone={verdictTone(r.verdict)} className="capitalize">{r.verdict.toLowerCase()}</Status></TableCell><TableCell>{r.severity}</TableCell><TableCell className="pr-5 font-mono text-xs">{r.hash.slice(0, 14)}</TableCell></>}
               </TableRow>))}</TableBody>
           </Table>
+          {(funding.length > 0 ? funding : run?.funding ?? []).map((f) => (
+            <p key={f.tx_hash} className="border-t px-5 py-3 text-xs text-muted-foreground">
+              Funded {f.accounts} test account{f.accounts === 1 ? "" : "s"} in one wallet transaction ·{" "}
+              <a className="underline underline-offset-2" href={explorerBlock(f.block_hash, f.network)} target="_blank" rel="noreferrer">block #{fmt(f.block_number)}</a> · <Mono>{f.tx_hash.slice(0, 14)}…</Mono>
+            </p>
+          ))}
           <pre ref={logBox} className="max-h-56 overflow-auto border-t bg-muted/40 px-5 py-3 font-mono text-[11.5px] leading-relaxed text-muted-foreground">{log.join("\n")}</pre>
           {err && <div className="border-t px-5 py-3"><ErrorText>{err}</ErrorText></div>}
         </Panel>
@@ -298,7 +308,7 @@ function AttestRun({ saved, wallet, onSaved }: { saved: Saved; wallet: Connected
         <Button size="sm" variant={ws === V3.ws ? "secondary" : "ghost"} disabled={!!busy} onClick={() => setWs(V3.ws)}>V3 testnet</Button>
         <Button size="sm" disabled={!!busy} onClick={sign}>{busy === "sign" ? <Loader2 className="animate-spin" /> : <PenLine />}{att ? "Anchor again" : "Anchor"}</Button>
       </div>
-      {att && <p className="text-xs text-muted-foreground">Block #{fmt(att.block_number)} on {att.chain} · <Mono>{att.tx_hash.slice(0, 14)}…</Mono> · {checks ? (ok ? <span className="text-success">verified</span> : <span className="text-destructive">failed</span>) : busy === "verify" ? "verifying…" : ""}</p>}
+      {att && <p className="text-xs text-muted-foreground"><a className="underline underline-offset-2" href={explorerBlock(att.block_hash, att.network)} target="_blank" rel="noreferrer">Block #{fmt(att.block_number)}</a> on {att.chain} · <Mono>{att.tx_hash.slice(0, 14)}…</Mono> · {checks ? (ok ? <span className="text-success">verified</span> : <span className="text-destructive">failed</span>) : busy === "verify" ? "verifying…" : ""}</p>}
       {err && <ErrorText>{err}</ErrorText>}
       {checks && <ul className="space-y-1 text-sm">{checks.map((c) => <li key={c.what} className="flex items-center gap-2"><Mark state={c.ok ? "ok" : "bad"} />{c.what}</li>)}</ul>}
     </div>

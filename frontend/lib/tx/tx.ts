@@ -302,7 +302,41 @@ async function evaluate(e: Workflow["expect"][number], steps: StepOutcome[], del
 
 export type Funder = { signer: Signer };
 export type Progress = (msg: string) => void;
-type Ctx = { runId: string; secret: string; funder: Signer; timeoutMs: number; fetchFile: (p: string) => Promise<string>; log: Progress; fundCap?: bigint };
+type Ctx = { runId: string; secret: string; funder: Signer; timeoutMs: number; fetchFile: (p: string) => Promise<string>; log: Progress; fundCap?: bigint; prefunded?: Set<string> };
+
+/** One wallet transaction that funded every test account of a run on one chain. */
+export type Funding = { network: string; tx_hash: string; block_hash: string; block_number: number | null; accounts: number; total: string };
+
+/** The per-run key of one test account: derived from a secret that lives only in this tab. */
+const testPair = (kr: any, ctx: Ctx, side: string, wfId: string, account: string) => kr.addFromUri(`${ctx.secret}//canary/${ctx.runId}/${side}/${wfId}/${account}`);
+
+/**
+ * A wallet signs once per chain: every test account of every selected workflow, on every side
+ * that runs on this chain, funded in one utility.batchAll. The workflows then run with their own
+ * test keys, so the wallet is not asked again.
+ */
+async function prefund(ctx: Ctx, suite: SuiteEntry[], sides: { side: "baseline" | "candidate"; ws: string }[], ws: string): Promise<Funding> {
+  const a = await api(ws);
+  const kr = keyring();
+  const bal = (a.tx as any).balances;
+  const transfer = bal.transferKeepAlive ?? bal.transfer ?? bal.transferAllowDeath;
+  const calls: any[] = [];
+  let total = 0n;
+  for (const { workflow: wf } of suite)
+    for (const { side } of sides.filter((x) => x.ws === ws))
+      for (const f of funded(wf, ctx.fundCap)) {
+        calls.push(transfer(testPair(kr, ctx, side, wf.id, f.account).address, f.amount));
+        total += BigInt(f.amount);
+      }
+  const batch = (a.tx as any).utility?.batchAll;
+  if (calls.length > 1 && !batch) throw new Error("this chain has no utility.batchAll; fund from a dev account instead");
+  const tx = calls.length === 1 ? calls[0] : batch(calls);
+  ctx.log(`funding ${calls.length} test accounts in one transaction: approve it in your wallet`);
+  const out = await submit(a, tx, await funderHandle(ctx.funder), ctx.timeoutMs);
+  if (out.status !== "success") throw new Error(`funding transaction ${out.status}: ${out.dispatch_error ?? ""}`);
+  const header = await send(ws, "chain_getHeader", [out.block_hash]).catch(() => null);
+  return { network: ws, tx_hash: tx.hash.toHex(), block_hash: out.block_hash, block_number: header ? parseInt(header.number, 16) : null, accounts: calls.length, total: total.toString() };
+}
 
 /** On a live chain each test account is funded with at most `cap`; these are what a workflow then holds. */
 const funded = (wf: Workflow, cap?: bigint) => (wf.fund ?? []).map((f) => ({ ...f, amount: cap != null && BigInt(f.amount) > cap ? cap.toString() : f.amount }));
@@ -334,18 +368,21 @@ async function runSide(wf: Workflow, side: "baseline" | "candidate", ws: string,
     const accounts = wf.accounts ?? [];
     // Fresh per-run accounts, derived from a secret that lives only in this tab.
     const pairs: Record<string, any> = {};
-    for (const a of accounts) pairs[a] = kr.addFromUri(`${ctx.secret}//canary/${ctx.runId}/${side}/${wf.id}/${a}`);
+    for (const a of accounts) pairs[a] = testPair(kr, ctx, side, wf.id, a);
     const resolver: Resolver = {
       pair: (n) => pairs[n] ?? (DEV.includes(n) || n.startsWith("//") ? (ctx.funder.kind === "dev" ? devPair(n) : null) : null),
       fetchFile: ctx.fetchFile,
     };
-    const funder = await funderHandle(ctx.funder);
-    ctx.log(`${wf.id} · ${side}: funding ${accounts.join(", ")}`);
     const fund = funded(wf, ctx.fundCap);
-    const fundSteps: Step[] = fund.map((f) => ({ call: "Balances.transfer", signer: "$funder", args: { dest: f.account, value: f.amount } }));
-    const setup = await runSteps(ws, fundSteps, resolver, funder, ctx.timeoutMs);
-    const bad = setup.find((r) => r.status !== "success");
-    if (bad) throw new Error(`setup step ${bad.index} ${bad.status}: ${bad.dispatch_error ?? ""}`);
+    // A wallet already funded this chain's accounts in one batch; dev accounts fund per workflow.
+    const funder = ctx.prefunded?.has(ws) ? null : await funderHandle(ctx.funder);
+    if (funder) {
+      ctx.log(`${wf.id} · ${side}: funding ${accounts.join(", ")}`);
+      const fundSteps: Step[] = fund.map((f) => ({ call: "Balances.transfer", signer: "$funder", args: { dest: f.account, value: f.amount } }));
+      const setup = await runSteps(ws, fundSteps, resolver, funder, ctx.timeoutMs);
+      const bad = setup.find((r) => r.status !== "success");
+      if (bad) throw new Error(`setup step ${bad.index} ${bad.status}: ${bad.dispatch_error ?? ""}`);
+    }
     const ids: Record<string, Uint8Array> = Object.fromEntries(accounts.map((n) => [n, pairs[n].publicKey]));
 
     // wait until every funding is visible at the best block (runner.rs wait_funded)
@@ -386,6 +423,14 @@ async function runSide(wf: Workflow, side: "baseline" | "candidate", ws: string,
 async function sweep(ws: string, pairs: any[], to: string) {
   const a = await api(ws);
   if (!(a.tx as any).balances?.transferAll) return;
+  // A test identity holds a deposit, which can't be transferred: clear it first so the deposit
+  // comes back too, and the run costs the funder only fees.
+  const clear = (a.tx as any).identity?.clearIdentity;
+  const q = (a.query as any).identity?.identityOf;
+  if (clear && q) await Promise.all(pairs.map(async (p) => {
+    const has = await q(p.address).then((v: any) => (v?.isSome ?? !v?.isEmpty) === true).catch(() => false);
+    if (has) await submit(a, clear(), { pair: p }, 30_000);
+  }));
   // Only accounts holding more than a transfer fee are worth sweeping.
   const ed = BigInt((a.consts as any).balances?.existentialDeposit?.toString() ?? "0");
   const rich: any[] = [];
@@ -399,6 +444,8 @@ export type TestArgs = {
   timeoutMs?: number; fetchFile: (p: string) => Promise<string>; log?: Progress; onResult?: (r: any) => void;
   /** live chains: fund each test account with at most this much */
   fundCap?: bigint;
+  /** a wallet funded the test accounts: one transaction per chain */
+  onFunding?: (f: Funding) => void;
 };
 export async function runTest(a: TestArgs) {
   const runId = String(Math.floor(Date.now() / 1000));
@@ -409,6 +456,16 @@ export async function runTest(a: TestArgs) {
     suite: a.suite.map((s) => ({ workflow: s.workflow.id, path: s.path, sha256: s.sha256 })),
     baseline: await identify(a.baseline), candidate: await identify(a.candidate), injected: a.injected ?? null,
   };
+  if (a.funder.kind !== "dev") {
+    const sides = [{ side: "baseline" as const, ws: a.baseline }, { side: "candidate" as const, ws: a.candidate }];
+    ctx.prefunded = new Set();
+    for (const ws of [...new Set(sides.map((x) => x.ws))]) {
+      const f = await prefund(ctx, a.suite, sides, ws);
+      ctx.prefunded.add(ws);
+      ctx.log(`funded ${f.accounts} accounts · block #${f.block_number ?? "?"} · ${f.tx_hash.slice(0, 14)}…`);
+      a.onFunding?.(f);
+    }
+  }
   const results: any[] = [];
   for (const { workflow: wf } of a.suite) {
     const b = await runSide(wf, "baseline", a.baseline, ctx);
